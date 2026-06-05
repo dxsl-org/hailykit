@@ -1,0 +1,332 @@
+# HailyKit Engineering Lexicon
+
+> Authoritative vocabulary and engineering standards for all HailyKit skills/hooks/tools.
+> Every skill, reference file, and rule document MUST use the terms defined here.
+> If a concept is not listed, use the most widely adopted term from the relevant
+> engineering discipline (DevOps, SRE, CI/CD, software architecture).
+
+---
+
+## HailyKit Design Principles
+
+Four invariants that govern every skill and workflow decision in this catalog:
+
+1. **Single-pipeline model** — every workflow skill follows one named-stage pipeline; no mode explosion, no branching pipelines per flag.
+2. **Two-mode execution** — interactive (default, pauses at Checkpoints) and autonomous (`--auto`, resolves autonomously). Avoid redundant mode flags that duplicate what input detection or default behavior already handles.
+3. **Delegation over self-implementation** — workflow skills never implement testing, code review, or finalization directly; they delegate to specialist agents via Task tool.
+4. **Auto-detect over explicit flags** — detect behavior from input shape (file extension, URL domain, path pattern) rather than requiring the user to name a mode.
+
+These principles apply at the skill design level. When in doubt about a flag or section, ask: does this violate one of the four?
+
+---
+
+## Part I — Pipeline Architecture
+
+HailyKit workflow skills follow a **named-stage pipeline** modeled on Continuous
+Delivery practices. Stages have names, not numbers. Each stage declares its own
+entry criteria, actions, and exit artifacts.
+
+### Canonical Stages
+
+```
+Route → Recon → Draft → Build → Verify → Ship
+```
+
+| Stage | Purpose | Industry basis |
+|---|---|---|
+| **Route** | Classify input, select execution mode, initialize workspace | CI trigger / webhook routing |
+| **Recon** | Codebase scan + requirements capture + domain research | Sprint discovery / spike |
+| **Draft** | Produce implementation plan + dependency graph | Design phase / ADR drafting |
+| **Build** | Implement code, run Preflight Checks, run Lean Pass | Build + link stage in CI |
+| **Verify** | Test (delegated) + code review (delegated) + Stress Probe | CI verification / QA gate |
+| **Ship** | Sync plan state, update docs, commit, journal | Release / deploy stage |
+
+### Stage Rules
+
+1. Stages are referred to by **name** (e.g., "the Build stage"), never by
+   index number.
+2. Each stage has exactly one **checkpoint** (see Part II) at its exit — never
+   mid-stage.
+3. Stages may be **skipped** when input type makes them redundant (e.g., plan-path
+   input skips Recon + Draft). The skip condition is documented per-skill.
+4. A stage **never** begins until its predecessor's exit artifacts are available
+   (except Route, which has no predecessor).
+
+### Stage Output Format
+
+Every stage emits a one-line status on completion:
+
+```
+✓ [StageName]: [status summary] — [key metrics]
+```
+
+Examples:
+```
+✓ Route: task input detected — mode=interactive, flags=[--tdd]
+✓ Recon: codebase scanned — 5 findings, 3 requirements locked
+✓ Build: 12 files changed — 8/8 phases complete, Lean Pass clean
+✓ Verify: tests 42/42 passed — review 9.2/10 approved
+✓ Ship: plan synced — 3 agents invoked, committed as feat(auth)
+```
+
+---
+
+## Part II — Quality Mechanisms
+
+### Checkpoints
+
+A **checkpoint** is a decision point at the boundary between stages where the
+pipeline pauses for approval.
+
+| Mode | Checkpoint behavior |
+|---|---|
+| Interactive (default) | Pause, present summary, user decides: proceed / revise / abort |
+| Autonomous (`--auto`) | Auto-proceed if exit artifacts pass validation; halt on high-risk |
+
+Checkpoints replace the older concepts of "Review Gates" and "Hard Gates".
+Do NOT use "gate" as a noun for pipeline decision points in skill documentation.
+(Exception: internal filenames — `artifact-verifier.cjs`, `review-gates.md`,
+`review-artifacts.md` — retain their names as opaque identifiers. The vocabulary
+restriction applies to user-facing prose, not file or variable naming.)
+
+### Guardrails
+
+A **guardrail** is an invariant rule enforced throughout the pipeline — not at a
+specific point, but as a continuous constraint.
+
+Guardrails in skill documentation use the callout syntax:
+
+```markdown
+> **Required — [rule-name]:** [What must hold. Why, if non-obvious.]
+```
+
+Standard guardrails for workflow skills:
+
+| Guardrail | Shorthand | Meaning |
+|---|---|---|
+| Plan before code | `plan-first` | No implementation until a plan exists and has been reviewed |
+| Scout before asking | `recon-first` | Scan codebase before asking user questions or producing a plan |
+| Zero-regress | `zero-regress` | All existing tests pass, no lint/type/build regressions, public contracts unchanged unless intentional |
+
+### Scope Contract
+
+Before planning begins, the pipeline captures a **Scope Contract** — a structured
+agreement between user and agent on what will be built. It has three sections:
+
+| Section | What it captures | Maps to artifact field |
+|---|---|---|
+| **Deliverables** | Concrete output artifacts the user will see (file paths, endpoints, UI screens) | `context-snippets.json → task` |
+| **Boundaries** | What is in scope (acceptance criteria), what is out of scope, and what must not change (invariants) | `context-snippets.json → acceptanceCriteria` |
+| **Blast Radius** | Modules, contracts, and interfaces the change will touch or could affect | `context-snippets.json → touchpoints, blastRadius, publicContracts` |
+
+"Blast Radius" is standard DevOps/SRE terminology (AWS, Google SRE handbook).
+
+### Severity Triage
+
+When a regression or side effect is detected, the agent classifies it by severity
+and responds according to this matrix:
+
+| Severity | Definition | Interactive response | `--auto` response |
+|---|---|---|---|
+| **Critical** | Breaks existing users, data loss, security hole | Immediate rollback. Halt. Write incident report. | Same — auto-rollback + terminate + incident report. |
+| **Major** | Breaks internal contract, fails neighbor tests | Pause. Present options: rollback / propagate new contract / add compatibility shim. User decides. | Agent selects lowest-risk resolution (default: rollback affected slice). Logs rationale to incident report. Continues if resolved; terminates if unresolvable. |
+| **Minor** | Cosmetic, style drift, non-blocking warning | Log warning. Continue. Address in Verify if reviewer flags it. | Same — log and continue. |
+
+---
+
+## Part III — Terminology Reference
+
+### Pipeline & Workflow
+
+| Term | Definition | Do NOT use |
+|---|---|---|
+| **Stage** | A named phase in the pipeline (Route, Recon, Draft, Build, Verify, Ship) | "Step", "Step N", "Phase" (for pipeline level) |
+| **Checkpoint** | Decision point at stage boundary | "Gate", "Review Gate", "Hard Gate" |
+| **Guardrail** | Continuous invariant rule | "Hard Gate", "HARD-GATE" |
+| **Scope Contract** | Structured requirements agreement (Deliverables + Boundaries + Blast Radius) | "Exact Requirements", "5 anchors", "nail the spec" |
+| **Stage Graph** | DAG of plan phase dependencies; determines parallel execution | "Phase Dependency Analysis" |
+| **Mode** | Execution style: interactive (default), autonomous (`--auto`) | "Fast", "Parallel", "No-test" (these are not modes — see below) |
+| **Input Detection** | Classifying the first argument: file extension, URL domain, path pattern → determines input type | "Intent Detection", "Smart Intent Detection" |
+| **Input Routing** | Acting on the detected input type: selecting the execution path, workflow file, or stage entry point | "Conflict Resolution" (for precedence) |
+| **Routing Precedence** | Priority order when multiple routing signals conflict (e.g., image file + task text override) | "Conflict Resolution" |
+
+### Build Stage
+
+| Term | Definition | Do NOT use |
+|---|---|---|
+| **Preflight Checks** | Verification steps before writing code in a phase: conventions audit, neighbor scan, reuse search, contract trace, inventory reconciliation | "Conformance Checklist", "Pre-Code Audit" (the latter is acceptable as a synonym) |
+| **Lean Pass** | Post-implementation complexity reduction triggered by diff metrics | "Conditional Simplify", "Code Simplifier" |
+| **Red-Green-Refactor** | TDD cycle: write failing test → implement to pass → clean up | "Snapshot/Transform/Verify", "3.T/3.I/3.V" |
+
+### Verify Stage
+
+| Term | Definition | Do NOT use |
+|---|---|---|
+| **Review Circuit** | Iterative review-fix loop, max 3 iterations | "Interactive Cycle", "Review Cycle", "3-round cap" |
+| **Auto-Resolve Ladder** | Autonomous escalation: auto-fix → retry → incident report → terminate | "Auto-Handling Cycle", "budget = 3" |
+| **Stress Probe** | Adversarial validation: attempts to disprove implementation claims | "Adversarial Challenge", "Adversarial Validator" |
+| **Domain Audit** | Focused risk review for security, data, infrastructure, or contract surfaces | "Domain-Risk Review" |
+| **3 Lenses** | Code review framework: Correctness, Compatibility, Cleanliness | "5 axes (a-e)", "MANDATORY checks (a) through (e)" |
+
+#### 3 Lenses — Detail
+
+| Lens | Scope |
+|---|---|
+| **Correctness** | Every acceptance criterion has proof (test or manual). No regression in business logic across blast radius. |
+| **Compatibility** | Public contracts (signatures, schemas, APIs, env vars, config keys) unchanged unless intentional. New code follows patterns identified during Recon. |
+| **Cleanliness** | Zero new lint, type, or build errors anywhere in the repo. |
+
+### Ship Stage
+
+| Term | Definition | Do NOT use |
+|---|---|---|
+| **Bookkeeping** | Plan sync-back + task status updates + docs update | Part of "Finalize" |
+| **Release** | Commit via git-manager + journal entry | Part of "Finalize" |
+
+"Finalize" is acceptable as an informal synonym for the entire Ship stage.
+
+### Agent Delegation
+
+| Term | Definition | Do NOT use |
+|---|---|---|
+| **Delegate** | Spawn a subagent via Task tool to perform work | "Implement directly" |
+| **Agent role** | The `subagent_type` value in a Task invocation | "Subagent pattern" |
+| **Delegation pattern** | Canonical Task() invocation template for a specific role | "Subagent pattern" |
+
+Standard agent roles used by workflow skills:
+
+| Category | Roles |
+|---|---|
+| **Analysis** | `researcher`, `scout` |
+| **Build** | `planner`, `designer`, `implementor` |
+| **Quality** | `tester`, `debugger`, `code-reviewer`, `refiner` |
+| **Operations** | `project-manager`, `docs-writer`, `git-manager` |
+
+### Artifact Files
+
+These file names are locked (hook code depends on them). Do not rename.
+
+| File | Purpose |
+|---|---|
+| `context-snippets.json` | Scope Contract serialized: skill, mode, task, acceptance criteria, touchpoints, blast radius, scout summary |
+| `risk-gate.json` | Risk assessment: highRisk, reasons, autoStopRequired, humanApproved, largeDiff |
+| `verification.json` | Test/build command results with status, exit codes, timestamps |
+| `review-decision.json` | Review verdict: decision (PASS/PASS_WITH_RISK/BLOCKED), score, critical count, coverage, contract status |
+| `adversarial-validation.json` | Stress Probe output: decision, disproven claims, unverified claims, missing proof, reachable regressions |
+
+Artifact directory conventions:
+- Plan workflow: `.agents/<plan-dir>/reports/harness/`
+- No-plan workflow: `.agents/reports/harness/<timestamp-slug>/`
+- Active pointer: `.agents/workflow-artifacts.json`
+
+### Deep Audit Triggers
+
+Conditions that demand a Stress Probe or Domain Audit beyond standard review:
+
+| Category | Surfaces | Required response |
+|---|---|---|
+| **Security** | Auth flows, credential handling, payment logic, secret management | Domain Audit |
+| **Data** | Schema changes, migration scripts, bulk data mutations | Domain Audit |
+| **Contract** | Public API shapes, exported types, env var contracts, config keys | Domain Audit |
+| **Infrastructure** | CI pipelines, deploy configs, release scripts, production config | Domain Audit |
+| **Scale** | Autonomous execution (`--auto`), large diffs, ship/push/PR/deploy | Stress Probe |
+| **Destructive** | Bulk file deletion, data wipes, irreversible writes | Domain Audit + Stress Probe |
+
+No majority vote. A single evidenced critical finding blocks.
+
+---
+
+## Part IV — Configuration Keys
+
+| Config file | Key path | Default | Purpose |
+|---|---|---|---|
+| `.hl.json` | `lean.threshold.locDelta` | 400 | Lean Pass: max total lines changed |
+| `.hl.json` | `lean.threshold.fileCount` | 8 | Lean Pass: max files changed |
+| `.hl.json` | `lean.threshold.singleFileLoc` | 200 | Lean Pass: max lines in a single file |
+| `.hl.json` | `lean.enabled` | true | Enable/disable Lean Pass |
+| env var | `HL_LEAN_DISABLED` | — | Set to `1` to bypass Lean Pass |
+
+---
+
+## Part V — Writing Conventions for Skill Files
+
+### Voice
+
+- **Direct and technical.** No marketing language, no superlatives ("world-class",
+  "cutting-edge", "elite"), no roleplay openers ("You are a…").
+- **Imperative mood** for instructions: "Scan the codebase", not "You should scan
+  the codebase".
+- **Active voice** for descriptions: "The agent spawns a tester", not "A tester
+  is spawned by the agent".
+
+### Banned Phrases
+
+These phrases indicate copied or marketing-derived content. Replace or remove.
+
+| Banned | Replacement |
+|---|---|
+| "Hard Gate" / `<HARD-GATE>` | Guardrail (in prose) or `> **Required —**` callout |
+| "nail the spec" | "capture the Scope Contract" |
+| "5 anchors" | "Scope Contract" |
+| "zero collateral damage" | "zero-regress guarantee" |
+| "blast surface" / "touchpoints" (as coined terms) | "blast radius" (industry standard) |
+| "fence line" | "scope boundary" or "Boundaries section" |
+| "Conformance Checklist" | "Preflight Checks" |
+| "budget = 3" | "max 3 iterations" or "Auto-Resolve Ladder" |
+| "Anti-Rationalization" table | Remove entirely (rules layer provides this) |
+| "brutal honesty" / "elite expert" / "You are a…" | Remove |
+| "CK-Native" / `metadata: author: claudekit` | Remove |
+| "Step 0:", "Step 1:", … (pipeline-level) | Stage names: Route, Recon, Draft, Build, Verify, Ship |
+| "Phase N:" (pipeline-level) | Stage names (reserve "phase" for plan phases: `phase-01-name.md`) |
+
+### Constraint Callout Format
+
+```markdown
+> **Required — recon-first:** Before any question or plan, scan the codebase.
+> Collect: project type, frameworks, relevant modules, docs in `./docs/`,
+> in-flight plans in `.agents/`. Report 3–6 findings before proceeding.
+```
+
+### Cross-Reference Format
+
+```markdown
+`{skill:hc-plan}`, `{skill:hl-brainstorm}`, `{skill:hc-cook}`
+```
+
+Never use slash form (`/hc-plan`) in skill body text. Slash form is terminal syntax only.
+
+> **agentskills.io compliance:** The `name:` field uses `[a-z0-9-]` only (no colons), per the [agentskills.io spec](https://agentskills.io/specification). Hyphen separates domain prefix from bare name: `hc-debug` = prefix `hc` + name `debug`. When porting future `hd-*` design skills, use `hc-` prefix per domain routing decision.
+
+### Example Selection
+
+When illustrating a skill, use examples that reflect HailyKit's multi-modal
+capability (layout, API, CLI). Avoid reusing examples from other toolkits.
+
+Good examples:
+```
+{skill:hc-cook} "Add rate limiting to API endpoints" --tdd
+{skill:hc-cook} mockup.png
+{skill:hc-cook} https://figma.com/file/abc123
+{skill:hc-cook} .agents/260601-auth/plan.md --auto
+```
+
+---
+
+## Part VI — Industry Standards Referenced
+
+Standards and methodologies HailyKit applies. Each entry names the standard and notes where it appears in the codebase.
+
+- **Named-Stage Pipeline** — stages Route→Recon→Draft→Build→Verify→Ship; Checkpoint at stage boundaries; Stage Graph for parallel execution. [*Continuous Delivery*, Humble & Farley, 2010]
+- **Test-Driven Development (Red-Green-Refactor)** — `--tdd` flag; Red-Green-Refactor cycle in Build stage. [Beck, 2002]
+- **YAGNI / KISS / DRY** — flag pruning; auto-detect input type; single-pipeline model. [Beck 1999; Hunt & Thomas 1999]
+- **Blast Radius** — Scope Contract section; Severity Triage proportional response. [AWS Well-Architected 2015; SRE Book, Google 2016]
+- **Severity Classification (SEV-1/2/3)** — Severity Triage matrix in Part II; Critical/Major/Minor response differentiation. [ITIL Service Operation 2007; SRE Book ch.14]
+- **Preflight Checklist** — Preflight Checks in Build stage: conventions audit, neighbor scan, reuse search, contract trace. [NASA FCOM; Gawande 2009]
+- **Lean Waste Elimination** — Lean Pass triggered on LOC-delta breach; removes complexity without changing behavior. [Ohno 1988; Poppendieck 2003]
+- **Circuit Breaker Pattern** — Review Circuit: max 3 review-fix iterations before escalation or termination. [Nygard 2007; Fowler 2014]
+- **DAG Scheduling** — Stage Graph from `blockedBy` fields in plan phases; determines parallel execution order. [GNU Make 1988; Airflow 2014]
+- **Escalation Ladder** — Auto-Resolve Ladder in `--auto` mode: auto-fix → retry (max 3) → incident report → terminate. [ITIL 2007]
+- **Defense in Depth** — layered verification: Preflight → Test → Review Circuit → Stress Probe. [NSA 2010; NIST SP 800-30]
+- **Architecture Decision Records (ADR)** — `plan.md` + `phase-XX-*.md` as lightweight ADRs with Scope Contract and blast radius. [Nygard 2011]
+- **Hill Climbing (Iterative Metric Optimization)** — `hc-optimize` skill: atomic change → measure metric → keep/revert per iteration. [Russell & Norvig 2010 ch.4]
+- **agentskills.io Skill Specification** — `SKILL.md` structure; `name:` field format `[a-z0-9-]`; `metadata:` block; `{skill:hc-cook}` cross-reference syntax; domain prefix routing (`hl-`/`hc-`). [agentskills.io/specification, Apache 2.0]

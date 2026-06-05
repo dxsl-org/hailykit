@@ -1,0 +1,38 @@
+{
+  "name": "hailykit",
+  "version": "1.0.0",
+  "description": "Skill-based workflow framework for AI coding agents — runtime engine + multi-provider installer",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "hailykit": "dist/bin.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "postbuild": "node scripts/copy-tool-assets.mjs",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "pretest": "tsc -p tsconfig.test.json",
+    "test": "node --test \".test-build/tests/**/*.test.js\"",
+    "release:pack": "node scripts/package-release.mjs"
+  },
+  "files": [
+    "dist/"
+  ],
+  "keywords": [
+    "ai-agents",
+    "automation",
+    "cli-tools",
+    "skills",
+    "claude-code"
+  ],
+  "author": "lungmat@DXSL",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "typescript": "^5.9.3"
+  }
+}

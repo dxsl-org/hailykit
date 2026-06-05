@@ -1,0 +1,9 @@
+{
+  "id": "reverse-py",
+  "name": "Reverse (Python)",
+  "description": "Reverses input.text — example Python polyglot tool.",
+  "version": "1.0.0",
+  "kind": "external",
+  "command": "python3",
+  "args": ["reverse.py"]
+}

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./.test-build",
+    "declaration": false,
+    "noEmit": false
+  },
+  "include": ["cli/**/*"],
+  "exclude": ["node_modules", "dist", "cli/tools"]
+}

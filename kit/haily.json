@@ -1,0 +1,31 @@
+{
+  "assistant": {
+    "name": null,
+    "addressStyle": null,
+    "language": null,
+    "codeComments": "en",
+    "documentation": "en"
+  },
+  "codingLevel": 5,
+  "gemini": {
+    "model": "gemini-2.0-flash"
+  },
+  "plan": {
+    "namingFormat": "{date}-{issue}-{slug}",
+    "issuePrefix": null
+  },
+  "guard": {
+    "block": [
+      "node_modules", "dist", "build", ".next", ".nuxt",
+      "__pycache__", ".venv", "venv", "vendor", "target",
+      ".git", "coverage"
+    ],
+    "allow": []
+  },
+  "hooks": {
+    "workflow-artifact-gate": false
+  },
+  "workflowArtifactGate": {
+    "enforceOnMissing": false
+  }
+}

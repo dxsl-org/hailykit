@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "skillListingMaxDescChars": 512,
+  "skillListingBudgetFraction": 0.03,
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "permissions": {
+    "allow": []
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-session.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          },
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-usage.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-subagent.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-state.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-rules.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          },
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-artifact.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          },
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-optimize.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          },
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-pii.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          },
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-usage.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-usage.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          }
+        ]
+      },
+      {
+        "matcher": "Task|TaskCreate|TaskUpdate|TodoWrite",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-state.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-artifact.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Glob|Grep|Read|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-access.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-state.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          }
+        ]
+      }
+    ]
+  }
+}

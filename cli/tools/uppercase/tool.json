@@ -1,0 +1,9 @@
+{
+  "id": "uppercase",
+  "name": "Uppercase",
+  "description": "Uppercases input.text — example Node.js polyglot tool.",
+  "version": "1.0.0",
+  "kind": "external",
+  "command": "node",
+  "args": ["uppercase.js"]
+}
