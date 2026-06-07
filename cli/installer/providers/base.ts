@@ -91,7 +91,9 @@ export abstract class BaseProvider implements Provider {
         continue;
       }
       written.add(result.filename);
-      fs.writeFileSync(path.join(outDir, result.filename), result.content, 'utf8');
+      const destPath = path.join(outDir, result.filename);
+      fs.mkdirSync(path.dirname(destPath), { recursive: true });
+      fs.writeFileSync(destPath, result.content, 'utf8');
       count++;
     }
     return count;

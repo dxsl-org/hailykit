@@ -269,7 +269,7 @@ export function toOpenCodeMd(description: string, body: string): string {
  */
 export function toCrushMd(name: string, description: string, body: string): string {
   const desc = JSON.stringify(description || '');
-  return `---\nname: ${name}\ndescription: ${desc}\nuser-invocable: true\n---\n\n${body}\n`;
+  return `---\nname: ${name}\ndescription: ${desc}\n---\n\n${body}\n`;
 }
 
 /**
