@@ -133,6 +133,8 @@ git fetch origin <target> && git merge origin/<target> --no-edit
 
 ## Step 6: Version Bump (conditional)
 
+**Skip if:** no `--release` flag OR no version file found. Without `--release`, the version stays unchanged — changelog accumulates in `[Unreleased]` instead.
+
 1. Auto-detect version source (see `tech-auto-detect.md`)
 2. If no version file found: **skip silently**
 3. Auto-decide bump level from diff size:
@@ -146,25 +148,64 @@ git fetch origin <target> && git merge origin/<target> --no-edit
 
 **Skip if:** `--quick` flag.
 
-1. Check for CHANGELOG.md or CHANGES.md
-2. If not found: **create CHANGELOG.md** with standard header:
-   ```
+1. Check for CHANGELOG.md or CHANGES.md. If not found, create CHANGELOG.md:
+   ```markdown
    # Changelog
 
    All notable changes to this project will be documented in this file.
+   Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
    ```
-3. Auto-generate entry from ALL commits on branch:
+
+2. Auto-generate bullet list from ALL commits on branch:
    - `git log <target>..HEAD --oneline` for commit list
    - `git diff <target>...HEAD` for full diff context
-4. Categorize into 2 sections only:
-   - `### 🚀 Improvements` — new features, enhancements, performance, refactors
-   - `### 🐛 Fixes` — bug fixes, security patches, regressions
-   - Omit a section entirely if empty (don't output an empty header)
-   - Each bullet: max 10 words, no sub-bullets — one clear sentence, no trailing explanations
-5. Insert after file header, dated today
-6. Format: `## [X.Y.Z] (YYYY-MM-DD)`
+   - Categorize into 2 sections only:
+     - `### 🚀 Improvements` — new features, enhancements, performance, refactors
+     - `### 🐛 Fixes` — bug fixes, security patches, regressions
+     - Omit a section entirely if empty
+     - Each bullet: max 10 words, one clear sentence, no trailing explanations
 
 **Do NOT ask user to describe changes.** Infer from diff and commits.
+
+---
+
+### Default mode (no `--release`): append to [Unreleased]
+
+3. Look for an existing `## [Unreleased]` section in the file.
+   - If found: append new bullets under the existing `[Unreleased]` block (de-duplicate with already present items).
+   - If NOT found: insert a new block immediately after the file header:
+     ```markdown
+     ## [Unreleased]
+
+     ### 🚀 Improvements
+     - <new bullet>
+     ```
+
+Output line: `✓ Changelog:   [Unreleased] updated`
+
+---
+
+### `--release` mode: promote [Unreleased] → versioned entry
+
+3. Look for an existing `## [Unreleased]` section:
+   - **Found:** replace `## [Unreleased]` with `## [X.Y.Z] (YYYY-MM-DD)`. Insert a fresh, empty `## [Unreleased]` block above it:
+     ```markdown
+     ## [Unreleased]
+
+     ## [X.Y.Z] (YYYY-MM-DD)
+
+     ### 🚀 Improvements
+     - <promoted bullets>
+     ```
+   - **Not found:** generate a versioned entry directly from commits and prepend after the file header:
+     ```markdown
+     ## [X.Y.Z] (YYYY-MM-DD)
+
+     ### 🚀 Improvements
+     - <generated bullets>
+     ```
+
+Output line: `✓ Changelog:   [Unreleased] → [X.Y.Z] (YYYY-MM-DD)`
 
 ## Step 8: Journal (background)
 
@@ -258,7 +299,7 @@ EOF
 
 ## Step 13: GitHub Release (conditional)
 
-**Skip if:** `--quick` flag, version was not bumped in Step 6, or `gh` CLI is not available.
+**Skip if:** no `--release` flag, `--quick` flag, version was not bumped in Step 6, or `gh` CLI is not available.
 
 After CI passes and the branch is merged, publish an official GitHub release.
 

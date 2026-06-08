@@ -26,6 +26,7 @@ export interface Provider {
   installAgents?(extractedClaudeDir: string, targetProviderDir: string): void;
   readVersion(providerDir: string): string | null;
   writeVersion(providerDir: string, version: string): void;
+  uninstall(providerDir: string): void;
 }
 
 // Directories and file suffixes skipped when copying hook scripts.
@@ -181,6 +182,42 @@ export abstract class BaseProvider implements Provider {
         .join('\n');
     }
     return `**${roles[0][0].toUpperCase() + roles[0].slice(1)} step:** [Perform the following as a ${roles[0]} specialist:]`;
+  }
+
+  /** Remove all HailyKit-managed files from a provider directory. */
+  uninstall(providerDir: string): void {
+    const meta = path.join(providerDir, '.hailykit-meta.json');
+    if (!fs.existsSync(meta)) {
+      console.log('    Not installed (no .hailykit-meta.json found)');
+      return;
+    }
+    for (const sub of [this.commandsSubDir(), 'agents', 'hooks']) {
+      const d = path.join(providerDir, sub);
+      if (fs.existsSync(d)) {
+        fs.rmSync(d, { recursive: true, force: true });
+        console.log(`    Removed ${sub}/`);
+      }
+    }
+    for (const f of ['hailykit-rules.md', 'hailykit-skills.md', 'hooks.json', 'CRUSH.md']) {
+      const fp = path.join(providerDir, f);
+      if (fs.existsSync(fp)) { fs.rmSync(fp); console.log(`    Removed ${f}`); }
+    }
+    this._removeSentinelBlock(path.join(providerDir, 'AGENTS.md'), '<!-- hailykit-rules-start -->', '<!-- hailykit-rules-end -->');
+    this._removeSentinelBlock(path.join(providerDir, 'GEMINI.md'), '<!-- hailykit-managed-start -->', '<!-- hailykit-managed-end -->');
+    fs.rmSync(meta);
+    console.log('    ✓ Uninstalled');
+  }
+
+  /** Remove a sentinel-delimited block from a file; no-op if file or sentinels are absent. */
+  protected _removeSentinelBlock(filePath: string, start: string, end: string): void {
+    if (!fs.existsSync(filePath)) return;
+    const content = fs.readFileSync(filePath, 'utf8');
+    const si = content.indexOf(start);
+    const ei = content.indexOf(end);
+    if (si === -1 || ei === -1 || ei <= si) return;
+    const cleaned = (content.slice(0, si) + content.slice(ei + end.length)).replace(/\n{3,}/g, '\n\n').trim();
+    fs.writeFileSync(filePath, cleaned ? cleaned + '\n' : '', 'utf8');
+    console.log(`    Cleaned ${path.basename(filePath)}`);
   }
 
   /** Shared helper: parse a SKILL.md and return cmdName, description, body with all refs resolved. */

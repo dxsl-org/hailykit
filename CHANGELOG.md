@@ -5,6 +5,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### 🚀 Improvements
+
+- **`hailykit uninstall`** — new CLI command removes HailyKit from any provider; supports `--provider` and `--project`
+- **Per-command `--help`** — `hailykit install --help`, `hailykit uninstall --help`, `hailykit status --help` each show focused help
+- **`hc-ship --release`** — changelog accumulates in `[Unreleased]` by default; `--release` promotes to versioned entry, bumps version, and publishes GitHub release
+
+---
+
 ## [1.2.1] (2026-06-08)
 
 ### 🚀 Improvements

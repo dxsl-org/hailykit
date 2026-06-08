@@ -313,6 +313,23 @@ export class CodexProvider extends BaseProvider {
     writeCodexConfigToml(targetProviderDir);
   }
 
+  uninstall(providerDir: string): void {
+    super.uninstall(providerDir);
+
+    // Remove HailyKit skill dirs from ~/.agents/skills/ (all hl-* and hc-* dirs)
+    const agentsSkillsDir = path.join(os.homedir(), '.agents', 'skills');
+    if (!fs.existsSync(agentsSkillsDir)) return;
+    let count = 0;
+    for (const entry of fs.readdirSync(agentsSkillsDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name.startsWith('hl-') || entry.name.startsWith('hc-')) {
+        fs.rmSync(path.join(agentsSkillsDir, entry.name), { recursive: true, force: true });
+        count++;
+      }
+    }
+    if (count > 0) console.log(`    Removed ${count} skills from ~/.agents/skills/`);
+  }
+
   // Not used — installSkills is fully overridden above.
   convertSkill(_content: string, _internalName: string): ConvertedSkill | null { return null; }
 }

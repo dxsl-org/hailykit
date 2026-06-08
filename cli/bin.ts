@@ -5,6 +5,7 @@ import { numberOption, parseArgs, stringOption } from './arg-parser';
 import { cmdInfo, cmdList, cmdRun, type EngineCliOptions } from './commands/engine-commands';
 import { cmdInstall } from './installer/commands/install';
 import { cmdUpgrade } from './installer/commands/upgrade';
+import { cmdUninstall } from './installer/commands/uninstall';
 import { cmdStatus } from './installer/commands/status';
 import { PROVIDER_NAMES } from './installer/providers/index';
 
@@ -28,6 +29,7 @@ Engine commands:
 Installer commands:
   install              Install HailyKit skills/hooks into an AI agent
   upgrade              Upgrade an installed HailyKit to the latest release
+  uninstall            Remove HailyKit from an AI agent
   status               Show installed vs latest version
 
 Engine options:
@@ -35,15 +37,47 @@ Engine options:
   --input <json>       JSON input for \`run\` (default: {})
   --timeout <ms>       Timeout for external (polyglot) tools
 
-Installer options (install / upgrade):
-  --project            Install into the current project instead of global
+Installer options (install / upgrade / uninstall):
+  --project            Target current project directory instead of global
   --provider <name>    Target AI agent (${[...PROVIDER_NAMES, 'all'].join(', ')})
+
+Install / upgrade only:
   --version <tag>      Use a specific release tag (e.g. v2.1.0)
   --no-venv            Skip Python venv setup (Claude only)
 
 Other:
-  -h, --help           Show this help
+  -h, --help           Show this help (append to a command for command help)
   -v, --version        Show the hailykit version
+`.trim();
+
+const HELP_INSTALLER = `
+hailykit install / upgrade — Install or upgrade HailyKit in an AI agent
+
+Options:
+  --provider <name>    Target: ${[...PROVIDER_NAMES, 'all'].join(', ')} (default: claude)
+  --project            Install into the current project instead of global (~/)
+  --version <tag>      Pin to a specific release tag (e.g. v2.1.0)
+  --no-venv            Skip Python venv setup (Claude only)
+`.trim();
+
+const HELP_UNINSTALL = `
+hailykit uninstall — Remove HailyKit from an AI agent
+
+Options:
+  --provider <name>    Target: ${[...PROVIDER_NAMES, 'all'].join(', ')} (default: claude)
+  --project            Uninstall from current project instead of global (~/)
+
+Notes:
+  - Removes skills, rules, agents, and hooks directories.
+  - Cleans HailyKit sentinel blocks from AGENTS.md and GEMINI.md.
+  - Claude: settings.json hooks entries are NOT removed automatically.
+`.trim();
+
+const HELP_STATUS = `
+hailykit status — Show installed vs latest HailyKit version
+
+Options:
+  --provider <name>    Filter to a specific provider (default: all)
 `.trim();
 
 /** Read this package's version from package.json next to the compiled bin. */
@@ -71,11 +105,19 @@ function installerOptions(options: Record<string, string | boolean>) {
 async function main(): Promise<number> {
   const { command, positionals, options } = parseArgs(process.argv.slice(2), VALUE_FLAGS);
 
-  if (options.help) { console.log(HELP); return 0; }
   if (!command) {
     if (options.v || 'version' in options) { console.log(readVersion()); return 0; }
     console.log(HELP);
     return 0;
+  }
+
+  if (options.help) {
+    switch (command) {
+      case 'install': case 'upgrade': console.log(HELP_INSTALLER); return 0;
+      case 'uninstall': console.log(HELP_UNINSTALL); return 0;
+      case 'status': console.log(HELP_STATUS); return 0;
+      default: console.log(HELP); return 0;
+    }
   }
 
   const engineOpts: EngineCliOptions = {
@@ -89,6 +131,10 @@ async function main(): Promise<number> {
     case 'run': return cmdRun(positionals[0], stringOption(options, 'input', ''), engineOpts);
     case 'install': await cmdInstall(installerOptions(options)); return 0;
     case 'upgrade': await cmdUpgrade(installerOptions(options)); return 0;
+    case 'uninstall': await cmdUninstall({
+      provider: stringOption(options, 'provider', '') || undefined,
+      project: options.project === true,
+    }); return 0;
     case 'status': await cmdStatus({ provider: stringOption(options, 'provider', '') || undefined }); return 0;
     default:
       console.error(`Unknown command: ${command}\nRun 'hailykit --help' for usage.`);

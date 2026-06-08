@@ -1,3 +1,4 @@
+import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { mergeClaudeDir, readMetadata } from '../merger.js';
@@ -36,6 +37,24 @@ export class ClaudeProvider implements Provider {
   readVersion(dir: string): string | null {
     const meta = readMetadata(dir);
     return meta.version ?? null;
+  }
+
+  uninstall(dir: string): void {
+    if (this.readVersion(dir) === null) {
+      console.log('    Not installed (no .hailykit-meta.json found)');
+      return;
+    }
+    for (const sub of ['skills', 'rules', 'agents', 'hooks']) {
+      const d = path.join(dir, sub);
+      if (fs.existsSync(d)) {
+        fs.rmSync(d, { recursive: true, force: true });
+        console.log(`    Removed ${sub}/`);
+      }
+    }
+    const meta = path.join(dir, '.hailykit-meta.json');
+    if (fs.existsSync(meta)) fs.rmSync(meta);
+    console.log('    Note: hooks in settings.json not removed (edit manually if needed)');
+    console.log('    ✓ Uninstalled');
   }
 
   // The install/upgrade commands bypass these methods for the claude provider,

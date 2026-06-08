@@ -1,9 +1,9 @@
 ---
 name: hc-ship
-description: "Full release pipeline: pre-flight, tests, code review, version bump, changelog, commit, push, PR creation, CI wait, merge, and GitHub release. Auto-detects mode from branch name. Stops only on test failures, merge conflicts, or rejected reviews."
-when_to_use: "Invoke when releasing a feature — runs pre-flight, tests, review, version bump, creates a PR, and optionally publishes a GitHub release."
+description: "Ship a branch: pre-flight, tests, code review, changelog, commit, push, PR, CI wait, and merge. By default accumulates changes in [Unreleased]. Add --release to bump version, promote changelog, and publish a GitHub release."
+when_to_use: "Invoke to ship a branch — runs pre-flight, tests, review, changelog, and creates a PR. Use --release when you're ready to cut an official versioned release."
 user-invocable: true
-argument-hint: "[--quick|--full|--dry-run] | rollout [flag-name]"
+argument-hint: "[--release] [--quick|--full|--dry-run] | rollout [flag-name]"
 metadata:
   attribution: "Inspired by gstack/ship by Garry Tan (MIT)"
   category: workflow
@@ -12,14 +12,15 @@ metadata:
 
 # hc:ship — Release Pipeline
 
-Runs the full path from a working branch to a published release: pre-flight, tests, review, version bump, changelog, commit, push, PR, CI, merge, and GitHub release creation. Auto-detects branch mode; stops only when the pipeline cannot safely continue.
+Runs the full path from a working branch to a merged PR: pre-flight, tests, review, changelog, commit, push, PR, and CI. By default, changes accumulate under `[Unreleased]` in the changelog — no version bump, no tag. Add `--release` to promote `[Unreleased]` → `[X.Y.Z]`, bump the version, and publish a GitHub release. Auto-detects branch mode; stops only when the pipeline cannot safely continue.
 
 ## Usage
 
 ```
-{skill:hc-ship}                              # auto-detect mode from branch name
+{skill:hc-ship}                              # accumulate changes into [Unreleased]
+{skill:hc-ship} --release                    # promote [Unreleased] → version, tag, GitHub release
 {skill:hc-ship} --quick                      # skip review and changelog
-{skill:hc-ship} --full                       # enforce all steps, no skips
+{skill:hc-ship} --full --release             # enforce all steps + publish release
 {skill:hc-ship} --dry-run                    # print planned actions without executing
 {skill:hc-ship} rollout [flag-name]          # feature flag gradual rollout (see below)
 ```
@@ -27,8 +28,9 @@ Runs the full path from a working branch to a published release: pre-flight, tes
 | Flag / Subcommand | Behavior |
 |---|---|
 | *(none)* | Infer from branch: `feature/*` `hotfix/*` `bugfix/*` → standard (→ main); `dev/*` `beta/*` `experiment/*` → fast (→ dev/beta); unclear → ask once |
-| `--quick` | Skip review (step 5) and changelog (step 7) |
-| `--full` | Enforce all 13 steps regardless of branch pattern |
+| `--release` | Promote `[Unreleased]` → `[X.Y.Z]`, bump version, create tag and GitHub release |
+| `--quick` | Skip review (step 6) and changelog (step 8) |
+| `--full` | Enforce all steps regardless of branch pattern (combine with `--release` to publish) |
 | `--dry-run` | Print what would happen at each step; stop after pre-flight |
 | `--no-ci-wait` | Push + create PR; skip CI wait and auto-merge — user monitors CI manually |
 | `rollout [flag]` | Feature flag gradual rollout: design → deploy with flag off → staged enable (1% → 10% → 50% → 100%) → cleanup. See `references/workflow-feature-rollout.md`. |
@@ -54,13 +56,13 @@ Runs the full path from a working branch to a published release: pre-flight, tes
 4. **Run tests** — auto-detect runner (npm/pytest/cargo/go test/…); delegate to `haily-tester` subagent. Stop on any failure. Log `✓ Tests: <N> passed, 0 failed`.
 5. **Build** — compile or bundle; stop if exit code is non-zero. Log `✓ Build: exit 0`. *[skipped: `--quick`]*
 6. **Code review** — delegate to `haily-reviewer` subagent when diff ≥ 50 lines changed or `--full`; skip silently for smaller diffs in standard mode. When run: two passes (critical then informational); pause on each critical finding: fix / acknowledge / mark false positive. *[skipped: `--quick`; skipped: diff < 50 lines in standard mode]*
-7. **Version bump** — auto-detect version file (package.json, pyproject.toml, Cargo.toml, VERSION); bump patch by default; ask user for minor/major on breaking changes. Beta mode appends `-beta.N`. *[skipped: no version file found]*
-8. **Changelog** — generate entry from `git log <target>..HEAD` and diff; create CHANGELOG.md if not present; prepend entry. *[skipped: `--quick`]*
+7. **Version bump** — auto-detect version file (package.json, pyproject.toml, Cargo.toml, VERSION); bump patch by default; ask user for minor/major on breaking changes. Beta mode appends `-beta.N`. *[skipped: no `--release` flag; no version file found]*
+8. **Changelog** — create CHANGELOG.md if absent. **Default mode (no `--release`):** append new bullets under `[Unreleased]` section (create section if absent). **`--release` mode:** promote `[Unreleased]` → `[X.Y.Z] (YYYY-MM-DD)` and insert a fresh `## [Unreleased]` header above it; if no `[Unreleased]` section exists, generate a versioned entry from commits. *[skipped: `--quick`]*
 9. **Journal + docs** — invoke `{skill:hl-log}` (session log → `.agents/logs/`) as a background task; run `{skill:hc-docs} update` only when `--full` or diff touches `docs/` files. If the pipeline hit a notable failure, also spawn `haily-reporter` subagent (incident report → `.agents/incidents/`). Do not wait for completion.
 10. **Commit** — scan staged diff for secrets; compose `type(scope): description`; include version + changelog in same commit.
 11. **Push** — `git push -u origin <branch>`. Log `✓ Pushed: origin/<branch>`.
 12. **PR + CI** — `gh pr create --base <target>` with structured body; link issues with `Closes #N`. Unless `--no-ci-wait`: wait up to 10 min for required checks; merge when green. With `--no-ci-wait`: output PR URL and exit — user monitors CI manually.
-13. **GitHub release** — after merge, if version was bumped: pull target branch, create and push tag `vX.Y.Z`, run release build command if detected (e.g. `npm run release:pack`), then `gh release create vX.Y.Z` with changelog entry as notes and any build artifacts attached. Output release URL. *[skipped: `--quick`; no version bump; no `gh` CLI]*
+13. **GitHub release** — after merge: pull target branch, create and push tag `vX.Y.Z`, run release build if detected (e.g. `npm run release:pack`), then `gh release create vX.Y.Z` with promoted changelog section as notes and any build artifacts attached. Output release URL. *[skipped: no `--release` flag; no version bump; no `gh` CLI; `--quick`]*
 
 Checkpoint behavior:
 
@@ -73,25 +75,35 @@ Checkpoint behavior:
 | On target branch at start | Stop — wrong branch, clarify intent |
 | Linting warnings / minor type issues | Continue |
 | Version file missing | Continue — skip version bump and release silently |
-| Changelog file missing | Create CHANGELOG.md (unless `--quick`) |
+| `--release` not passed | Skip Steps 7 (version bump) and 13 (GitHub release); changelog writes to `[Unreleased]` |
+| No `[Unreleased]` section when `--release` | Generate versioned entry from commits directly |
 | Release build command not found | Create GitHub release without artifact attachments |
 | Tag already exists for version | Stop — warn user; suggest bumping version again |
 
 ## Output
 
+Default (no `--release`):
 ```
 ✓ Pre-flight:  branch feature/foo, 5 commits, +200/-50 lines (mode: standard → main)
-✓ Issues:      linked #42, created #43
+✓ Issues:      linked #42
 ✓ Merged:      origin/main (up to date)
 ✓ Tests:       42 passed, 0 failed
 ✓ Build:       exit 0
 ✓ Review:      0 critical, 2 informational
-✓ Version:     1.2.4 → 1.2.5
-✓ Changelog:   updated
+✓ Changelog:   [Unreleased] updated
 ✓ Committed:   feat(auth): add OAuth2 login flow
 ✓ Pushed:      origin/feature/foo
-✓ PR:          https://github.com/org/repo/pull/123 (linked: #42, #43)
+✓ PR:          https://github.com/org/repo/pull/123 (linked: #42)
 ✓ CI:          all checks passed — merged
+```
+
+With `--release`:
+```
+✓ ...
+✓ Version:     1.2.4 → 1.2.5
+✓ Changelog:   [Unreleased] → [1.2.5] (2026-06-08)
+✓ Committed:   chore(release): v1.2.5
+✓ ...
 ✓ Release:     https://github.com/org/repo/releases/tag/v1.2.5
 ```
 
