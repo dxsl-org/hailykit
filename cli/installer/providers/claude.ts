@@ -9,8 +9,16 @@ import type { Provider } from './base.js';
  * Does NOT extend BaseProvider — it has a different install contract
  * and satisfies the Provider interface directly.
  *
- * Spec: unknown — researched 2026-06-08
- * Docs: https://code.claude.com/docs/en/memory
+ * Spec: 2.1.168 (2026-06-06) — daily patch cadence, do not pin to a specific build
+ * Hook events: 30 as of 2.1.168 (SessionStart, Setup, UserPromptSubmit, UserPromptExpansion,
+ *   PreToolUse, PermissionRequest, PermissionDenied, PostToolUse, PostToolUseFailure,
+ *   PostToolBatch, Notification, MessageDisplay, SubagentStart, SubagentStop,
+ *   TaskCreated, TaskCompleted, Stop, StopFailure, TeammateIdle, InstructionsLoaded,
+ *   ConfigChange, CwdChanged, FileChanged, WorktreeCreate, WorktreeRemove,
+ *   PreCompact, PostCompact, Elicitation, ElicitationResult, SessionEnd)
+ * Docs: https://code.claude.com/docs/en/skills
+ *       https://code.claude.com/docs/en/hooks
+ *       https://code.claude.com/docs/en/changelog
  */
 export class ClaudeProvider implements Provider {
   get name(): string { return 'claude'; }

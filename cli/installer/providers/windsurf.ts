@@ -28,9 +28,14 @@ interface WindsurfHookEntry {
  *   pre_user_prompt, post_cascade_response, post_cascade_response_with_transcript,
  *   post_setup_worktree
  *
- * Spec: unknown — researched 2026-06-08
- * Docs: https://docs.windsurf.com/windsurf/cascade/memories-and-rules
- *       https://docs.windsurf.com/windsurf/cascade/hooks
+ * NOTE: Windsurf rebranded to Devin Desktop (OTA update, 2026-06-02).
+ * Docs domain moved from docs.windsurf.com → docs.devin.ai. Paths and hook count unchanged.
+ * Cascade replaced by "Devin Local" agent in the Agent Command Center.
+ * AGENTS.md now supported alongside .windsurfrules and global_rules.md.
+ *
+ * Spec: n/a (OTA model, no exposed semver) — researched 2026-06-08
+ * Docs: https://docs.devin.ai/desktop/cascade/hooks
+ *       https://docs.devin.ai/desktop/cascade/workflows
  */
 export class WindsurfProvider extends BaseProvider {
   get name(): string { return 'windsurf'; }

@@ -7,19 +7,18 @@ import { resolveSkillRefs, resolveAgentRefs, resolveModel } from '../converter.j
 /**
  * Zed editor provider.
  *
- * Zed has limited custom slash command support (mostly built-in commands).
- * We install HailyKit as rules files that Zed's AI assistant reads as context.
- * Zed reads rules from .zed/ in the project or ~/.zed/ globally.
+ * Spec: 1.5.4 (2026-06-06) — rapid release cadence
+ * Docs: https://zed.dev/docs/ai/skills
+ *       https://zed.dev/docs/ai
  *
- * Spec: unknown — researched 2026-06-08
- * Docs: https://zed.dev/docs/ai
- *       https://zed.dev/docs/assistant/configuration
+ * As of Zed v1.4.0, native SKILL.md is supported at `.agents/skills/<name>/SKILL.md`
+ * (project) and `~/.agents/skills/<name>/SKILL.md` (global) — invoked via `/skill-name`.
+ * TODO: replace the rules-summary approach with native SKILL.md installation to `.agents/skills/`.
+ * Currently installs a single hailykit-skills.md summary because Zed lacked skill support
+ * at the time of initial implementation.
  *
- * Skills are summarized into a single rules document so the AI assistant
- * knows which workflows are available and can guide the user to use them
- * via natural language.
- *
- * Hooks: not applicable (Zed extensions require Rust/WASM, not shell scripts).
+ * Hooks: not implemented in Zed (open feature request #57943, no timeline).
+ * Skills: install as rules summary for now; native `.agents/skills/` path is available.
  */
 export class ZedProvider extends BaseProvider {
   get name(): string { return 'zed'; }

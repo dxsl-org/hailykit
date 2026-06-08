@@ -5,16 +5,23 @@ import { BaseProvider, type ConvertedSkill } from './base.js';
 import { resolveSkillRefs } from '../converter.js';
 
 /**
- * Antigravity provider (Google AI IDE, forked from VS Code by former Windsurf team).
+ * Antigravity provider.
  *
- * Antigravity supports SKILL.md natively — same format as HailyKit/Claude Code.
+ * ⚠ NAMING CONFLICT — two products share this name. Verify which one is installed:
+ *   (A) antigravity.dev — VS Code fork by former Windsurf team; uses ~/.antigravity/; legacy
+ *   (B) antigravity.google — Google's platform (evolved from Gemini CLI, sunset 2026-05-19);
+ *       CLI: `agy` (npm: @google/antigravity); global: ~/.gemini/antigravity/; workspace: .agent/skills/
+ * This installer currently targets (A). If targeting (B), update globalDir() and _projectDirName().
+ *
+ * Antigravity (A) supports SKILL.md natively — same format as HailyKit/Claude Code.
  * Skills are copied directly to the skills/ directory without conversion.
  * Hooks are not supported.
  *
- * Spec: unknown — researched 2026-06-08; limited public docs available at research time
- * Docs: https://antigravity.dev/docs (check for updates — docs were sparse at research date)
+ * Spec: 2.0.11 (2026-06-02, product B) / unknown (product A) — researched 2026-06-08
+ * Docs (A): https://antigravity.dev/docs
+ * Docs (B): https://antigravity.google/docs · https://codelabs.developers.google.com/getting-started-with-antigravity-skills
  *
- * Directory layout:
+ * Directory layout (product A):
  *   Global:  ~/.antigravity/skills/   (SKILL.md files, same format)
  *   Project: .antigravity/skills/
  */
@@ -54,9 +61,9 @@ export class AntigravityProvider extends BaseProvider {
   // Antigravity reads rules from the same SKILL.md context system — no separate rules file needed.
   installRules(_extractedClaudeDir: string, _targetProviderDir: string): void { /* no-op */ }
 
-  // Antigravity is a Claude Code fork — uses /hc:cook slash syntax.
+  // Antigravity is a Claude Code fork — uses /hc-cook slash syntax (agentskills.io hyphen convention).
   protected override skillRef(prefix: string, name: string): string {
-    return `/${prefix}:${name}`;
+    return `/${prefix}-${name}`;
   }
 
   private _copyDir(src: string, dest: string): void {

@@ -10,11 +10,15 @@ import { toCrushMd, resolveSkillRefs, resolveAgentRefs, resolveModel } from '../
  *          %LOCALAPPDATA%\crush\skills\hc-<name>\SKILL.md  (Windows)
  * Rules  → ~/.config/crush/CRUSH.md  (always-applied context file)
  * Agents → ~/.config/crush/agents/<name>.md
- * Hooks  → not installed (Crush hook support is preliminary as of research date)
+ * Hooks  → not installed (Crush hooks are PreToolUse-only via crush.json; format differs from
+ *           Claude Code hooks.json — requires a separate converter, not yet implemented)
  * Model  → user-configured at runtime; model: tier line is stripped
  *
- * Spec: unknown, hooks preliminary — researched 2026-06-08
- * Docs: https://github.com/charmbracelet/crush
+ * Spec: 0.76.0 (2026-06-05) — v0.x, breaking changes between minor versions are plausible
+ * Hook surface: PreToolUse only (production); PostToolUse is an open request, not shipped
+ * Hook format: crush.json `{ "hooks": [{ "matcher": "<regex>", "command": "<shell>" }] }`
+ * Docs: https://github.com/charmbracelet/crush/releases
+ *       https://charmbracelet-crush.mintlify.app
  */
 export class CrushProvider extends BaseProvider {
   get name(): string { return 'crush'; }

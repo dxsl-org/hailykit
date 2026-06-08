@@ -6,14 +6,19 @@ import { toOpenCodeMd, resolveSkillRefs, resolveAgentRefs, resolveModel } from '
 
 /**
  * OpenCode provider (https://opencode.ai — SST terminal TUI).
- * Skills  → <configDir>/commands/hc-<name>.md
+ * Skills  → <configDir>/commands/hc-<name>.md (also discovered at .agents/skills/, .claude/skills/)
  * Agents  → <configDir>/agents/<name>.md  (model tier stripped; user configures in opencode.json)
  * Hooks   → not installed (OpenCode hooks require JS/TS plugin modules, not shell commands)
  * Rules   → <configDir>/hailykit-rules.md
  *
- * Spec: unknown — researched 2026-06-08
+ * NOTE: Native SKILL.md discovery added in v1.16.0 (2026-06-02). OpenCode now scans
+ * .opencode/skills/, .agents/skills/, and .claude/skills/ for SKILL.md files automatically.
+ * Skills installed to .agents/skills/ by other providers will be auto-discovered by OpenCode.
+ *
+ * Spec: 1.16.2 (2026-06-05) — skills new in v1.16.0
  * Docs: https://opencode.ai/docs/skills/
  *       https://opencode.ai/docs/plugins/
+ *       https://opencode.ai/changelog
  *
  * Config dir per OS (XDG spec):
  *   Linux/Unix : ~/.config/opencode/

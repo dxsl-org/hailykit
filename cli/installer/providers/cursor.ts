@@ -27,9 +27,14 @@ interface CursorHookEntry {
  * Cursor hook events: beforeShellExecution, beforeMCPExecution,
  *                     beforeReadFile, afterFileEdit, stop
  *
- * Spec: unknown — researched 2026-06-08
- * Docs: https://docs.cursor.com/context/rules
- *       https://docs.cursor.com/advanced/background-agent
+ * NOTE: As of Cursor 3.7, there is NO confirmed lifecycle hook system for extensions.
+ * The "CLI hooks" mention in January 2026 release notes refers to 10–20× caching speedups,
+ * not event interceptors. The hook event names above were sourced from SDK documentation
+ * for the Background Agent SDK (Cursor 3.7+). Verify hook support before relying on this.
+ *
+ * Spec: 3.7 (2026-06-05) — no semver, uses whole-number minor bumps
+ * Docs: https://cursor.com/changelog
+ *       https://cursor.com/docs/rules
  */
 export class CursorProvider extends BaseProvider {
   get name(): string { return 'cursor'; }
