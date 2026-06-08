@@ -151,6 +151,7 @@ Multi-source research from scope definition to actionable report. **YAGNI · KIS
 ## Workflow Position
 
 **Precedes:** `{skill:hl-brainstorm}` — research findings inform option evaluation; `{skill:hc-plan}` — research informs phase design
+**Precedes:** `{skill:hl-mindmap}` — when research surfaces entities and relationships worth persisting as a navigable graph
 **Used alongside:** `{skill:hc-lookup}` — fetch library/repo docs during gather stage
 
 ## References

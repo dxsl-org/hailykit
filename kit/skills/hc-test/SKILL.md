@@ -82,6 +82,7 @@ Use `{skill:hc-browser}` for interactive browser sessions and screenshot analysi
 **Follows:** `{skill:hc-cook}` — test after implementation
 **Follows:** `{skill:hc-fix}` — test after bug fix
 **Precedes:** `{skill:hc-review}` — review after tests pass
+**Precedes:** `{skill:hc-optimize}` — when coverage or performance falls short of target
 **Related:** `{skill:hc-cook}`, `{skill:hc-fix}`
 
 ## References

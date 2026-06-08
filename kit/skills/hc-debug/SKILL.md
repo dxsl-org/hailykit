@@ -85,6 +85,7 @@ Stop and restart from systematic investigation if any of these thoughts occur:
 - **CI/CD:** `gh` CLI for GitHub Actions log retrieval and pipeline introspection
 - **Frontend:** Chrome DevTools MCP or Puppeteer scripts for console, network, and visual verification
 - **Reasoning:** `{skill:hl-reasoning}` when the causal chain is non-obvious or spans multiple systems
+- **LLM / Agent issues:** `{skill:hl-context-engineering}` — when the symptom involves context degradation, lost-in-middle hallucination, or multi-agent inconsistency
 
 ## Scripts
 

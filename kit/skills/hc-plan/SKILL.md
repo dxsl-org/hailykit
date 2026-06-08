@@ -85,6 +85,14 @@ Phase file template: `references/phase-template.md`
 
 When any phase involves schema design, migrations, query optimization, or DB selection, activate `{skill:hc-db}` for domain guidance before detailing that phase's steps.
 
+## Agent / LLM Phases
+
+When any phase involves LLM context design, agent memory, token optimization, or multi-agent coordination, consult `{skill:hl-context-engineering}` for domain guidance before detailing that phase's steps.
+
+## MCP Server Plans
+
+When the task is building or agentizing an MCP server, the Cook Handoff must invoke `{skill:hc-mcp-builder}` instead of `{skill:hc-cook}`.
+
 ## Workflow Position
 
 **Follows:** `{skill:hl-brainstorm}` — after exploring approach options

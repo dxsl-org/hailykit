@@ -187,4 +187,5 @@ Iterations: 20
 
 **Follows:** `{skill:hc-test}` — identify a measurable metric to improve
 **Follows:** `{skill:hc-cook}` — iteratively improve after initial implementation
+**Precedes:** `{skill:hc-review}` — review after optimization to verify behavior is preserved
 **Related:** `{skill:hc-fix}` (use when root cause is known), `{skill:hc-cook}` (use for subjective goals)

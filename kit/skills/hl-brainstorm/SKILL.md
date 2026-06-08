@@ -65,6 +65,7 @@ When invoked without flags, auto-route based on problem keywords:
 | incident, production, outage, failure | Manager + Devil | Error Cascades, Timing |
 | UX, experience, design, interface | Creative Director | User Types, Environment |
 | strategy, market, positioning, compete | Strategist + Economist | Business Logic, Integration |
+| LLM, agent, token, context window, memory, multi-agent | Architect | Scale, State Transitions |
 
 Apply the selected lenses immediately. Output: persona analysis → relevant edge cases found → recommendation.
 
@@ -178,3 +179,4 @@ Filter to relevant dimensions; skip irrelevant ones explicitly. Output: dimensio
 **Follows:** `{skill:hc-debug}`, `{skill:hc-scout}`
 **Precedes:** `{skill:hc-plan}` — plan the agreed solution
 **Related:** `{skill:hl-reasoning}`, `{skill:hl-research}`
+**For LLM context design:** follow with `{skill:hl-context-engineering}` when the topic involves token limits, agent memory, or multi-agent coordination
