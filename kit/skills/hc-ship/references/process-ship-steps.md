@@ -350,13 +350,18 @@ After CI passes and the branch is merged, publish an official GitHub release.
    - If no artifacts: omit `$ARTIFACTS`
    - Defensive fallback: if this returns `422 ... already exists` (an undetected workflow published it), switch to the AUTOMATED path — `gh release edit` + `gh release upload vX.Y.Z <file> --clobber`
 
-8. **Enrich notes** (AUTOMATED path, or after manual create): CI-generated notes are often just the tag name. Wait for the release to exist, then replace its notes with the Step 7 changelog entry:
+8. **Enrich notes — best-effort, never fail the pipeline** (AUTOMATED path, or after manual create): CI-generated notes are often just the tag name. Wait for the release to exist, then replace its notes with the Step 7 changelog entry:
    ```bash
-   # Poll briefly — CI publish typically lands in 30–90s
-   for i in $(seq 1 12); do gh release view vX.Y.Z >/dev/null 2>&1 && break; sleep 10; done
-   gh release edit vX.Y.Z --notes "$(cat <<'EOF'
+   # Poll up to ~5 min — a cold/queued CI runner (npm ci + test + pack) can exceed 2 min
+   for i in $(seq 1 20); do gh release view vX.Y.Z >/dev/null 2>&1 && break; sleep 15; done
+   if gh release view vX.Y.Z >/dev/null 2>&1; then
+     gh release edit vX.Y.Z --notes "$(cat <<'EOF'
    <changelog entry generated in Step 7>
    EOF
    )"
+   else
+     echo "Release not published yet — CI still running. Enrich later: gh release edit vX.Y.Z --notes-file <changelog>"
+   fi
    ```
+   - If the poll times out, do NOT fail — CI will publish with default notes; surface the manual `gh release edit` command and continue.
    - Output the release URL — this is the final line of pipeline output
