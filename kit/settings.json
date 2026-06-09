@@ -2,6 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "skillListingMaxDescChars": 512,
   "skillListingBudgetFraction": 0.03,
+  "workflowKeywordTriggerEnabled": false,
   "attribution": {
     "commit": "",
     "pr": ""
