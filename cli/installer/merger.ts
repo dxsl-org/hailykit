@@ -39,6 +39,24 @@ export const HAILYKIT_DENY_RULES: readonly string[] = [
   'Write(~/.claude/hooks/**)', 'Edit(~/.claude/hooks/**)',
 ] as const;
 
+/**
+ * HailyKit-ENFORCED settings.json values, applied on every install AND upgrade.
+ *
+ * These keys are FORCE-SET to HailyKit's value, overriding any prior user value.
+ * Installing HailyKit is a deliberate opt-in to this policy. Rationale: the key
+ * below gates token-expensive auto-behaviors that must be explicit, not
+ * auto-detected — anyone who genuinely wants them invokes the command directly
+ * (`/deep-research`, `/workflows`, `/effort ultracode`), keeping token spend
+ * under their own control.
+ *
+ * `workflowKeywordTriggerEnabled: false` — stop natural-language prompts
+ * ("research X", "use a workflow") and the `ultracode` keyword from
+ * auto-triggering Claude Code's built-in `/deep-research` and dynamic workflows.
+ */
+export const HAILYKIT_ENFORCED_SETTINGS: Readonly<Record<string, unknown>> = {
+  workflowKeywordTriggerEnabled: false,
+};
+
 export interface ClaudeMetadata {
   version?: string;
   buildDate?: string;
@@ -381,6 +399,48 @@ export function removeManagedHookEntries(claudeDir: string): number {
 }
 
 /**
+ * Force HailyKit-enforced values into settings.json on install AND upgrade.
+ *
+ * Each enforced key is OVERWRITTEN to HailyKit's value regardless of any prior
+ * user value — installing HailyKit opts into this policy (see
+ * `HAILYKIT_ENFORCED_SETTINGS`). A user who re-enables a key manually will have
+ * it flipped back on the next upgrade; that is intentional. Idempotent: rewrites
+ * only when a value actually differs. No-op on malformed JSON (never rewrites a
+ * file it cannot parse). Atomic write via `.tmp` + rename.
+ *
+ * @param settingsPath - Absolute path to settings.json.
+ * @param enforced     - Managed key/value pairs to force-set.
+ * @returns Number of keys changed.
+ */
+export function applyEnforcedSettings(
+  settingsPath: string,
+  enforced: Readonly<Record<string, unknown>> = HAILYKIT_ENFORCED_SETTINGS,
+): number {
+  let settings: Record<string, unknown> = {};
+  if (fs.existsSync(settingsPath)) {
+    try {
+      const parsed: unknown = JSON.parse(stripJsonComments(fs.readFileSync(settingsPath, 'utf8')));
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return 0;
+      settings = parsed as Record<string, unknown>;
+    } catch {
+      return 0; // malformed — never rewrite a file we can't safely parse
+    }
+  }
+
+  let changed = 0;
+  for (const [key, value] of Object.entries(enforced)) {
+    if (settings[key] !== value) { settings[key] = value; changed++; }
+  }
+  if (changed === 0) return 0; // already enforced — leave the file (and its mtime) alone
+
+  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+  const tmp = settingsPath + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(settings, null, 2) + '\n', 'utf8');
+  fs.renameSync(tmp, settingsPath);
+  return changed;
+}
+
+/**
  * Merge HailyKit-managed deny rules into settings.json without touching user rules.
  * Never removes existing rules — only union-adds. Rules are written verbatim (no
  * tilde expansion — Claude Code natively supports `~/`; `//` anchors absolute paths).
@@ -508,6 +568,13 @@ export function mergeClaudeDir(
     meta.version ?? '0.0.0',
     preCopyUserDeny,
   );
+
+  // Force HailyKit-enforced settings on both install and upgrade (overrides prior
+  // user value — installing HailyKit opts into this; see HAILYKIT_ENFORCED_SETTINGS).
+  const enforced = applyEnforcedSettings(settingsPath);
+  if (enforced > 0) {
+    console.log(`  Enforced ${enforced} HailyKit setting(s) in settings.json`);
+  }
 
   return meta;
 }

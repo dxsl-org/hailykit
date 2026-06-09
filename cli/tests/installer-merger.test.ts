@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { mergeClaudeDir, applyDeletions, copyDir, mergePermissionDeny, HAILYKIT_DENY_RULES, migrateSettings, removeManagedHookEntries } from '../installer/merger';
+import { mergeClaudeDir, applyDeletions, copyDir, mergePermissionDeny, HAILYKIT_DENY_RULES, migrateSettings, removeManagedHookEntries, applyEnforcedSettings, HAILYKIT_ENFORCED_SETTINGS } from '../installer/merger';
 
 function tmp(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'haily-merge-'));
@@ -407,4 +407,71 @@ test('removeManagedHookEntries: atomic write — no .tmp left behind', () => {
   }));
   removeManagedHookEntries(dir);
   assert.equal(fs.existsSync(p + '.tmp'), false);
+});
+
+// ── applyEnforcedSettings: force-set HailyKit policy keys (install + upgrade) ──
+
+test('applyEnforcedSettings: adds workflowKeywordTriggerEnabled when absent', () => {
+  const dir = tmp();
+  const p = path.join(dir, 'settings.json');
+  fs.writeFileSync(p, JSON.stringify({ permissions: { deny: ['X'] } }, null, 2));
+  const changed = applyEnforcedSettings(p);
+  assert.equal(changed, 1);
+  const s = JSON.parse(fs.readFileSync(p, 'utf8'));
+  assert.equal(s.workflowKeywordTriggerEnabled, false);
+  assert.deepEqual(s.permissions.deny, ['X'], 'other keys untouched');
+});
+
+test('applyEnforcedSettings: OVERRIDES an explicit user true → false (enforced policy)', () => {
+  const dir = tmp();
+  const p = path.join(dir, 'settings.json');
+  fs.writeFileSync(p, JSON.stringify({ workflowKeywordTriggerEnabled: true }));
+  const changed = applyEnforcedSettings(p);
+  assert.equal(changed, 1, 'user value is force-overwritten');
+  assert.equal(JSON.parse(fs.readFileSync(p, 'utf8')).workflowKeywordTriggerEnabled, false);
+});
+
+test('applyEnforcedSettings: idempotent when already false (no rewrite)', () => {
+  const dir = tmp();
+  const p = path.join(dir, 'settings.json');
+  fs.writeFileSync(p, JSON.stringify({ workflowKeywordTriggerEnabled: false }));
+  const before = fs.statSync(p).mtimeMs;
+  const changed = applyEnforcedSettings(p);
+  assert.equal(changed, 0);
+  assert.equal(fs.existsSync(p + '.tmp'), false, 'no write when already enforced');
+  assert.equal(fs.statSync(p).mtimeMs, before, 'file not rewritten when nothing changes');
+});
+
+test('applyEnforcedSettings: malformed settings.json is left intact', () => {
+  const dir = tmp();
+  const p = path.join(dir, 'settings.json');
+  fs.writeFileSync(p, '{ broken');
+  assert.equal(applyEnforcedSettings(p), 0);
+  assert.equal(fs.readFileSync(p, 'utf8'), '{ broken');
+});
+
+test('applyEnforcedSettings: HAILYKIT_ENFORCED_SETTINGS ships workflowKeywordTriggerEnabled=false', () => {
+  assert.equal(HAILYKIT_ENFORCED_SETTINGS.workflowKeywordTriggerEnabled, false);
+});
+
+test('mergeClaudeDir force-enforces setting on upgrade even when user set it true', () => {
+  const root = tmp();
+  const src = path.join(root, 'extracted');
+  const kit = path.join(src, 'kit');
+  fs.mkdirSync(kit, { recursive: true });
+  fs.writeFileSync(path.join(kit, 'metadata.json'), JSON.stringify({ version: '1.3.1' }));
+  fs.writeFileSync(path.join(kit, 'settings.json'), JSON.stringify({ workflowKeywordTriggerEnabled: false }));
+
+  const dest = tmp();
+  // Existing user deliberately enabled the trigger — upgrade must flip it back.
+  fs.writeFileSync(path.join(dest, 'settings.json'), JSON.stringify({
+    workflowKeywordTriggerEnabled: true,
+    permissions: { deny: ['Bash(sudo *)'] },
+  }, null, 2));
+
+  mergeClaudeDir(src, dest, { isUpgrade: true });
+
+  const s = JSON.parse(fs.readFileSync(path.join(dest, 'settings.json'), 'utf8'));
+  assert.equal(s.workflowKeywordTriggerEnabled, false, 'enforced false on upgrade, overriding user true');
+  assert.ok(s.permissions.deny.includes('Bash(sudo *)'), 'user deny rule preserved');
 });
