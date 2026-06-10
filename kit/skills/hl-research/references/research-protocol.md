@@ -108,15 +108,44 @@ Weight sources by reliability. A finding supported only by a tutorial has low co
 
 ---
 
-## Cross-Validation Protocol (deep mode)
+## Active Refutation Protocol (default + deep)
 
-After gathering, identify claims that:
-1. Appear in only one source (single-source claim)
-2. Contradict another source (conflicting claim)
+Stronger than re-confirming — for the **≤3 highest-stakes or contested claims**, actively try to *disprove* each (Popperian inversion). Pick claims that, if wrong, would flip the recommendation.
 
-For each: run one additional targeted search to verify or refute. Mark findings as:
-- `VERIFIED` — 2+ independent sources agree
-- `UNVERIFIED` — single source, no contradicting evidence
-- `CONTESTED` — sources disagree; present both sides
+Selection — a claim qualifies when it:
+1. Appears in only one source (single-source), OR
+2. Contradicts another source (conflicting), OR
+3. Is load-bearing for the verdict (the recommendation depends on it).
 
-Contested findings must appear in `## Unresolved Questions`.
+For each, run **one** targeted refutation search — phrase it to surface counter-evidence, not agreement:
+
+```
+"[claim] criticism OR debunked OR "not true" [year]"
+"[library/pattern] considered harmful OR why we stopped using"
+"[claim] benchmark contradicts OR fails to reproduce"
+```
+
+Tag the result:
+- `VERIFIED` — refutation search found nothing credible against it (2+ independent sources still agree)
+- `UNVERIFIED` — single source, no contradicting evidence found (state explicitly)
+- `CONTESTED` — credible counter-evidence exists; present both sides
+
+**Hard cap:** at most 3 refutation searches — this is a bounded rigor pass, not a second fan-out. Contested findings must appear in `## Unresolved Questions`.
+
+---
+
+## Inversion Techniques (when forward search is dry)
+
+Forward fan-out assumes you know the right terms, the answer is findable by direct query, and the framing is correct. When the **sufficiency gate** reports a criterion still dry/contradictory — or the question is inverted from the start — switch to a bounded inversion pass (**≤2–3 reverse queries**). Pick the technique by *why* forward failed:
+
+| Technique | Use when forward is dry because… | Reverse query shape |
+|-----------|----------------------------------|---------------------|
+| **Question inversion** | the framing is wrong | "why do teams AVOID [X]", "how would [X] fail" |
+| **Disconfirmation** | only confirming sources surface | "[X] considered harmful", "why we removed [X]", "[X] postmortem" |
+| **Provenance tracing** | a claim/number is echoed everywhere, sourced nowhere | trace to the **first** source: "[claim] originally OR source OR study", read the origin |
+| **Citation-walking upstream** | you lack the expert vocabulary | open one authoritative artifact, follow its references/dependencies *backwards* |
+| **Effect → cause** | the question is causal and inverted | search the symptom/outcome, not the mechanism: "what causes [observed effect]" |
+| **Negative space** | the thing may not exist | "is there a [X] for [Y]", "[X] alternatives why none" — the answer is the gap |
+| **Reverse-engineer artifact** | too new / undocumented | skip prose; read the repo, changelog, issues, or API responses directly via `{skill:hc-lookup}` |
+
+Log the switch explicitly: `forward dry on [criterion] → inversion: [technique]`. Inversion stays inside the same single context and the same token discipline — bounded queries, snippet-first, full-read only Tier 1–2.

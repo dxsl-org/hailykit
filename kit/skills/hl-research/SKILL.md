@@ -40,18 +40,23 @@ Multi-source research from scope definition to actionable report. **YAGNI · KIS
 
 > **Required — source credibility weighting:** Official docs and maintainer blogs outrank tutorials. Production case studies outrank theoretical analysis. See `references/research-protocol.md` for the full credibility ladder.
 
+> **Required — read by tier (token discipline):** Use search snippets for breadth. Full-fetch a source (`{skill:hc-lookup}` / WebFetch) ONLY for the 1–3 highest-credibility (Tier 1–2) results. Never full-read low-tier pages — that is the token sink this skill exists to avoid.
+
+> **Required — sufficiency gate:** Stop gathering once every evaluation criterion has ≥1 Tier 1–2 source. If forward search leaves a criterion unmet, dry, or contradictory, switch to the **inversion pass** (`references/research-protocol.md` § Inversion Techniques) — never pad with low-tier sources or infer to fill the gap.
+
 ## Process
 
-1. **Scope** — identify key terms, recency requirements, evaluation criteria, and depth limits. Select `--type` if not specified from topic keywords.
+1. **Scope** — decompose the topic into explicit sub-questions, then map each to a search angle (targeted queries beat repeated rewording — fewer wasted searches). Identify recency requirements, evaluation criteria, depth limits. Select `--type` from topic keywords if unspecified. If the question is already inverted (signals: "why avoid", "origin of", "is X actually", "why is there no"), open with the inversion pass instead of forward fan-out.
 
-2. **Gather** — use the session's native search tool. Apply Query Fan-Out: each parallel search covers a distinct angle (official docs, security, performance, community sentiment, comparisons). See `references/research-protocol.md` for query templates. When a GitHub repo URL is found, use `{skill:hc-lookup}` to read it.
+2. **Gather** — use the session's native search tool. Apply Query Fan-Out: each parallel search covers a distinct angle (official docs, security, performance, community sentiment, comparisons). Read by tier (snippet-first; full-fetch only Tier 1–2 via `{skill:hc-lookup}`/WebFetch). See `references/research-protocol.md` for query templates.
    - `--quick`: 2 searches (essential facts + community health)
    - *(default)*: 5 searches covering all angles
-   - `--deep`: 8–10 searches + cross-validation pass (re-search any claims from a single source)
+   - `--deep`: 8–10 searches; follow ≤2 highest-value leads (one hop)
+   - **Sufficiency gate:** once every criterion has a Tier 1–2 source, STOP (don't run remaining angles). If a criterion stays dry/contradictory → run a bounded **inversion pass** (≤2–3 reverse queries, technique chosen by why forward failed — see protocol).
 
-3. **Synthesize** — identify patterns, pros/cons, maturity, security implications, compatibility. Cross-reference across sources; flag consensus vs. controversy.
+3. **Synthesize** — identify patterns, pros/cons, maturity, security, compatibility; flag consensus vs. controversy. *(default + `--deep`)* For ≤3 highest-stakes or contested claims, run **active refutation**: search to *disprove* the claim, not re-confirm it. Tag each `VERIFIED` / `UNVERIFIED` / `CONTESTED`.
 
-4. **Report** — save to `.agents/reports/research-YYMMDD-HHMM-{slug}.md`. Select output template based on `--type`.
+4. **Report** — save to `.agents/reports/research-YYMMDD-HHMM-{slug}.md`. Select output template based on `--type`. Cite the source inline for every non-obvious claim.
 
 ## Output Templates
 
@@ -154,8 +159,10 @@ Multi-source research from scope definition to actionable report. **YAGNI · KIS
 **Precedes:** `{skill:hl-mindmap}` — when research surfaces entities and relationships worth persisting as a navigable graph
 **Used alongside:** `{skill:hc-lookup}` — fetch library/repo docs during gather stage
 
+**Versus native `/deep-research`:** on Claude Code, for an exhaustive, open-ended, fact-checked **prose report** where high token cost is acceptable, prefer `/deep-research`. hl-research is the bounded, predictable-cost tier that produces **structured decision artifacts** (comparison matrix, CVE table, migration map) — and it runs on every provider, not just Claude.
+
 ## References
 
 | File | Content |
 |------|---------|
-| `references/research-protocol.md` | Query Fan-Out templates, source credibility ladder, search angle guide |
+| `references/research-protocol.md` | Query Fan-Out templates, credibility ladder, active refutation, and inversion techniques |
