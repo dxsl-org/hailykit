@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { numberOption, parseArgs, stringOption } from './arg-parser';
 import { cmdInfo, cmdList, cmdRun, type EngineCliOptions } from './commands/engine-commands';
+import { cmdStats } from './commands/stats';
 import { cmdInstall } from './installer/commands/install';
 import { cmdUpgrade } from './installer/commands/upgrade';
 import { cmdUninstall } from './installer/commands/uninstall';
@@ -10,7 +11,7 @@ import { cmdStatus } from './installer/commands/status';
 import { PROVIDER_NAMES } from './installer/providers/index';
 
 /** Long flags that consume the next token as their value. */
-const VALUE_FLAGS = new Set(['provider', 'version', 'tools', 'input', 'timeout']);
+const VALUE_FLAGS = new Set(['provider', 'version', 'tools', 'input', 'timeout', 'lang', 'top', 'exclude']);
 
 // In dist/bin.js, __dirname resolves to dist/ — so this points to dist/tools/
 const DEFAULT_TOOLS_DIR = path.join(__dirname, 'tools');
@@ -32,6 +33,9 @@ Installer commands:
   uninstall            Remove HailyKit from an AI agent
   status               Show installed vs latest version
 
+Analysis commands:
+  stats [path]         Show code statistics for a directory
+
 Engine options:
   --tools <dir>        Tools directory to discover (default: <bundled>)
   --input <json>       JSON input for \`run\` (default: {})
@@ -44,6 +48,12 @@ Installer options (install / upgrade / uninstall):
 Install / upgrade only:
   --version <tag>      Use a specific release tag (e.g. v2.1.0)
   --no-venv            Skip Python venv setup (Claude only)
+
+Stats options:
+  --json               Emit compact JSON schema (machine-readable)
+  --lang <list>        Comma-separated language filter (e.g. ts,js)
+  --top <n>            Number of complexity hotspots to show (default: 10)
+  --exclude <pattern>  Additional path substring to exclude
 
 Other:
   -h, --help           Show this help (append to a command for command help)
@@ -78,6 +88,25 @@ hailykit status — Show installed vs latest HailyKit version
 
 Options:
   --provider <name>    Filter to a specific provider (default: all)
+`.trim();
+
+const HELP_STATS = `
+hailykit stats [path] — Show code statistics for a directory
+
+Arguments:
+  path                 Directory to scan (default: current directory)
+
+Options:
+  --json               Emit compact JSON schema (machine-readable)
+  --lang <list>        Comma-separated language filter (e.g. ts,js)
+  --top <n>            Number of complexity hotspots to show (default: 10)
+  --exclude <pattern>  Additional path substring to exclude
+
+Output fields (JSON):
+  ncloc                Non-comment lines of code (SonarQube canonical key)
+  complexity           Cyclomatic complexity approximation (keyword count)
+  token_est            Estimated LLM tokens: ncloc × 18
+  thresholds           complexity_warn=15, complexity_error=25, file_loc_warn=200
 `.trim();
 
 /** Read this package's version from package.json next to the compiled bin. */
@@ -116,6 +145,7 @@ async function main(): Promise<number> {
       case 'install': case 'upgrade': console.log(HELP_INSTALLER); return 0;
       case 'uninstall': console.log(HELP_UNINSTALL); return 0;
       case 'status': console.log(HELP_STATUS); return 0;
+      case 'stats': console.log(HELP_STATS); return 0;
       default: console.log(HELP); return 0;
     }
   }
@@ -136,6 +166,13 @@ async function main(): Promise<number> {
       project: options.project === true,
     }); return 0;
     case 'status': await cmdStatus({ provider: stringOption(options, 'provider', '') || undefined }); return 0;
+    case 'stats': return cmdStats({
+      path: positionals[0] || '.',
+      json: options.json === true,
+      langs: stringOption(options, 'lang', '').split(',').filter(Boolean),
+      top: numberOption(options, 'top') ?? 10,
+      exclude: stringOption(options, 'exclude', '').split(',').filter(Boolean),
+    });
     default:
       console.error(`Unknown command: ${command}\nRun 'hailykit --help' for usage.`);
       return 1;

@@ -111,6 +111,15 @@
             "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-access.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-tracer.cjs; [ -f \"$h\" ] || { h=\"$HOME/$h\"; s=\"$HOME/$s\"; }; bash \"$h\" \"$s\"'"
+          }
+        ]
       }
     ],
     "Stop": [

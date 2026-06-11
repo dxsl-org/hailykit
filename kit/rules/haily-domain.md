@@ -25,8 +25,9 @@ Diagrams (Mermaid v11)                     → {skill:hl-visualize} --mermaid
 ## Codebase Understanding
 
 ```
-Quick file search, locate code  → {skill:hc-scout}
-Full codebase dump for LLM       → {skill:hc-scout} --pack
+Quick file search, locate code              → {skill:hc-scout}
+Full codebase dump for LLM                  → {skill:hc-scout} --pack
+Code metrics (nLOC, complexity, token est)  → {skill:hl-stats}
 ```
 
 ## Knowledge / Research

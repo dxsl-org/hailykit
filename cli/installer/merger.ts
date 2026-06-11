@@ -115,6 +115,7 @@ export function applyDeletions(targetClaudeDir: string, deletions: string[] = []
  *   Migration 1: bare path → dynamic local-vs-global resolution
  *   Migration 2: [directory-access-guard.cjs, sensitive-file-blocker.cjs] → [haily-access.cjs]
  *   Migration 3: inject haily-pii.cjs into UserPromptSubmit (added alongside sensitive-file-blocker removal)
+ *   Migration 4: inject haily-tracer.cjs into PreToolUse[Agent] (per-task model visibility)
  *
  * @param targetClaudeDir - Absolute path to the user's .claude/ directory.
  * @returns Number of hook commands migrated.
@@ -130,7 +131,9 @@ export function migrateSettings(targetClaudeDir: string): number {
   const needsConsolidation = raw.includes('directory-access-guard.cjs') || raw.includes('sensitive-file-blocker.cjs');
   // Inject haily-pii only when consolidating from old guards and it isn't already present.
   const needsPiiGuardInjection = needsConsolidation && !raw.includes('haily-pii.cjs');
-  if (!needsBarePathMigration && !needsConsolidation) return 0;
+  // Inject haily-tracer whenever absent — runs independently of the older migrations.
+  const needsTracerInjection = !raw.includes('haily-tracer.cjs');
+  if (!needsBarePathMigration && !needsConsolidation && !needsTracerInjection) return 0;
 
   let settings: unknown;
   try { settings = JSON.parse(stripJsonComments(raw)); } catch { return 0; }
@@ -236,6 +239,34 @@ export function migrateSettings(targetClaudeDir: string): number {
     return true;
   }
 
+  // ── Migration 4: inject haily-tracer into PreToolUse[Agent] ─────────────────
+  // haily-tracer.cjs is a new PreToolUse hook that shows which model each subagent
+  // uses. Fresh installs get it via settings.json copy; upgrades need explicit
+  // injection since settings.json is protected on upgrade.
+  function injectTracerHook(hooksRoot: unknown): boolean {
+    if (!hooksRoot || typeof hooksRoot !== 'object') return false;
+    const hooks = hooksRoot as Record<string, unknown>;
+    const TRACER_CMD = `bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-tracer.cjs; [ -f "$h" ] || { h="$HOME/$h"; s="$HOME/$s"; }; bash "$h" "$s"'`;
+
+    if (!Array.isArray(hooks['PreToolUse'])) {
+      hooks['PreToolUse'] = [];
+    }
+    const groups = hooks['PreToolUse'] as unknown[];
+
+    // Find an existing group with matcher "Agent" to append into.
+    const existing = groups.find((g: unknown) => {
+      if (!g || typeof g !== 'object') return false;
+      return (g as Record<string, unknown>).matcher === 'Agent';
+    }) as Record<string, unknown> | undefined;
+
+    if (existing && Array.isArray(existing.hooks)) {
+      (existing.hooks as unknown[]).push({ type: 'command', command: TRACER_CMD });
+    } else {
+      groups.push({ matcher: 'Agent', hooks: [{ type: 'command', command: TRACER_CMD }] });
+    }
+    return true;
+  }
+
   const s = settings as Record<string, unknown>;
   if (needsBarePathMigration) {
     if (s.hooks) walkHooks(s.hooks);
@@ -246,6 +277,9 @@ export function migrateSettings(targetClaudeDir: string): number {
   }
   if (needsPiiGuardInjection && s.hooks) {
     if (injectPiiGuardHook(s.hooks)) count++;
+  }
+  if (needsTracerInjection && s.hooks) {
+    if (injectTracerHook(s.hooks)) count++;
   }
 
   if (count > 0) {

@@ -5,25 +5,31 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [1.5.0] (2026-06-11)
+## [1.6.0] (2026-06-11)
 
 ### 🚀 Features
 
-- **`hl-ultra` skill** — explicit opt-in deep-model escalation: main loop + five core reasoning agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger`) escalate to the `deep` tier; mechanical agents (git, tester, docs) keep their pins regardless. Single entry point prevents accidental half-escalation.
-- **`deep` model tier** — 4th model tier resolved at install time for all providers; user pin via `~/.hailykit/model-map.json` `{"claude": {"deep": "claude-fable-5"}}` + `hailykit upgrade`.
-- **`resolveModelRefs()`** — install-time resolver for `{model:<tier>}` body placeholders; eliminates verbatim tier strings shipping to any provider.
+- **`hailykit stats` command** — zero-dependency code statistics: file counts, nLOC per language, cyclomatic complexity hotspots, LLM token estimate (`ncloc × 18`); supports `--json`, `--lang`, `--top`, `--exclude`; auto-excludes `node_modules`, `dist`, `.git`, etc.
+- **`hl-stats` skill + `haily-stats` agent** — user-invocable `/hl-stats [path]` delegates to a Haiku-tier agent; JSON schema follows SonarQube canonical keys (`ncloc`, `complexity`); thresholds: warn ≥ 15, error ≥ 25, file ≥ 200 loc.
+- **`haily-tracer` hook** — PreToolUse hook that announces which model tier a subagent will use on each Agent call (e.g. `⚡ [haily-planner] → thinking (claude-opus-4-8)`); enabled by default; config key `model-tracer`.
 
 ### 🚀 Improvements
 
-- **11 eligible skills** (`hl-brainstorm`, `hc-plan`, `hc-cook`, `hc-review`, `hc-fix`, `hc-optimize`, `hc-cop`, `hl-reasoning`, `hc-goal`, `hc-security`, `hl-research`) — added `--ultra` mode section; bare `--ultra` flag redirects to `hl-ultra` with explanation.
-- **CI** — `check-skill-cross-refs.js` validates `deep` tier only in `model-map.json`; agent frontmatter using `deep` fails CI.
-- **`kit/model-map.json`** — ships as user-overridable tier→model map alongside the installer built-in.
+- **`haily-usage` hook** — now enabled by default (was `false`); shows session usage stats at end of each turn.
+- **Installer Migration 4** — `hailykit upgrade` automatically injects `haily-tracer` into existing `settings.json` without overwriting user config.
+- **Config cleanup** — removed dead `statusline`, `statuslineColors`, `statuslineQuota` keys from `DEFAULT_CONFIG`.
+
+---
+
+## [1.5.0] (2026-06-11)
+
+### 🚀 Improvements
+
+- **`hl-ultra` skill** — explicit opt-in deep-model escalation: main loop + five core reasoning agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger`) escalate to the `deep` tier
 
 ### 🐛 Fixes
 
-- **Gemini / Antigravity / Codex** — `{model:deep}` and `model: deep` no longer leak verbatim to any provider; `resolveModel` + `resolveModelRefs` now applied on all native skill install paths.
-- **Codex** — angle-bracket strip scoped to `description:` line only; usage docs (`<skill>`, `<eligible-skill>`, `<free text>`) no longer mangled.
-- **Zed** — orphan skill cleanup runs before the `installed.length === 0` early return; stale skills are now removed even when no new skills install.
+- **Gemini / Antigravity / Codex / Zed** — ` upgrade.
 - **Test isolation** — `HAILYKIT_HOME` env mutation in converter tests now guarded with `before`/`after` hooks; no cross-test contamination.
 
 ---

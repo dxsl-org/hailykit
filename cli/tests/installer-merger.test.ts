@@ -245,7 +245,15 @@ test('migrateSettings: deduplicates if haily-access already present', () => {
 test('migrateSettings: no-op when old hooks not present', () => {
   const dir = tmp();
   const p = path.join(dir, 'settings.json');
-  const original = JSON.stringify({ hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: makeOldHookCommand('haily-rules.cjs') }] }] } });
+  // Represents a fully-migrated settings.json: no old bare-path hooks, tracer already present.
+  const original = JSON.stringify({
+    hooks: {
+      PreToolUse: [
+        { hooks: [{ type: 'command', command: makeOldHookCommand('haily-rules.cjs') }] },
+        { matcher: 'Agent', hooks: [{ type: 'command', command: makeOldHookCommand('haily-tracer.cjs') }] },
+      ],
+    },
+  });
   fs.writeFileSync(p, original);
   const n = migrateSettings(dir);
   assert.equal(n, 0, 'returns 0 when nothing to migrate');

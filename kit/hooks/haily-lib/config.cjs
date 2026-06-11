@@ -63,9 +63,6 @@ const DEFAULT_CONFIG = {
   project: { type: 'auto', packageManager: 'auto', framework: 'auto' },
   skills: { research: { useGemini: false } },
   assertions: [],
-  statusline: 'full',
-  statuslineColors: true,
-  statuslineQuota: true,
   hooks: {
     'session-init': true, 'subagent-init': true, 'dev-rules-reminder': true,
     'scout-block': true, 'privacy-block': true,
@@ -76,7 +73,8 @@ const DEFAULT_CONFIG = {
     'privacy-approval-flow': false,
     'haily-optimize': false,
     'haily-pii': false,
-    'haily-usage': false
+    'haily-usage': true,
+    'model-tracer': true
   },
   codingLevel: 5,
   workflowArtifactGate: {

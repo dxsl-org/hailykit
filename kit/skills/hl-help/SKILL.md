@@ -83,6 +83,7 @@ SHIP & REVIEW
 
 UNDERSTAND & EXPLORE
   {skill:hc-scout}        Find files, map dependencies [--pack] [--graph]
+  {skill:hl-stats}        Code metrics — nLOC, complexity hotspots, token estimate
   {skill:hc-docs}         Generate/update docs, extract PDFs/Office
   {skill:hc-lookup}                  Find library/framework API docs (context7)
   {skill:hc-lookup} react@19 hook   Version-specific lookup
@@ -183,6 +184,7 @@ Read `.claude/scripts/skills_data.yaml`, group by `category`, print with prefix:
   {skill:hc-docs}             Update project documentation
   {skill:hc-lookup}           Search library/framework docs — topic, version (@ver), comparison (vs), migration
   {skill:hc-scout} --pack     Pack repository into LLM context (repomix)
+  {skill:hl-stats}            Code metrics — nLOC, language breakdown, complexity hotspots, token estimate
   {skill:hc-mcp-builder}      Build + agentize MCP servers
 
 ## Senior Dev Specialists (via Task tool)
