@@ -3,7 +3,7 @@
  * haily-session.cjs — SessionStart hook that initialises the HL_* env-var contract.
  *
  * Fires on startup|resume|clear|compact. Detects project type, resolves the active
- * plan, writes all 34 HL_* env vars, and emits a context summary to stdout.
+ * plan, writes all 35 HL_* env vars, and emits a context summary to stdout.
  *
  * Config key (isHookEnabled): 'session-init'  ← old name preserved as user config contract
  * Exit codes: 0 always (fail-open, non-blocking)
@@ -24,6 +24,7 @@ try {
     resolveNamingPattern, getReportsPath, normalizePath, extractTaskListId
   } = require('./haily-lib/config.cjs');
   const { createHookTimer, logHookCrash } = require('./haily-lib/logger.cjs');
+  const { formatModelDisplay } = require('./haily-lib/model.cjs');
   const { detectProject, buildStaticEnv, getCodingLevelStyleName } = require('./haily-lib/project.cjs');
   const { updateSessionState } = require('./haily-lib/session.cjs');
   const { readActivitySnapshot, writeActivitySnapshot, createEmptyActivitySnapshot } = require('./haily-lib/statusline.cjs');
@@ -40,6 +41,9 @@ try {
 
     const sessionId = data.session_id || '';
     const source = data.source || 'startup';
+    // SessionStart is the only hook event that receives `model` — persist it
+    // (env + session state) so PreToolUse hooks like haily-tracer can read it.
+    const sessionModel = typeof data.model === 'string' ? data.model : (data.model?.id || '');
     const envFile = process.env.CLAUDE_ENV_FILE;
     const baseDir = process.cwd();
 
@@ -55,10 +59,11 @@ try {
     const teamInfo = detectAgentTeam(sessionId);
     const taskListId = extractTaskListId(config);
 
-    // ── Write all 34 HL_* env vars ─────────────────────────────────────────
+    // ── Write all 35 HL_* env vars ─────────────────────────────────────────
     if (envFile) {
-      // Session & Plan Config (5)
+      // Session & Plan Config (6)
       writeEnv(envFile, 'HL_SESSION_ID', sessionId);
+      writeEnv(envFile, 'HL_SESSION_MODEL', sessionModel);
       writeEnv(envFile, 'HL_PLAN_NAMING_FORMAT', config.plan?.namingFormat || '{date}-{issue}-{slug}');
       writeEnv(envFile, 'HL_PLAN_DATE_FORMAT', config.plan?.dateFormat || 'YYMMDD-HHmm');
       writeEnv(envFile, 'HL_PLAN_ISSUE_PREFIX', config.plan?.issuePrefix || '');
@@ -108,6 +113,7 @@ try {
     // ── Update session state ────────────────────────────────────────────────
     updateSessionState(sessionId, (state) => ({
       ...state,
+      model: sessionModel || state?.model || null,
       sessionOrigin: source,
       activePlan: resolved.resolvedBy === 'session' ? resolved.path : (state?.activePlan || null),
       suggestedPlan: resolved.resolvedBy === 'branch' ? resolved.path : null,
@@ -145,6 +151,7 @@ try {
       `Session startup. Project: ${detections.type || 'unknown'} | PM: ${detections.pm || 'unknown'}`,
       `Plan naming: ${namePattern} | Root: ${baseDir}`,
     ];
+    if (sessionModel) lines.unshift(`🤖 Model: ${formatModelDisplay(sessionModel)}`);
     if (teamInfo.isTeamMember) lines.push(formatTeamContextLine(teamInfo));
     if (resolved.path) lines.push(`Active plan: ${resolved.path} (via ${resolved.resolvedBy})`);
     process.stdout.write(lines.join(' | ') + '\n');
@@ -163,14 +170,20 @@ try {
             try {
               const content = fs.readFileSync(path.join(agentDir, file), 'utf8');
               const m = content.match(/^model:\s*(.+)$/m);
-              if (m) agentMap[file.replace('.md', '')] = m[1].trim();
+              // Agents without a model pin inherit the session model — list them
+              // too so Claude announces every Agent call, not just pinned ones.
+              agentMap[file.replace('.md', '')] = m ? m[1].trim() : 'inherit';
             } catch { /* skip unreadable */ }
           }
         }
+        const sessionLabel = sessionModel
+          ? `${formatModelDisplay(sessionModel)} (${sessionModel})`
+          : 'the session model';
         const mapStr = Object.entries(agentMap).map(([k, v]) => `${k}=${v}`).join(', ');
-        const instruction = mapStr
-          ? `AGENT TRACE: For each Agent tool call, write ⚡ [subagent_type] → [model] on its own line in your response text before the tool call. Model map: ${mapStr}`
-          : `AGENT TRACE: For each Agent tool call, write ⚡ [subagent_type] on its own line in your response text before the tool call.`;
+        const announce = `AGENT TRACE: At the start of your first reply this session, write "🤖 Model: ${sessionModel ? formatModelDisplay(sessionModel) : '<your model name>'}" on its own line. `;
+        const instruction = announce + (mapStr
+          ? `For each Agent tool call, write ⚡ [subagent_type] → [model] on its own line in your response text before the tool call — including when the model equals the session model. inherit = ${sessionLabel}. Model map: ${mapStr}`
+          : `For each Agent tool call, write ⚡ [subagent_type] → ${sessionLabel} on its own line in your response text before the tool call.`);
         process.stdout.write(instruction + '\n');
       } catch { /* fail-open — tracer instruction is best-effort */ }
     }

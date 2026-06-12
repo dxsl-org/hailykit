@@ -2,9 +2,12 @@
 /**
  * haily-tracer.cjs — PreToolUse hook that announces which model a subagent will run on.
  *
- * Fires when the Agent tool is called. Reads the subagent_type from the tool input,
- * looks up the agent's installed frontmatter to get its model, and outputs a one-line
- * notification: ⚡ [haily-brainstormer] → thinking (claude-opus-4-8)
+ * Fires when the Agent tool is called. Model resolution order: explicit `model`
+ * in the tool input → agent frontmatter pin → session model (HL_SESSION_MODEL /
+ * session state, captured by haily-session at SessionStart). Always announces —
+ * agents inheriting the session model are shown too, not skipped:
+ *   ⚡ [haily-brainstormer] → thinking (claude-opus-4-8)
+ *   ⚡ [Explore] → medium (claude-sonnet-4-6)
  *
  * Opt-in: set `"model-tracer": true` in haily.json hooks to enable.
  * Config key (isHookEnabled): 'model-tracer'  — default false
@@ -20,20 +23,23 @@ try {
   const path = require('node:path');
   const os   = require('node:os');
 
-  const { isHookEnabled } = require('./haily-lib/config.cjs');
+  const { isHookEnabled, readSessionState } = require('./haily-lib/config.cjs');
   const { createHookTimer, logHookCrash } = require('./haily-lib/logger.cjs');
+  const { deriveTier } = require('./haily-lib/model.cjs');
 
   if (!isHookEnabled('model-tracer')) process.exit(0);
 
-  // ── Tier derivation ─────────────────────────────────────────────────────────
-  // Model IDs after install: claude-opus-4-8, claude-sonnet-4-6, claude-haiku-4-5-*
-  // Tier names match kit/model-map.json keys; fallback: show raw model ID only.
-  function deriveTier(modelId) {
-    const m = modelId.toLowerCase();
-    if (m.includes('opus'))   return 'thinking';
-    if (m.includes('sonnet')) return 'medium';
-    if (m.includes('haiku'))  return 'fast';
-    return null;
+  // ── Session model resolution ────────────────────────────────────────────────
+  // Both sources are written by haily-session at SessionStart (the only hook
+  // event that receives `model` on stdin). Session state is preferred: it is
+  // refreshed on every SessionStart (resume/clear), while process.env may hold
+  // the value captured when this process tree first sourced the env file.
+  function resolveSessionModel(sessionId) {
+    try {
+      const state = sessionId ? readSessionState(sessionId) : null;
+      if (state && typeof state.model === 'string' && state.model) return state.model;
+    } catch { /* fail-open */ }
+    return process.env.HL_SESSION_MODEL || '';
   }
 
   // ── Agent file resolution ────────────────────────────────────────────────────
@@ -80,23 +86,22 @@ try {
       process.exit(0);
     }
 
+    // Explicit per-call override > agent frontmatter pin > session model.
+    const overrideModel = typeof toolInput.model === 'string' ? toolInput.model.trim() : '';
     const agentFile = resolveAgentFile(subagentType);
-    if (!agentFile) {
-      timer.end({ status: 'skip', exit: 0, note: 'agent-file-not-found', subagentType });
-      process.exit(0);
-    }
+    const pinnedModel = agentFile ? extractModel(agentFile) : null;
+    const modelId = overrideModel || pinnedModel || resolveSessionModel(data.session_id || '');
 
-    const modelId = extractModel(agentFile);
-    if (!modelId) {
-      timer.end({ status: 'skip', exit: 0, note: 'no-model-field', subagentType });
-      process.exit(0);
+    let label;
+    if (modelId) {
+      const tier = deriveTier(modelId);
+      label = tier ? `${tier} (${modelId})` : modelId;
+    } else {
+      label = 'session model (inherit)';
     }
-
-    const tier = deriveTier(modelId);
-    const label = tier ? `${tier} (${modelId})` : modelId;
     process.stdout.write(`⚡ [${subagentType}] → ${label}\n`);
 
-    timer.end({ status: 'ok', exit: 0, subagentType, modelId });
+    timer.end({ status: 'ok', exit: 0, subagentType, modelId: modelId || 'inherit' });
     process.exit(0);
   }
 

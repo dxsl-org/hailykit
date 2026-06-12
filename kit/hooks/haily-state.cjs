@@ -20,9 +20,9 @@ try {
 
   const { isHookEnabled } = require('./haily-lib/config.cjs');
   const { createHookTimer, logHookCrash } = require('./haily-lib/logger.cjs');
-  const { persistState, loadState, refreshStatuslineSnapshot } = require('./haily-lib/haily-state-store.cjs');
+  const { persistState, loadState, refreshStatuslineSnapshot } = require('./haily-lib/state.cjs');
   const { readActivitySnapshot } = require('./haily-lib/statusline.cjs');
-  const { readUsageCache } = require('./haily-lib/usage.cjs');
+  const { readUsageCache, getCacheAgeMs } = require('./haily-lib/usage.cjs');
 
   // NOTE: config key 'session-state' preserved — user-facing contract
   if (!isHookEnabled('session-state')) process.exit(0);
@@ -57,38 +57,43 @@ try {
     if (hookEvent === 'Stop' || hookEvent === 'SubagentStop') {
       await persistState(sessionId, data, transcriptPath, hookEvent);
 
-      // Best-effort session summary — fail silently (never block session end)
-      try {
-        const snap = readActivitySnapshot(sessionId);
-        if (snap) {
-          const durationMs = snap.sessionStart ? Date.now() - snap.sessionStart : 0;
-          const mins = Math.floor(durationMs / 60000);
-          const secs = Math.floor((durationMs % 60000) / 1000);
-          const agents = snap.agents || [];
-          const todos  = snap.todos  || [];
-          const completedAgents = agents.filter(a => a.completedAt).length;
-          const completedTasks  = todos.filter(t => t.status === 'completed').length;
+      // Best-effort session summary on Stop only (SubagentStop fires per agent
+      // and would spam). Emitted via the `systemMessage` JSON field — the only
+      // Stop-hook output Claude Code renders to the user; raw stdout shows in
+      // transcript mode only.
+      if (hookEvent === 'Stop') {
+        try {
+          const snap = readActivitySnapshot(sessionId);
+          const parts = [];
 
-          const usage = readUsageCache();
-          const lines = [
-            '━━━ Session Complete ━━━━━━━━━━━━━━━━━━━━━━━━━',
-          ];
-          if (durationMs > 0) lines.push(`  Duration:  ${mins}m ${secs}s`);
-          if (agents.length > 0) lines.push(`  Agents:    ${completedAgents}/${agents.length} completed`);
-          if (todos.length  > 0) lines.push(`  Tasks:     ${completedTasks}/${todos.length} completed`);
-
-          // Quota display (only when haily-usage hook is enabled and data is fresh)
-          if (usage) {
-            const quota = [];
-            if (usage.fiveHour != null) quota.push(`5h: ${usage.fiveHour}%`);
-            if (usage.week     != null) quota.push(`wk: ${usage.week}%`);
-            if (quota.length > 0) lines.push(`  Quota:     ${quota.join('  ')}`);
+          // sessionStart is an ISO string from the transcript — parse before math
+          const startMs = snap?.sessionStart ? Date.parse(snap.sessionStart) : NaN;
+          if (Number.isFinite(startMs) && Date.now() > startMs) {
+            const durationMs = Date.now() - startMs;
+            const mins = Math.floor(durationMs / 60000);
+            const secs = Math.floor((durationMs % 60000) / 1000);
+            parts.push(`⏱ ${mins}m ${secs}s`);
           }
 
-          lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-          process.stdout.write('\n' + lines.join('\n') + '\n');
-        }
-      } catch { /* fail silently — summary is informational only */ }
+          const agents = snap?.agents || [];
+          const todos  = snap?.todos  || [];
+          if (agents.length > 0) parts.push(`agents ${agents.filter(a => a.completedAt).length}/${agents.length}`);
+          if (todos.length  > 0) parts.push(`tasks ${todos.filter(t => t.status === 'completed').length}/${todos.length}`);
+
+          // Quota: only when the haily-usage cache is reasonably fresh (≤30 min)
+          const usage = readUsageCache();
+          if (usage && getCacheAgeMs(usage) <= 30 * 60 * 1000) {
+            const quota = [];
+            if (usage.fiveHour != null) quota.push(`5h ${usage.fiveHour}%`);
+            if (usage.week     != null) quota.push(`wk ${usage.week}%`);
+            if (quota.length > 0) parts.push(`quota ${quota.join(' · ')}`);
+          }
+
+          if (parts.length > 0) {
+            process.stdout.write(JSON.stringify({ systemMessage: `📊 ${parts.join(' · ')}` }) + '\n');
+          }
+        } catch { /* fail silently — summary is informational only */ }
+      }
 
       timer.end({ status: 'persist', exit: 0, event: hookEvent });
       process.exit(0);
