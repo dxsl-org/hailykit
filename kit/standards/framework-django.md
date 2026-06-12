@@ -70,6 +70,7 @@ for post in Post.objects.select_related('author'):
 Class-based views (CBV) for CRUD, function-based (FBV) for one-off endpoints.
 
 - **DRF (Django REST Framework)** for APIs — `ModelViewSet` + `Serializer` covers 80% of cases
+- **Django Ninja** is a modern alternative — FastAPI-style with type hints, async support
 - Plain Django views for HTML responses (admin, server-rendered pages)
 
 ```python

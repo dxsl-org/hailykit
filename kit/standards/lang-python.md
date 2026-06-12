@@ -188,7 +188,7 @@ def by_name(u):
 ## Tooling
 - Format: `ruff format` (Black-compatible) — line length 100 unless project differs
 - Lint: `ruff check` — covers flake8, isort, pyupgrade, bugbear
-- Types: `mypy --strict`; use `zuban` for greenfield projects (not Django/Pydantic)
+- Types: `mypy --strict` or `pyright`; `zuban` (Rust-based, 20–200× faster) is an option for greenfield projects — note AGPL-3.0 license (commercial use requires a paid license) and pre-1.0 API stability
 - Tests: `pytest`, fixtures over setUp/tearDown, function-based test cases over class-based
 - Manage deps with `uv` or `pdm`; lock files committed
 
