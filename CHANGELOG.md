@@ -5,12 +5,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [1.6.6] (2026-06-12)
+## [1.6.7] (2026-06-12)
 
 ### 🐛 Fixes
 
 - **`hailykit upgrade` / `install`** — upgrade logic
 - **Model tracer + session summary** — now visible (dead hook revived)
+- Release create fall back to upload
 
 ### 🚀 Improvements
 
