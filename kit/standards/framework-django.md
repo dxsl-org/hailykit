@@ -70,7 +70,7 @@ for post in Post.objects.select_related('author'):
 Class-based views (CBV) for CRUD, function-based (FBV) for one-off endpoints.
 
 - **DRF (Django REST Framework)** for APIs — `ModelViewSet` + `Serializer` covers 80% of cases
-- **Django Ninja** is the modern alternative — FastAPI-style with type hints, async support
+- **Django Ninja** is a modern alternative — FastAPI-style with type hints, async support
 - Plain Django views for HTML responses (admin, server-rendered pages)
 
 ```python
@@ -134,7 +134,7 @@ class PostViewSet(viewsets.ModelViewSet):
 - `SECURE_SSL_REDIRECT`, `SECURE_HSTS_SECONDS`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` in production
 - CSRF protection on all forms — never disable globally
 - File uploads: validate MIME + size; never trust `Content-Type` header
-- Use `bleach` or `django-bleach` to sanitize HTML user input
+- Use `nh3` to sanitize HTML user input
 
 ## Performance
 
@@ -142,13 +142,14 @@ class PostViewSet(viewsets.ModelViewSet):
 - **gunicorn** with `gevent` or `uvicorn` workers (ASGI for async)
 - **whitenoise** for static files in containerized deployments
 - Profile with **silk** or **django-debug-toolbar** in dev
-- Async views (`async def`) for I/O-bound endpoints (Django 4.1+)
+- Async views (`async def`) for I/O-bound endpoints (Django 4.1+).
+  Async views only help for I/O-bound work outside the ORM — Django's ORM is not truly async yet, even with `afirst()`/`aget()` variants.
 
 ## Common Pitfalls
 
 - N+1 queries (use `select_related` / `prefetch_related`)
-- Forgetting `auto_now_add` vs `auto_now` — first is "set once", second is "update each save"
-- Storing files in MEDIA_ROOT in production without S3/equivalent — doesn't scale
+- Forgetting `auto_now_add` vs `auto_now` — first is "set once", second is "update each save".
+  `auto_now_add` / `auto_now` make the field read-only on save — avoid them if you need to manually set timestamps (e.g., in tests or import scripts).
 - Not running `collectstatic` in production — broken admin styles
 - `DEBUG=True` in production — leaks settings + stack traces
 
@@ -159,3 +160,4 @@ class PostViewSet(viewsets.ModelViewSet):
 - Media files: S3 / R2 via **django-storages**
 - Background jobs: **Celery** + Redis/RabbitMQ
 - Monitoring: **Sentry** for errors, Prometheus for metrics, structured JSON logging
+- Outside containers, sink logs to `journald` via [`chameleon-log`](https://pypi.org/project/chameleon-log/) or [`structlog-journald`](https://pypi.org/project/structlog-journald/) to keep structured logging benefits
