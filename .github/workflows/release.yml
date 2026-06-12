@@ -20,12 +20,14 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run release:pack
+      # Idempotent publish: a release may already exist (e.g. created locally
+      # right after the tag push) — fall back to replacing the asset instead
+      # of failing on the name collision.
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >
-          gh release create "${{ github.ref_name }}"
-          release/hailykit.zip
-          --title "${{ github.ref_name }}"
-          --notes "Release ${{ github.ref_name }}"
-          --verify-tag
+        run: |
+          tag="${{ github.ref_name }}"
+          gh release create "$tag" release/hailykit.zip \
+            --title "$tag" --notes "Release $tag" --verify-tag \
+          || gh release upload "$tag" release/hailykit.zip --clobber
