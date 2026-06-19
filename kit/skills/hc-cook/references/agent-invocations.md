@@ -133,3 +133,18 @@ Stage all changes and commit with a conventional-commit message.
 
 Execute the assigned phase file; owns the listed files exclusively.
 Launch one haily-implementor per independent phase; enforce non-overlapping file ownership.
+
+## Tier Routing
+
+When `{skill:hc-cook}` receives `--tier fast|medium|thinking` (passed by `{skill:hc-goal}` per phase from the phase frontmatter), forward it to Build and Verify agents via the Task `model:` parameter:
+
+| `--tier` value | Task `model:` param |
+|---|---|
+| `fast` | `{model:fast}` |
+| `medium` | `{model:medium}` |
+| `thinking` | `{model:thinking}` |
+| absent | (inherit session model — backward compatible) |
+
+Apply to `haily-implementor` (Build) and `haily-tester` (Verify). Do **not** apply to `haily-reviewer` — review judgment is always the session model or higher, never downgraded.
+
+Tier names (`{model:fast}` etc.) resolve to provider model IDs at install time via `kit/model-map.json`. Never hard-code vendor model IDs here.

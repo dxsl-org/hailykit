@@ -60,11 +60,18 @@ Keep plan.md under 80 lines — it is an index, not a specification.
 
 See `references/phase-template.md` for the full template. Key sections:
 ```
-phase, title, status, priority, effort, dependencies
+phase, title, status, priority, effort, dependencies, tier
 ---
 Overview · Requirements · Architecture
 Related Files · Implementation Steps · Success Criteria · Risk Notes
 ```
+
+**`tier` field** — model tier hint for this phase. Auto-classified by hc-plan; passed to hc-cook by hc-goal for cost routing:
+- `fast` — mechanical work: renames, boilerplate, docs, config edits
+- `medium` — standard logic: CRUD, integration, refactors (default)
+- `thinking` — complex reasoning: architecture decisions, security, schema design, novel algorithms
+
+Absent `tier` field: behaves as `medium` (backward compatible).
 
 ## Cross-Plan References
 

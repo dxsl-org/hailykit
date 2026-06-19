@@ -3,7 +3,7 @@ name: hc-cook
 description: "Feature implementation pipeline: Recon → Draft → Build → Verify → Ship. Auto-detects input type (task description, plan path, image, Figma URL). Delegates all Verify and Ship work to specialist agents — never self-implements testing, review, or finalization."
 when_to_use: "Invoke when executing an implementation plan or feature task end-to-end."
 user-invocable: true
-argument-hint: "<task|plan.md|image.png|figma-url> [--quick] [--auto] [--tdd] | migrate \"<description>\""
+argument-hint: "<task|plan.md|image.png|figma-url> [--quick] [--auto] [--tdd] [--tier fast|medium|thinking] | migrate \"<description>\""
 metadata:
   category: workflow
   keywords: [implementation, feature, pipeline, plan-execute, layout, coding]
@@ -25,6 +25,7 @@ Full pipeline from task to committed code. Classifies input automatically, deleg
 | `--quick` | Skip Recon + Scope Contract. Go straight to Draft → Build → Verify → Ship. Use when you already understand the codebase — small fixes, known refactors, follow-on tasks. |
 | `--auto` | Autonomous — resolves Checkpoints without pausing; applies Auto-Resolve Ladder on regressions. Run `{skill:hc-plan} validate` first for a clean run. |
 | `--tdd` | Behavioral modifier — write tests before each plan phase, verify after |
+| `--tier fast\|medium\|thinking` | Model tier hint — forwarded to Build and Verify agents (see `references/agent-invocations.md` § Tier Routing). Passed automatically by `{skill:hc-goal}` per phase; absent = session model (backward compatible) |
 | `migrate "[description]"` | Large-scale codebase migration — scope analysis → compatibility strategy → incremental phased execution → verification → cleanup. See `references/workflow-migration.md`. |
 
 Flags compose freely: `--quick --auto`, `--quick --tdd`, `--auto --tdd`.
@@ -98,7 +99,7 @@ Stored in `context-snippets.json`: task, acceptanceCriteria, touchpoints, blastR
 3. **Draft** — spawn `haily-planner`; produce `plan.md` + `phase-XX-*.md`. Build Stage Graph from `blockedBy` fields; identify parallel-eligible phases. Log `✓ Draft: [N] phases, [M] parallel-eligible`. [skip plan.md production when plan-path input]
    - **Checkpoint (Draft exit):** `AskUserQuestion`: Approve / Revise / Validate (`{skill:hc-plan} validate`) / Abort. [skip: `--auto`]
 
-4. **Build** — execute plan phases; parallel when Stage Graph allows + `--auto`. Spawn `haily-designer` for frontend work; activate `{skill:hc-db}` for schema/query/migration work. Run compile check after each file. Run Lean Pass if LOC delta breaches threshold (see `references/process-steps.md` § Lean Pass). Log `✓ Build: [N] files changed — [M/M] phases complete`.
+4. **Build** — execute plan phases; parallel when Stage Graph allows + `--auto`. Spawn `haily-designer` for frontend work; activate `{skill:hc-db}` for schema/query/migration work. Run compile check after each file. Run Lean Pass if LOC delta breaches threshold (see `references/process-steps.md` § Lean Pass). Forward `--tier` hint to Build and Verify agents (see `references/agent-invocations.md` § Tier Routing). Log `✓ Build: [N] files changed — [M/M] phases complete`.
    - **Checkpoint (Build exit):** review implementation summary. [skip: `--auto`]
 
 5. **Verify** — spawn `haily-tester` via Task tool; on failures spawn `haily-debugger`; repeat until all pass. Then spawn `haily-reviewer` via Task tool with Scope Contract + Recon context. `--auto`: auto-approve if `references/review-artifacts.md` artifact clears; else apply Auto-Resolve Ladder (see `references/review-gates.md`). Log `✓ Verify: [N/N] tests passed — review [score]/10`.

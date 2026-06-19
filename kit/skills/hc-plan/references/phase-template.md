@@ -10,6 +10,7 @@ status: pending       # pending | in-progress | completed
 priority: P2          # P1 (critical path) | P2 (standard) | P3 (nice-to-have)
 effort: ""            # e.g. "4h", "2d"
 dependencies: []      # phase numbers this phase is blocked by
+tier: medium          # fast (mechanical/boilerplate) | medium (logic/integration) | thinking (arch/security/schema)
 ---
 
 # Phase <N>: <Name>

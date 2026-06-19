@@ -46,7 +46,7 @@ Init docs/ + CLAUDE.md in existing project  → {skill:hc-docs} init  (scouts �
 Bootstrap new project from scratch          → {skill:hc-new}  (Route → Recon → Draft → Build → Verify → Ship; auto-detects project type)
 Autonomous feature development (goal → committed code, no manual steps)  → {skill:hc-goal} "description" [--auto]
 ```
-Disambiguate: new project from scratch → `{skill:hc-new}` · add a feature to existing project without manual orchestration → `{skill:hc-goal}` · step-by-step with control at each stage → `{skill:hc-plan}` then `{skill:hc-cook}`.
+Disambiguate: new project from scratch → `{skill:hc-new}` · many-phase autonomous run (longer than cook, bounded context + regression gate) → `{skill:hc-goal}` · step-by-step with user control → `{skill:hc-plan}` then `{skill:hc-cook}`. `{skill:hc-goal}` flags: `--budget N` (phase cap), `--budget Xtool` (tool-call cap), `--strict` (full-suite-green gating).
 
 ## Backend / Database
 
