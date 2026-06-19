@@ -77,7 +77,7 @@ Override: if first arg is image/video AND task text contains "fix" / "debug" / "
 
 > **Required — recon-first:** Before planning or asking questions, scan the codebase — project type, language/framework, relevant modules, docs in `./docs/`, in-flight plans in `./.agents/`, public APIs the task could affect. Report 3–6 bullets. Skip when input is plan-path or layout.
 
-> **Required — zero-regress:** Implementation is incomplete until every acceptance criterion is proven, **no new test failures** are introduced vs a baseline captured before implementation begins (pre-existing failures are not blocking), lint/type/build remain clean, and public contracts are untouched unless explicitly flagged. Use `--strict` to require the full suite green instead.
+> **Required — zero-regress:** Implementation is incomplete until every acceptance criterion is proven, **no new test failures** are introduced vs a baseline captured before implementation begins (pre-existing failures are not blocking), lint/type/build remain clean, and public contracts are untouched unless explicitly flagged. Capture the baseline at Build entry: run the test suite, record failing test names, then diff after each phase (see `{skill:hc-goal}` `references/regression-gate.md` for runner detection and diff protocol). Use `--strict` to require the full suite green instead.
 > **Interactive:** on regression, halt and surface options — roll back the offending change / propagate the new contract / insert a compatibility adapter / acknowledge as intentional. User decides.
 > **`--auto`:** on regression, apply Auto-Resolve Ladder: select lowest-risk resolution (default: undo affected slice + write incident report to `.agents/reports/cook-incident-*.md`); terminate if unresolvable.
 

@@ -7,10 +7,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+---
+
+## [1.9.0] (2026-06-19)
+
 ### 🚀 Improvements
 
-- **`hailykit install/upgrade`** — `fetchWithRetry` wraps GitHub API and download calls; retries transient 5xx/429 (1.5 s → 3 s backoff, 3 attempts); permanent 4xx returned immediately
-- **`hc-git issues`** — new subcommand: discover open GitHub issues, classify P1–P5 by label, show prioritized list; `--auto` picks top priority and delegates to `hc-goal`; `--loop` works through all issues autonomously
+- `hailykit install` — wraps GitHub API and download calls with retry logic
+- **`hc-git issues`** — discover and triage open GitHub issues by priority
+- **`hc-goal`** — redesigned autonomous loop: clarify-or-assume instead of halting, no-new-failures regression gate, run-ledger compaction, per-phase model-tier routing
+- **`hc-cook`** — no-new-failures regression gate (baseline-relative; pre-existing failures non-blocking); `--strict` restores full-suite-green
+- **`hc-review`** — Checks system: user-defined per-repo criteria in `.agents/checks/*.yaml`, auto-discovered and injected at Stage 2 Quality
+- **`hc-debug`** — Oracle escalation: 3+ failed fix attempts → `haily-debugger` at `{model:thinking}` tier with fresh evidence only
+- **`hc-plan`** — writes `scout-report.md` to plan folder; `hc-review` and `hc-debug` reuse it to skip re-scouting within the same plan session
 
 ---
 
