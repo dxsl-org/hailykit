@@ -85,6 +85,8 @@ Which stages run per flag combination:
    - Skip: `codebase` and `codebase parallel` modes
    - Skip: `--ui` mode (pattern-matched files are the scope)
 
+   **Scout shortcut:** Before spawning `{skill:hc-scout}`, glob for `.agents/*/scout-report.md`. If any exist, read the most recently modified one — if it covers the task's relevant modules, use it as scout findings and skip spawning. Log `✓ Scout: used scout-report.md from [path]`.
+
 3. **Review Circuit** — 3 stages in sequence:
    - **Stage 1 — Spec** (`references/review-spec.md`): verify implementation matches plan/spec; absent plan, check for unjustified scope additions. Must pass before Stage 2. Skip if `--quick`.
    - **Stage 2 — Quality**: auto-discover `.agents/checks/*.yaml`; filter by scope glob vs diff files; log `✓ Checks: [N] discovered, [M] matched`; inject matching checks into `haily-reviewer` prompt (see `references/checks.md`). Delegate `haily-reviewer` subagent with diff + scout findings + repo-specific checks. Standards, security, performance, edge cases.

@@ -72,6 +72,7 @@ Plans save to `.agents/[YYMMDD]-[HHMM]-[slug]/`:
 
 - `plan.md` — overview table with phase status, links, and key dependencies
 - `phase-01-name.md`, `phase-02-name.md`, … — per-phase: requirements, file ownership, implementation steps, success criteria, risk notes
+- `scout-report.md` — codebase analysis summary written at Codebase Analysis stage; read by `{skill:hc-review}` and `{skill:hc-debug}` to skip re-scouting within the same plan
 
 Phase file template: `references/phase-template.md`
 

@@ -80,7 +80,7 @@ Stop and restart from systematic investigation if any of these thoughts occur:
 
 ## Tools
 
-- **Codebase:** `{skill:hc-scout}` to locate relevant files before starting investigation
+- **Codebase:** `{skill:hc-scout}` to locate relevant files before starting investigation — first check `.agents/*/scout-report.md`; if one exists from the active plan, read it instead of re-scouting
 - **Database:** `psql` for live query inspection and schema validation
 - **CI/CD:** `gh` CLI for GitHub Actions log retrieval and pipeline introspection
 - **Frontend:** Chrome DevTools MCP or Puppeteer scripts for console, network, and visual verification

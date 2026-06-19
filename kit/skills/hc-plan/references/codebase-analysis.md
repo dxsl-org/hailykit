@@ -54,4 +54,4 @@ Brief written summary (≤150 lines) covering:
 3. Blast Radius: modules and contracts at risk
 4. Inconsistencies or technical debt the plan should note but not fix
 
-Pass this summary to the Solution Design stage.
+Write this summary to `.agents/<plan-dir>/scout-report.md` before proceeding to Solution Design. Downstream skills (`{skill:hc-review}`, `{skill:hc-debug}`) read this file to skip re-scouting within the same working session.
