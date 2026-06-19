@@ -3,7 +3,7 @@ name: hc-cook
 description: "Feature implementation pipeline: Recon → Draft → Build → Verify → Ship. Auto-detects input type (task description, plan path, image, Figma URL). Delegates all Verify and Ship work to specialist agents — never self-implements testing, review, or finalization."
 when_to_use: "Invoke when executing an implementation plan or feature task end-to-end."
 user-invocable: true
-argument-hint: "<task|plan.md|image.png|figma-url> [--quick] [--auto] [--tdd] [--tier fast|medium|thinking] | migrate \"<description>\""
+argument-hint: "<task|plan.md|image.png|figma-url> [--quick] [--auto] [--tdd] [--tier fast|medium|thinking] [--strict] | migrate \"<description>\""
 metadata:
   category: workflow
   keywords: [implementation, feature, pipeline, plan-execute, layout, coding]
@@ -26,6 +26,7 @@ Full pipeline from task to committed code. Classifies input automatically, deleg
 | `--auto` | Autonomous — resolves Checkpoints without pausing; applies Auto-Resolve Ladder on regressions. Run `{skill:hc-plan} validate` first for a clean run. |
 | `--tdd` | Behavioral modifier — write tests before each plan phase, verify after |
 | `--tier fast\|medium\|thinking` | Model tier hint — forwarded to Build and Verify agents (see `references/agent-invocations.md` § Tier Routing). Passed automatically by `{skill:hc-goal}` per phase; absent = session model (backward compatible) |
+| `--strict` | Require the full test suite to be green (restores original zero-regress behavior; overrides default no-new-failures gate) |
 | `migrate "[description]"` | Large-scale codebase migration — scope analysis → compatibility strategy → incremental phased execution → verification → cleanup. See `references/workflow-migration.md`. |
 
 Flags compose freely: `--quick --auto`, `--quick --tdd`, `--auto --tdd`.
@@ -76,7 +77,7 @@ Override: if first arg is image/video AND task text contains "fix" / "debug" / "
 
 > **Required — recon-first:** Before planning or asking questions, scan the codebase — project type, language/framework, relevant modules, docs in `./docs/`, in-flight plans in `./.agents/`, public APIs the task could affect. Report 3–6 bullets. Skip when input is plan-path or layout.
 
-> **Required — zero-regress:** Implementation is incomplete until every acceptance criterion is proven, the full test suite (including neighboring modules) stays green, no regressions surface, lint/type/build remain clean, and public contracts are untouched unless explicitly flagged.
+> **Required — zero-regress:** Implementation is incomplete until every acceptance criterion is proven, **no new test failures** are introduced vs a baseline captured before implementation begins (pre-existing failures are not blocking), lint/type/build remain clean, and public contracts are untouched unless explicitly flagged. Use `--strict` to require the full suite green instead.
 > **Interactive:** on regression, halt and surface options — roll back the offending change / propagate the new contract / insert a compatibility adapter / acknowledge as intentional. User decides.
 > **`--auto`:** on regression, apply Auto-Resolve Ladder: select lowest-risk resolution (default: undo affected slice + write incident report to `.agents/reports/cook-incident-*.md`); terminate if unresolvable.
 
