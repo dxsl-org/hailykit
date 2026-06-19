@@ -75,7 +75,7 @@ Stop and restart from systematic investigation if any of these thoughts occur:
 - "Quick patch for now, I'll look into the cause later"
 - "Tests pass, we're done" (without reading the full output)
 - "Seems fixed" stated without a reproduction test
-- Three or more failed fix attempts with no change in diagnostic approach
+- Three or more failed fix attempts with no change in diagnostic approach → **Oracle escalation:** spawn `haily-debugger` at `{model:thinking}` tier, carrying only confirmed evidence (not prior fix history). A fresh high-capacity perspective breaks the confirmation-bias loop. Do not retry the same approach a fourth time.
 - Skipping a reference phase because the cause "looks obvious"
 
 ## Tools
