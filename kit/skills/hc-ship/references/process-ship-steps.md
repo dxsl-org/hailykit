@@ -166,7 +166,19 @@ git fetch origin <target> && git merge origin/<target> --no-edit
      - `### 🚀 Improvements` — new features, enhancements, performance, refactors
      - `### 🐛 Fixes` — bug fixes, security patches, regressions
      - Omit a section entirely if empty
-     - Each bullet: max 10 words, one clear sentence, no trailing explanations
+
+**Bullet format — strict:**
+- Pattern: `- <subject>: <short verb phrase>` — e.g. `- hc-plan: memory-augmented planning via --resume`
+- **Hard cap: 8 words after the colon.** Count the words; cut if over.
+- One concept per bullet. If a commit touches 3 things, write 3 bullets.
+- **Forbidden:** bold/inline-code in bullet text · colon-separated sub-lists (`x: a, b, c`) · `—` em-dash qualifiers · parenthetical asides · words like "now", "also", "additionally"
+- Subject is the component/skill name, plain text, no backticks
+
+| ❌ Too long | ✅ Correct |
+|---|---|
+| `**hc-goal** — redesigned autonomous loop: clarify-or-assume, no-new-failures gate, run-ledger compaction` | `- hc-goal: clarify-or-assume loop replaces halt-on-ambiguity` |
+| `**hc-debug** — Oracle escalation on 3+ failed fix attempts` | `- hc-debug: oracle escalation after 3 failed fixes` |
+| `**hc-review** — Checks system: user-defined per-repo criteria auto-discovered` | `- hc-review: user-defined per-repo check criteria` |
 
 **Do NOT ask user to describe changes.** Infer from diff and commits.
 
