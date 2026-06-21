@@ -43,12 +43,12 @@ No arguments: run the full project test suite. Add `--web` for web-specific test
 
 1. **Route** — parse scope from args; select mode (standard or `--web`). Log `✓ Route: mode=[standard|web], scope=[arg or 'all']`
 
-2. **Recon** — identify framework (Jest, Vitest, pytest, go test, cargo test, flutter test) from config files; locate test files; read coverage threshold from config. Log `✓ Recon: framework=[name], test files=[N]`
+2. **Recon** — run `hailykit test-detect <path> --json` to identify the framework, runner command, test globs, and coverage threshold from config deterministically (returns `framework: "unknown"` when nothing matches — then fall back to manual inspection). Log `✓ Recon: framework=[name], test files=[N]`
 
 3. **Verify** — execute validation pipeline via `references/flow-execution.md`:
    - Run typecheck/lint (catch compile errors before tests)
    - Run test suite; on failure, classify: configuration issue (missing dep, wrong env var, broken import) → fix config and re-run; code bug (logic error, assertion failure, regression) → stop and escalate per § When NOT to Use
-   - Generate coverage; compare against threshold
+   - Generate coverage; normalize the report with `hailykit coverage-parse <file> --json` (LCOV/Istanbul/pytest/gocover → total % + per-file %) and compare against threshold
    - Run build verification (production build must exit 0)
    - For `--web`: load and run web-specific suites (see `## --web Mode`)
    - Log `✓ Verify: [N/N] tests passed — coverage=[X%] — build=[PASS|FAIL]`

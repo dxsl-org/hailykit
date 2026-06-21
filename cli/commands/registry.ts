@@ -4,6 +4,8 @@ import { cmdGitInsights } from './git-insights';
 import { cmdSecrets } from './scan/secrets';
 import { cmdVulnScan } from './scan/vuln-scan';
 import { cmdContracts } from './contracts/contracts';
+import { cmdTestDetect } from './test/detect';
+import { cmdCoverageParse, type CoverageFormat } from './test/coverage';
 
 /**
  * Registry of native analysis commands (stats, and the Tier 1–3 tools added by
@@ -176,12 +178,49 @@ const contractsCommand: CommandSpec = {
   }),
 };
 
+const testDetectCommand: CommandSpec = {
+  name: 'test-detect',
+  summary: 'Detect test framework, globs, and coverage threshold',
+  help: `hailykit test-detect [path] — Detect the test framework / runner / globs / coverage threshold
+
+Arguments:
+  path                 Project directory (default: current directory)
+
+Options:
+  --json               Emit the JSON envelope (machine-readable)
+
+Returns framework: "unknown" (not an error) when nothing matches.`,
+  valueFlags: [],
+  run: ({ positionals, options }) => cmdTestDetect({ path: positionals[0] || '.', json: options.json === true }),
+};
+
+const coverageParseCommand: CommandSpec = {
+  name: 'coverage-parse',
+  summary: 'Normalize an LCOV/Istanbul/pytest/gocover report',
+  help: `hailykit coverage-parse <file> — Normalize a coverage report to total % + per-file %
+
+Arguments:
+  file                 Coverage report file
+
+Options:
+  --format <f>         lcov | istanbul | pytest | gocover (auto-detected if omitted)
+  --json               Emit the JSON envelope (machine-readable)`,
+  valueFlags: ['format'],
+  run: ({ positionals, options }) => {
+    if (!positionals[0]) { console.error('Usage: hailykit coverage-parse <file> [--format f]'); return 1; }
+    const fmt = stringOption(options, 'format', '') as CoverageFormat | '';
+    return cmdCoverageParse({ file: positionals[0], format: fmt || undefined, json: options.json === true });
+  },
+};
+
 export const COMMANDS: CommandSpec[] = [
   statsCommand,
   gitInsightsCommand,
   secretsCommand,
   vulnScanCommand,
   contractsCommand,
+  testDetectCommand,
+  coverageParseCommand,
 ];
 
 /** Look up a registered command by name. */
