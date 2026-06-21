@@ -10,8 +10,8 @@ import {
   installHookWrappers,
   buildCodexHooksJson,
   buildTimeoutsByPath,
-  writeCodexConfigToml,
 } from './codex-hook-compat.js';
+import { writeCodexConfigToml } from './codex-config.js';
 import {
   escapeTomlMultiline,
   toCodexSlug,
@@ -19,6 +19,7 @@ import {
   deriveSandboxMode,
   extractUnmanagedAgentSlugs,
   mergeManagedTomlBlock,
+  atomicWriteToml,
 } from './codex-toml.js';
 import { warnIfCodexHooksUnsupported } from './codex-version.js';
 
@@ -259,7 +260,7 @@ export class CodexProvider extends BaseProvider {
     const merged = mergeManagedTomlBlock(existingConfig, block, AGENTS_SENTINEL_START, AGENTS_SENTINEL_END);
     if (merged !== existingConfig) {
       fs.mkdirSync(targetProviderDir, { recursive: true });
-      fs.writeFileSync(configPath, merged, 'utf8');
+      atomicWriteToml(configPath, merged);
     }
   }
 

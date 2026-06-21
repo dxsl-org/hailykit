@@ -229,41 +229,4 @@ export function buildTimeoutsByPath(allHooks: unknown, destHooksDir: string): Ma
   return map;
 }
 
-/**
- * Enable the hooks feature flag in ~/.codex/config.toml.
- * Required by Codex CLI before it processes hooks.json.
- *
- * Strategy (idempotent):
- *   1. If already managed (sentinel present) — no-op
- *   2. If [features] section exists — inject `hooks = true` after it
- *   3. Otherwise — append a HailyKit-managed block
- *
- * @param providerDir - Absolute path to ~/.codex/.
- */
-export function writeCodexConfigToml(providerDir: string): void {
-  const configPath = path.join(providerDir, 'config.toml');
-  const SENTINEL = '# --- hailykit-hooks-start ---';
-  const SENTINEL_END = '# --- hailykit-hooks-end ---';
-
-  let content = '';
-  if (fs.existsSync(configPath)) {
-    content = fs.readFileSync(configPath, 'utf8');
-    if (content.includes(SENTINEL)) return; // already present
-
-    if (content.includes('[features]')) {
-      // Inject into existing section — avoid duplicate key if hooks already there.
-      if (!content.includes('hooks = true')) {
-        content = content.replace(
-          /\[features\]/,
-          '[features]\nhooks = true  # added by hailykit',
-        );
-        fs.writeFileSync(configPath, content, 'utf8');
-      }
-      return;
-    }
-  }
-
-  const block = `\n${SENTINEL}\n[features]\nhooks = true\n${SENTINEL_END}\n`;
-  fs.mkdirSync(providerDir, { recursive: true });
-  fs.writeFileSync(configPath, content + block, 'utf8');
-}
+// NOTE: writeCodexConfigToml moved to ./codex-config.ts (self-healing, atomic).

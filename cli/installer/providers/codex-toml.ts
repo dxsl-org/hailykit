@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import * as fs from 'node:fs';
 
 /**
  * Pure, zero-dep helpers for building Codex `config.toml` agent registry entries
@@ -105,6 +106,26 @@ export function extractUnmanagedAgentSlugs(unmanagedContent: string): Set<string
     m = re.exec(unmanagedContent);
   }
   return slugs;
+}
+
+/**
+ * Write a file atomically: write a sibling temp file, then rename over the target.
+ * rename() is atomic on the same volume (POSIX + NTFS), so a crash never leaves a
+ * half-written config.toml. The temp sits beside the target (same dir → same volume).
+ * No lock — install/upgrade is a one-shot foreground command, not concurrent.
+ *
+ * @param filePath - Absolute target path.
+ * @param content  - Full file content to write.
+ */
+export function atomicWriteToml(filePath: string, content: string): void {
+  const tmp = `${filePath}.hailykit-tmp`;
+  try {
+    fs.writeFileSync(tmp, content, 'utf8');
+    fs.renameSync(tmp, filePath);
+  } catch (err) {
+    try { fs.rmSync(tmp, { force: true }); } catch { /* best-effort temp cleanup */ }
+    throw err;
+  }
 }
 
 /**

@@ -14,6 +14,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Codex hooks: per-hook timeout baked into wrappers (from each hook's `timeout`), and `additionalContext` is kept only for events Codex accepts it on (`SessionStart`, `SubagentStart`, `PreToolUse`, `PostToolUse`, `UserPromptSubmit`) — stripped at the verified nested `hookSpecificOutput.additionalContext` location for all others
 - Codex hooks: warn (never block) when the `codex` CLI is missing or older than the recommended baseline
 - Codex agents: emit `sandbox_mode` inferred from each agent's `tools` (`workspace-write` / `read-only`) and preserve an unknown concrete `model` id as a comment instead of writing `model = undefined`; `model_reasoning_effort` wiring in place (emitted only when the model map supplies an effort)
+- Codex config.toml: all writes are now atomic (temp + rename); the `[features] hooks` flag writer self-heals — merges into an existing `[features]` section without a duplicate header/key, flips `hooks = false` → `true`, and drops the legacy `codex_hooks` flag
 
 ### 🐛 Fixes
 

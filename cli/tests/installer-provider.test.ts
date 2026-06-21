@@ -16,6 +16,8 @@ import {
   extractUnmanagedAgentSlugs, mergeManagedTomlBlock,
 } from '../installer/providers/codex-toml';
 import { parseVersion, compareVersions, warnIfCodexHooksUnsupported } from '../installer/providers/codex-version';
+import { atomicWriteToml } from '../installer/providers/codex-toml';
+import { writeCodexConfigToml } from '../installer/providers/codex-config';
 import { generateHookWrapper, buildTimeoutsByPath, buildCodexHooksJson, installHookWrappers } from '../installer/providers/codex-hook-compat';
 
 /** Write an agent .md into a fresh kit/agents/ and return the kit dir. */
@@ -559,6 +561,65 @@ test('wrapper: default-keep when event undetectable (non-JSON / missing hook_eve
   assert.equal((noEvent.hookSpecificOutput as Record<string, unknown>).additionalContext, 'x');
   const nonJson = runWrapper(wrapper, 'not json');
   assert.equal((nonJson.hookSpecificOutput as Record<string, unknown>).additionalContext, 'x');
+});
+
+// ---------------------------------------------------------------------------
+// P5 — config.toml robustness: feature-flag self-heal + atomic write
+// ---------------------------------------------------------------------------
+
+/** Write a config.toml into a fresh provider dir, run writeCodexConfigToml, return content. */
+function runFeatureFlag(initial: string | null): string {
+  const dir = tmp();
+  if (initial !== null) fs.writeFileSync(path.join(dir, 'config.toml'), initial);
+  writeCodexConfigToml(dir);
+  return fs.readFileSync(path.join(dir, 'config.toml'), 'utf8');
+}
+
+test('writeCodexConfigToml: merges hooks=true into existing [features], no second header', () => {
+  const out = runFeatureFlag('[features]\nunified_exec = true\n');
+  assert.match(out, /hooks = true/);
+  assert.match(out, /unified_exec = true/);
+  assert.equal((out.match(/^\[features\]$/gm) || []).length, 1, 'exactly one [features] header');
+});
+
+test('writeCodexConfigToml: flips hooks = false → true', () => {
+  const out = runFeatureFlag('[features]\nhooks = false\n');
+  assert.match(out, /hooks = true/);
+  assert.ok(!/hooks = false/.test(out));
+});
+
+test('writeCodexConfigToml: removes legacy codex_hooks, ensures hooks = true', () => {
+  const out = runFeatureFlag('[features]\ncodex_hooks = true\n');
+  assert.ok(!out.includes('codex_hooks'), 'legacy flag removed');
+  assert.match(out, /hooks = true/);
+});
+
+test('writeCodexConfigToml: no [features] → appends one managed block; idempotent', () => {
+  const dir = tmp();
+  fs.writeFileSync(path.join(dir, 'config.toml'), '[model]\nname = "x"\n');
+  writeCodexConfigToml(dir);
+  writeCodexConfigToml(dir); // second run must not duplicate
+  const out = fs.readFileSync(path.join(dir, 'config.toml'), 'utf8');
+  assert.match(out, /name = "x"/); // user content preserved
+  assert.equal((out.match(/hailykit-hooks-start/g) || []).length, 1, 'one managed block');
+  assert.match(out, /\[features\]\nhooks = true/);
+});
+
+test('writeCodexConfigToml: idempotent on an existing [features] section (no rewrite churn)', () => {
+  const dir = tmp();
+  fs.writeFileSync(path.join(dir, 'config.toml'), '[features]\nunified_exec = true\n');
+  writeCodexConfigToml(dir);
+  const first = fs.readFileSync(path.join(dir, 'config.toml'), 'utf8');
+  writeCodexConfigToml(dir);
+  assert.equal(fs.readFileSync(path.join(dir, 'config.toml'), 'utf8'), first);
+});
+
+test('atomicWriteToml: writes content and leaves no .hailykit-tmp', () => {
+  const dir = tmp();
+  const p = path.join(dir, 'config.toml');
+  atomicWriteToml(p, 'hello = 1\n');
+  assert.equal(fs.readFileSync(p, 'utf8'), 'hello = 1\n');
+  assert.ok(!fs.existsSync(`${p}.hailykit-tmp`), 'temp file cleaned up after rename');
 });
 
 // ---------------------------------------------------------------------------
