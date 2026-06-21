@@ -7,10 +7,18 @@
 
 ```text
 ┌────────────────────── cli/  (sub "cli": the tool) ────────────┐
-│  bin.ts               #! entrypoint (shebang preserved by tsc)│
+│  bin.ts               #! entrypoint; dispatch via registry    │
 │  arg-parser.ts        parseArgs (no commander)                │
 │  commands/            run · list · info  (engine commands)    │
+│   ├─ registry.ts      native-command table → VALUE_FLAGS/help │
+│   ├─ stats/ git-insights · scan/ (secrets·vuln) · contracts/  │
+│   ├─ test/ (detect·coverage) · deps/ (audit) · adr-next       │
+│   └─ license-detect · pack   (11 native analysis commands)    │
 │  index.ts             public library surface (engine exports) │
+│                                                               │
+│  lib/                 cross-command primitives (zero-dep)     │
+│   ├─ git.ts (churn/numstat) · activity.ts · fs-scan.ts        │
+│   ├─ gitignore.ts · lang-syntax.ts · spawn.ts · json-output   │
 │                                                               │
 │  core-engine/         the runtime engine                      │
 │   ├─ types.ts         Tool, ToolManifest, ToolContext, …      │
@@ -39,6 +47,30 @@ kit/   ← sub "kit": distributable skill catalog (versioned in metadata.json)
 ├── metadata.json      catalog version + deletions[] for upgrade path
 └── [other catalog assets as added]
 ```
+
+## Native analysis commands
+
+Beyond the engine (`run`/`list`/`info`) and installer, the CLI ships zero-dep
+analysis commands registered in `commands/registry.ts` (each declares its name,
+value-flags, help, and handler; `bin.ts` derives `VALUE_FLAGS`, the help listing,
+and dispatch by reducing over the table). All emit `--json` via the shared
+`lib/json-output` envelope (`{ ok, tool, data, warnings? }`); `stats` keeps its
+own `{ v: 2 }` shape. They replace third-party CLIs / LLM reasoning in skills:
+
+| Command | Replaces / serves | Skill |
+|---------|-------------------|-------|
+| `stats` | scc/cloc/tokei | hl-stats |
+| `git-insights` | awk/sort/uniq churn pipelines; LLM change-impact | hc-git retro/analyze |
+| `secrets` · `vuln-scan` | gitleaks (quick path), grep, partial semgrep | hc-security, hc-git |
+| `contracts` | Explore-subagent symbol extraction | hc-scout --contracts |
+| `test-detect` · `coverage-parse` | LLM framework-guessing, hand-parsed coverage | hc-test |
+| `deps-audit` | per-ecosystem audit parsing | hc-fix deps |
+| `adr-next` · `license-detect` · `pack` | manual numbering / SPDX / repomix core | hc-adr, hc-cop, hc-scout |
+
+Security-sensitive primitives are centralized in `lib/`: `spawn.ts` (absolute-path
+resolve, scrubbed env, win32 `.cmd`, stdout-on-non-zero), `fs-scan.ts` (realpath
+containment, BOM/UTF-16 decode, binary/size skip), and the redaction + per-line
+ReDoS guard in the scan engine.
 
 ## Engine data flow
 

@@ -16,9 +16,10 @@ Senior-dev change review. Not a commit list — a conceptual diff of what the co
 
 1. `git log --oneline [ref]` — commit summary
 2. `git diff --stat [ref]` — file-level scope
-3. `git diff [ref]` — actual changes (sample by directory if >500 lines; note sampling)
-4. `git diff [ref] -- '*.md' CHANGELOG*` — intent signals from docs/changelog
-5. If PR number given: `gh pr view <N>` — description and review comments
+3. `hailykit git-insights . --ref <base> --json` — change-impact: per-file adds/dels for `<base>..HEAD` cross-referenced against churn × complexity risk hotspots (`data.changeImpact.highRiskTouched` flags blast radius deterministically). Feeds §2 and §4 below.
+4. `git diff [ref]` — actual changes (sample by directory if >500 lines; note sampling)
+5. `git diff [ref] -- '*.md' CHANGELOG*` — intent signals from docs/changelog
+6. If PR number given: `gh pr view <N>` — description and review comments
 
 ## Output Sections (always produce all 5)
 

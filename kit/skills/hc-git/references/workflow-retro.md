@@ -11,13 +11,23 @@ Data-driven retrospective from git history. No guesswork — use `N/A` when data
 | `--team` | off | Break down metrics per author |
 | `--format html\|md` | `md` | `html` = self-contained HTML report with charts |
 
+## Fast path — `hailykit git-insights`
+
+Prefer the native command for the deterministic git metrics; it computes them in one pass with no `awk`/`sort`/`uniq` pipelines:
+
+```bash
+hailykit git-insights . --since <days> --json
+```
+
+Returns `data.git` (bus factor, owners, risk hotspots = churn × complexity, stale files) and `data.activity` (12-week velocity sparkline, avg/week, active authors, release cadence). Always exits 0; `data.git` is `null` outside a repo. Use this for Velocity, File hotspots, and bus-factor/ownership rows below; fall back to the raw git commands only for metrics it does not cover (commit-type distribution, plan completion).
+
 ## Metrics Collected
 
 | Category | Metric | Source |
 |----------|--------|--------|
-| Velocity | Commits/day, active days | `git log --format="%ad" --date=short` |
+| Velocity | Commits/wk, active authors, release cadence | `hailykit git-insights --json` → `data.activity` |
+| Code health | Risk hotspots (churn × complexity), bus factor, stale files | `hailykit git-insights --json` → `data.git` |
 | Volume | LOC added/removed, net delta | `git diff --shortstat [range]` |
-| Code health | File hotspots (churn), test-to-code ratio | `git log --name-only` + count test files |
 | Commit quality | Type distribution (feat/fix/chore/docs/…) | `git log --oneline` parsed by prefix |
 | Plan progress | Task completion rate | `.agents/` checkbox counts + `gh` issue close rate |
 

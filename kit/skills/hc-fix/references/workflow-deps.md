@@ -10,23 +10,20 @@ Systematic approach to upgrading dependencies — from CVE patching to major ver
 
 ## Step 1: Audit
 
-Run the package manager's audit tool and capture the full report.
+Prefer `hailykit deps-audit --json` — it auto-detects the ecosystem from lockfiles, runs the native auditor (npm / pip-audit / cargo-audit / govulncheck) through a hardened cross-platform spawn, and normalizes every result into ONE advisory schema (`package`, `severity`, `id`, `vulnerableRange`, `patchedIn`, `direct`). A missing auditor returns a structured `auditor_missing`, not a crash.
 
 ```bash
-# Node.js
-npm audit --json > /tmp/audit.json
-npm outdated
+hailykit deps-audit . --json          # all detected ecosystems, unified schema
+hailykit deps-audit . --ecosystem npm # force one ecosystem
+```
 
-# Python
-pip list --outdated
-pip-audit  # or safety check
+For the "outdated" (non-CVE) view the native auditors don't cover, fall back to the per-ecosystem commands:
 
-# Rust
-cargo audit
-
-# Go
-go list -m -u all
-govulncheck ./...
+```bash
+npm outdated            # Node.js
+pip list --outdated     # Python
+cargo update --dry-run  # Rust
+go list -m -u all       # Go
 ```
 
 Classify findings:

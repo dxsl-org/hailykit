@@ -9,13 +9,20 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [1.10.0] (2026-06-21)
+## [1.10.1] (2026-06-21)
 
 ### 🚀 Improvements
 
+- hailykit git-insights — churn, bus factor, velocity, change-impact
+- hailykit secrets / vuln-scan — native secret + vulnerability scanners
+- hailykit contracts — extract exports, signatures, endpoints (TS/Py/Go)
+- hailykit test-detect / coverage-parse — framework + coverage normalization
+- hailykit deps-audit — unified npm/pip/cargo/go advisory schema
+- hailykit adr-next / license-detect / pack — ADR, license, secret-safe pack
+- cli/lib — shared zero-dep git/fs-scan/spawn/gitignore primitives
 - hc-spec: EARS-notation acceptance criteria with approval gate
 - hc-adr: capture or auto-discover architectural decisions
-- hc-review: batch mode for multiple PRs with team health report, OWASP Agentic Top 10 checks via --agentic flag
+- hc-review: batch mode, team health report, OWASP Agentic checks
 - hc-debug: SUSPECTED/PROBABLE/CONFIRMED confidence signaling
 - hc-scout: cross-repo consumer tracing via --deps flag
 - hc-plan: memory-augmented planning via --resume flag

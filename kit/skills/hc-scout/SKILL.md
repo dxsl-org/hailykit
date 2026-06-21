@@ -110,6 +110,8 @@ Extracts the public API surface of a target module or scope — exported interfa
 
 **Use when:** planning a refactor, reviewing cross-module dependencies, or establishing a stability boundary before making changes.
 
+**Fast path (TS/JS, Python, Go):** run `hailykit contracts <scope> --json` first — it extracts exported symbols, signatures, and HTTP endpoints deterministically with no subagent. Read its output as the surface map; only fall back to manual extraction (or other stacks) via the patterns below. It is a fast regex surface map, not a parser — read source for edge syntax it misses.
+
 See `references/protocol-contract-extraction.md` for extraction patterns per language/stack.
 
 ```
@@ -145,9 +147,12 @@ Files that MUST NOT change their public interface without a version bump or migr
 
 ## --pack Mode
 
-Runs `repomix` to collapse the full repository into one AI-consumable file. Use when sharing context with an external LLM or when a complete snapshot is required.
+Collapse the repository into one AI-consumable file. Use when sharing context with an external LLM or when a complete snapshot is required.
+
+For a quick zero-dependency local dump, `hailykit pack [path] --json` concatenates text files (gitignore-aware) with a token estimate and is **secret-safe by default** (credential-file denylist + content secret scan exclude any file that could leak). For remote repos, compression, alternate output formats, or clipboard, use `repomix`:
 
 ```bash
+hailykit pack . --json                                          # zero-dep, secret-safe local dump
 repomix                                                          # pack CWD → repomix-output.xml
 repomix --style markdown                                         # markdown output
 repomix --include "src/**/*.ts" --remove-comments -o output.md  # scoped, comments stripped

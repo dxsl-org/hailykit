@@ -46,7 +46,7 @@ Port features from any source into the local project. Always checks the source l
 
 ## License Classification
 
-Performed as the first action of Recon. Fetch the LICENSE file from the source root.
+Performed as the first action of Recon. For a local source path, run `hailykit license-detect <path> --json` — it cross-checks the LICENSE text against the declared `package.json` license and returns `mode: adapt|rewrite` (any conflict or unknown → `rewrite`, the safe default). For a remote repo, fetch the LICENSE file from the source root and classify with the table below.
 
 | License class | Examples | Porting mode |
 |---|---|---|

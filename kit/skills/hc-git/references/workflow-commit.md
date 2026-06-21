@@ -7,7 +7,7 @@ Execute via `haily-git-manager` subagent.
 git add -A && \
 echo "=== STAGED ===" && git diff --cached --stat && \
 echo "=== SECURITY ===" && \
-git diff --cached | grep -c -iE "(api[_-]?key|token|password|secret|credential)" | awk '{print "SECRETS:"$1}' && \
+hailykit secrets --staged && \
 echo "=== GROUPS ===" && \
 git diff --cached --name-only | awk -F'/' '{
   if ($0 ~ /\.(md|txt)$/) print "docs:"$0
@@ -18,7 +18,7 @@ git diff --cached --name-only | awk -F'/' '{
 }'
 ```
 
-**If SECRETS > 0:** STOP, show matches, block commit.
+**`hailykit secrets --staged` exits non-zero when a hardcoded credential is found** (structured, redacted — it never prints the raw value). On non-zero: STOP, show the redacted findings, block the commit. If `hailykit` is unavailable, fall back to a grep over `git diff --cached` for credential keywords.
 
 ## Tool 2: Split Decision
 

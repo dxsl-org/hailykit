@@ -66,10 +66,12 @@ Emit: `✓ Audit: N files — X critical, Y high, Z medium, W low, V info`
 
 Skips STRIDE and OWASP mapping. Runs:
 
-- **Secret detection** — `references/tech-secret-patterns.md` patterns
+- **Secret detection** — `hailykit secrets <scope> --json` (redacted, exits non-zero on findings). Native, zero-dep, gitignore-aware. For deep/historical git-history scans use `gitleaks` instead.
 - **Dependency audit** — for detected stack
-- **Common vuln patterns** — `references/tech-vulnerability-patterns.md` (SQL injection, XSS, command injection, path traversal, `eval()`)
+- **Common vuln patterns** — `hailykit vuln-scan <scope> --json` (SQL injection, XSS, command injection, path traversal, `eval()`, unsafe deserialization, disabled TLS). A fast regex complement — treat findings as leads; use `semgrep` for data-flow/AST-grade analysis.
 - **`.env` exposure check** — verify no tracked `.env` files in git
+
+Pattern packs ship in the CLI (`cli/commands/scan/patterns-*.ts`); `references/tech-secret-patterns.md` and `references/tech-vulnerability-patterns.md` document them and remain the source for manual/extended grep audits.
 
 Emit: `✓ Quick scan: N files — X findings`
 

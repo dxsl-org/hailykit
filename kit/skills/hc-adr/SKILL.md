@@ -36,7 +36,7 @@ Captures the *why* behind architectural decisions as permanent records. Default 
 
 ## Process
 
-1. **Recon** — scan `docs/decisions/` (or project-configured ADR directory) to determine next sequence number and identify related existing ADRs that should be cross-linked.
+1. **Recon** — run `hailykit adr-next --dir docs/decisions --slug "<title>" --json` to compute the next sequence number and filename deterministically (empty dir → 0001, follows the existing scheme, sanitizes the slug); then identify related existing ADRs that should be cross-linked.
 
 2. **Draft** — delegate to `haily-adr-writer` agent with full context (conversation summary, plan files, or provided description). The agent writes: context, decision drivers, considered options with pros/cons, decision, and consequences.
 

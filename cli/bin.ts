@@ -3,18 +3,25 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { numberOption, parseArgs, stringOption } from './arg-parser';
 import { cmdInfo, cmdList, cmdRun, type EngineCliOptions } from './commands/engine-commands';
-import { cmdStats, DEFAULT_SALARY } from './commands/stats';
+import { COMMANDS, findCommand, registryValueFlags } from './commands/registry';
 import { cmdInstall } from './installer/commands/install';
 import { cmdUpgrade } from './installer/commands/upgrade';
 import { cmdUninstall } from './installer/commands/uninstall';
 import { cmdStatus } from './installer/commands/status';
 import { PROVIDER_NAMES } from './installer/providers/index';
 
-/** Long flags that consume the next token as their value. */
-const VALUE_FLAGS = new Set(['provider', 'version', 'tools', 'input', 'timeout', 'lang', 'top', 'exclude', 'since', 'salary']);
+/** Long flags that consume the next token as their value. Registry commands
+ * contribute their own value-flags so adding a command never edits this line. */
+const VALUE_FLAGS = new Set<string>([
+  'provider', 'version', 'tools', 'input', 'timeout', ...registryValueFlags(),
+]);
 
 // In dist/bin.js, __dirname resolves to dist/ — so this points to dist/tools/
 const DEFAULT_TOOLS_DIR = path.join(__dirname, 'tools');
+
+const ANALYSIS_LINES = COMMANDS
+  .map(c => `  ${c.name.padEnd(19)}${c.summary}`)
+  .join('\n');
 
 const HELP = `
 hailykit — skill-orchestration engine + multi-provider installer
@@ -34,7 +41,7 @@ Installer commands:
   status               Show installed vs latest version
 
 Analysis commands:
-  stats [path]         Show code statistics for a directory
+${ANALYSIS_LINES}
 
 Engine options:
   --tools <dir>        Tools directory to discover (default: <bundled>)
@@ -49,18 +56,11 @@ Install / upgrade only:
   --version <tag>      Use a specific release tag (e.g. v2.1.0)
   --no-venv            Skip Python venv setup (Claude only)
 
-Stats options:
-  --json               Emit compact JSON schema (machine-readable)
-  --lang <list>        Comma-separated language filter (e.g. ts,js)
-  --top <n>            Number of complexity hotspots to show (default: 10)
-  --exclude <pattern>  Additional path substring to exclude
-  --since <days>       Git churn window in days (default: 180)
-  --salary <n>         Avg annual salary for COCOMO estimate (default: 56286)
-  --no-git             Skip git-history insights (churn, risk, bus factor)
-
 Other:
   -h, --help           Show this help (append to a command for command help)
   -v, --version        Show the hailykit version
+
+Run 'hailykit <command> --help' for command-specific options.
 `.trim();
 
 const HELP_INSTALLER = `
@@ -91,31 +91,6 @@ hailykit status — Show installed vs latest HailyKit version
 
 Options:
   --provider <name>    Filter to a specific provider (default: all)
-`.trim();
-
-const HELP_STATS = `
-hailykit stats [path] — Show code statistics for a directory
-
-Arguments:
-  path                 Directory to scan (default: current directory)
-
-Options:
-  --json               Emit compact JSON schema (machine-readable)
-  --lang <list>        Comma-separated language filter (e.g. ts,js)
-  --top <n>            Number of complexity hotspots to show (default: 10)
-  --exclude <pattern>  Additional path substring to exclude
-  --since <days>       Git churn window in days (default: 180)
-  --salary <n>         Avg annual salary for COCOMO estimate (default: 56286)
-  --no-git             Skip git-history insights (churn, risk, bus factor)
-
-Output fields (JSON):
-  ncloc                Non-comment lines of code (SonarQube canonical key)
-  complexity           Cyclomatic complexity approximation (keyword count)
-  token_est            Estimated LLM tokens: ncloc × 18
-  cocomo               COCOMO 81 organic estimate (effort/schedule/people/cost — directional)
-  git                  Churn-window risk hotspots (churn × complexity), bus factor,
-                       top owners, stale files; null outside a git repo or with --no-git
-  thresholds           complexity_warn=15, complexity_error=25, file_loc_warn=200
 `.trim();
 
 /** Read this package's version from package.json next to the compiled bin. */
@@ -154,8 +129,11 @@ async function main(): Promise<number> {
       case 'install': case 'upgrade': console.log(HELP_INSTALLER); return 0;
       case 'uninstall': console.log(HELP_UNINSTALL); return 0;
       case 'status': console.log(HELP_STATUS); return 0;
-      case 'stats': console.log(HELP_STATS); return 0;
-      default: console.log(HELP); return 0;
+      default: {
+        const cmd = findCommand(command);
+        console.log(cmd ? cmd.help : HELP);
+        return 0;
+      }
     }
   }
 
@@ -175,19 +153,12 @@ async function main(): Promise<number> {
       project: options.project === true,
     }); return 0;
     case 'status': await cmdStatus({ provider: stringOption(options, 'provider', '') || undefined }); return 0;
-    case 'stats': return cmdStats({
-      path: positionals[0] || '.',
-      json: options.json === true,
-      langs: stringOption(options, 'lang', '').split(',').filter(Boolean),
-      top: numberOption(options, 'top') ?? 10,
-      exclude: stringOption(options, 'exclude', '').split(',').filter(Boolean),
-      git: options['no-git'] !== true,
-      since: numberOption(options, 'since') ?? 180,
-      salary: numberOption(options, 'salary') ?? DEFAULT_SALARY,
-    });
-    default:
+    default: {
+      const cmd = findCommand(command);
+      if (cmd) return cmd.run({ positionals, options });
       console.error(`Unknown command: ${command}\nRun 'hailykit --help' for usage.`);
       return 1;
+    }
   }
 }
 
