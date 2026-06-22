@@ -114,8 +114,6 @@ THINK & DECIDE
   {skill:hl-reasoning}    Step-by-step structured analysis
   {skill:hl-research}     Deep technical research with sources
   {skill:hl-mindmap}      Build and navigate knowledge graphs from topics, URLs, or documents
-  {skill:hl-ultra}        Run an eligible skill on the deep-tier model (explicit opt-in, token-heavy)
-
 GIT & ENVIRONMENT
   {skill:hc-git}                        Commit, push, PR, merge, impact analysis, sprint retro
   {skill:hc-git} analyze [ref]          What changed conceptually (intent, arch delta, risk radar)
@@ -147,8 +145,11 @@ SPECIALIZED
 Canonical chain: brainstorm → plan → cook → test → review → ship → log
 
   {skill:hl-help} --combos          All workflow chains
-  {skill:hl-help} --list            All 35 skills by category
+  {skill:hl-help} --list            All 34 skills by category
   {skill:hl-help} --search <kw>     Find by topic
+
+**MODEL TIERS** — `fast` < `medium` < `thinking` < `ultra`
+**Judgment agents** (planner, implementor, reviewer, brainstormer, debugger) run on your session model — start on `ultra` to get maximum quality where it matters. **Mechanical agents** (git-manager, stats, etc.) are capped and never escalate.
 ```
 
 ### --list — Full catalog by category
@@ -224,7 +225,6 @@ Read `.claude/scripts/skills_data.yaml`, group by `category`, print with prefix:
 
 ## Utilities
   {skill:hl-help}                This skill — discover all skills
-  {skill:hl-ultra}               Deep-model escalation for reasoning-heavy skills (explicit opt-in)
   {skill:hl-visualize}           Visual explanations, diagrams, slide decks
   {skill:hc-browser}             AI-driven browser automation (long sessions)
 ```

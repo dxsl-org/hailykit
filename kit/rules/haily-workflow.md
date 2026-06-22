@@ -18,7 +18,6 @@ Flow: `plan → cook → test → review → ship → log`
 | "implement with tests first" | `{skill:hc-cook} --tdd` |
 | "migrate library/framework/pattern X → Y" | `{skill:hc-cook} migrate "description"` |
 | "port/extract feature X from <repo>" | `{skill:hc-cop} <source> [feature]` |
-| "maximum quality, use the strongest model" (token-heavy, explicit opt-in only) | `{skill:hl-ultra} <skill> [args]` |
 
 ## Bugfix
 

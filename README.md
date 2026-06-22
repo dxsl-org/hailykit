@@ -1,4 +1,7 @@
-﻿# HailyKit
+# HailyKit
+
+[![License: GPL 3.0](https://img.shields.io/badge/License-GPL_3.0-brightgreen.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Donate-%23FF5E5B?logo=ko-fi)](https://ko-fi.com/dxsl_org)
 
 A **zero-dependency** TypeScript framework for AI coding agents — a tool-execution **engine** and a multi-provider skill **installer**.
 
@@ -88,7 +91,6 @@ Open Claude Code after installing — skills are ready immediately.
 | Debug an issue | `/hc-debug` |
 | Brainstorm options | `/hl-brainstorm` |
 | Explore the codebase | `/hc-scout` |
-| Run a skill on the strongest model | `/hl-ultra hc-plan "<task>"` |
 | Discover all skills | `/hl-help` |
 
 ### Common workflow chains
@@ -114,7 +116,7 @@ Open Claude Code after installing — skills are ready immediately.
 
 ## Skills
 
-35 skills across two domain prefixes, installed together and activated on demand.
+34 skills across two domain prefixes, installed together and activated on demand.
 
 ### Coding — `hc-*`
 
@@ -150,13 +152,11 @@ Open Claude Code after installing — skills are ready immediately.
 | Command | What it does |
 |---|---|
 | `/hl-help` | Discover all skills: `--list`, `--search <keyword>`, `--combos` |
-| `/hl-ultra` | Run a reasoning-heavy skill on the deep-tier model — explicit opt-in, escalates main loop + core agents |
 | `/hl-brainstorm` | Trade-off analysis with personas. `--debate` for adversarial review |
 | `/hl-research` | Deep technical research. `--quick` (5 min), `--deep` (20 min) + typed output templates |
 | `/hl-reasoning` | Sequential structured analysis with hypothesis revision and branching |
 | `/hl-visualize` | Generate diagrams, slides, HTML pages, Excel reports, PDFs |
 | `/hl-design` | Brand identity, logos, CIP mockups, AI images/video/TTS/music, slides |
-| `/hl-mindmap` | Build and visualize knowledge graphs from topics, URLs, or documents |
 | `/hl-mindmap` | Build and navigate knowledge graphs from topics, URLs, or documents |
 | `/hl-context-engineering` | Optimize token usage, debug context failures, design agent memory systems |
 | `/hl-log` | Write a session log to `.agents/logs/` — decisions, lessons, next steps |
@@ -284,7 +284,7 @@ Bundled examples in [`cli/tools/`](cli/tools/). Full protocol spec in [`docs/tec
 ```bash
 npm run build      # tsc → dist/ + copy cli/tools/ → dist/tools/
 npm run typecheck  # tsc --noEmit
-npm test           # compile → .test-build/ then run node:test (114 tests)
+npm test           # compile → .test-build/ then run node:test (226 tests)
 ```
 
 Before committing any skill cross-reference (`/hc-*`, `/hl-*`) in markdown:
@@ -297,4 +297,4 @@ node scripts/check-skill-cross-refs.js   # must report 0 errors
 
 ## License
 
-[PolyForm Noncommercial License 1.0.0](LICENSE) — free for personal and noncommercial use.
+[GNU General Public License v3.0](LICENSE) — Open source software. See [COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md) for commercial licensing.

@@ -72,25 +72,25 @@ test('GeminiProvider.installSkills installs TOML command AND native SKILL.md', (
   assert.equal(native, md);
 });
 
-test('GeminiProvider native SKILL.md resolves model tier and {model:deep} placeholders', () => {
+test('GeminiProvider native SKILL.md resolves model tier and {model:ultra} placeholders', () => {
   const root = tmp();
   const claude = path.join(root, 'claude');
   const skillDir = path.join(claude, 'skills', 'hl-ultra');
   fs.mkdirSync(skillDir, { recursive: true });
   fs.writeFileSync(
     path.join(skillDir, 'SKILL.md'),
-    '---\nname: hl-ultra\ndescription: Ultra\nmodel: deep\n---\n\nPass `model: {model:deep}` to Task calls.',
+    '---\nname: hl-ultra\ndescription: Ultra\nmodel: ultra\n---\n\nPass `model: {model:ultra}` to Task calls.',
   );
 
   new GeminiProvider().installSkills(claude, path.join(root, 'out'));
 
   const native = fs.readFileSync(path.join(root, 'out', 'skills', 'hl-ultra', 'SKILL.md'), 'utf8');
   assert.ok(!native.includes('{model:'), `placeholder leaked: ${native}`);
-  assert.ok(!native.includes('model: deep'), `tier line leaked: ${native}`);
+  assert.ok(!native.includes('model: ultra'), `tier line leaked: ${native}`);
   assert.match(native, /model: gemini-3\.1-pro-preview/);
 });
 
-test('CodexProvider skill copy resolves {model:deep} placeholders', () => {
+test('CodexProvider skill copy resolves {model:ultra} placeholders', () => {
   const root = tmp();
   const claude = path.join(root, 'claude');
   // Codex always installs to the real ~/.agents/skills/ — use a probe name no
@@ -100,7 +100,7 @@ test('CodexProvider skill copy resolves {model:deep} placeholders', () => {
   fs.mkdirSync(skillDir, { recursive: true });
   fs.writeFileSync(
     path.join(skillDir, 'SKILL.md'),
-    `---\nname: ${probeName}\ndescription: Plan\n---\n\nUnder ultra pass model: {model:deep}.`,
+    `---\nname: ${probeName}\ndescription: Plan\n---\n\nUnder ultra pass model: {model:ultra}.`,
   );
   const destProbe = path.join(os.homedir(), '.agents', 'skills', probeName);
   try {

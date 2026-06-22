@@ -29,13 +29,12 @@ export const AGENT_ROLES = new Set([
 export type AgentRefType = 'agent' | 'agents' | 'agent-result';
 
 /**
- * Canonical model tiers (provider-neutral).
- * Agent frontmatter pins use `thinking | medium | fast` only.
- * `deep` is the runtime-escalation tier: never pinned on an agent, it is the
- * target model for ultra mode ({skill:hl-ultra}) — resolved into skill text at
- * install time via `{model:deep}` placeholders and the hl-ultra frontmatter.
+ * Canonical model tiers (provider-neutral). Ordered fast < medium < thinking < ultra.
+ * Agent frontmatter pins use `fast | medium | thinking` as floor, with an optional
+ * `model_max` ceiling. `ultra` is the top tier — resolved into skill text at
+ * install time via `{model:ultra}` placeholders.
  */
-export type ModelTier = 'thinking' | 'medium' | 'fast' | 'deep';
+export type ModelTier = 'thinking' | 'medium' | 'fast' | 'ultra';
 
 /**
  * Built-in per-provider model name for each canonical tier. Agent frontmatter
@@ -48,17 +47,17 @@ export type ModelTier = 'thinking' | 'medium' | 'fast' | 'deep';
  * Users can pin their own values in `~/.hailykit/model-map.json`.
  */
 export const MODEL_MAP: Record<string, Record<ModelTier, string>> = {
-  // `deep` defaults to each provider's strongest model. Users with access to a
-  // stronger model (e.g. Fable) pin it in ~/.hailykit/model-map.json.
-  claude:      { thinking: 'opus',                              medium: 'sonnet',                              fast: 'haiku',                          deep: 'opus' },
-  codex:       { thinking: 'gpt-5.5',                          medium: 'gpt-5.4',                            fast: 'gpt-5.4-mini',                   deep: 'gpt-5.5' },
-  gemini:      { thinking: 'gemini-3.1-pro-preview',           medium: 'gemini-3.5-flash',                   fast: 'gemini-3.1-flash-lite',          deep: 'gemini-3.1-pro-preview' },
-  antigravity: { thinking: 'gemini-3.1-pro',                   medium: 'gemini-3.5-flash',                   fast: 'gemini-3.1-flash-lite',          deep: 'gemini-3.1-pro' },
+  // `ultra` maps to each provider's strongest model. Pin a newer model in
+  // ~/.hailykit/model-map.json when it becomes available.
+  claude:      { fast: 'haiku',                         medium: 'sonnet',                       thinking: 'opus',                              ultra: 'fable-5' },
+  codex:       { fast: 'gpt-5.4-mini',                  medium: 'gpt-5.4',                      thinking: 'gpt-5.5',                           ultra: 'gpt-5.5' },
+  gemini:      { fast: 'gemini-3.1-flash-lite',         medium: 'gemini-3.5-flash',             thinking: 'gemini-3.1-pro-preview',            ultra: 'gemini-3.1-pro-preview' },
+  antigravity: { fast: 'gemini-3.1-flash-lite',         medium: 'gemini-3.5-flash',             thinking: 'gemini-3.1-pro',                    ultra: 'gemini-3.1-pro' },
   // OpenCode config format is "provider/model-id" (e.g. anthropic/claude-sonnet-4-6).
-  opencode:    { thinking: 'anthropic/claude-opus-4-8',        medium: 'anthropic/claude-sonnet-4-6',        fast: 'anthropic/claude-haiku-4-5',     deep: 'anthropic/claude-opus-4-8' },
+  opencode:    { fast: 'anthropic/claude-haiku-4-5',    medium: 'anthropic/claude-sonnet-4-6',  thinking: 'anthropic/claude-opus-4-8',         ultra: 'anthropic/claude-fable-5' },
 };
 
-const VALID_TIERS: ReadonlySet<string> = new Set(['thinking', 'medium', 'fast', 'deep']);
+const VALID_TIERS: ReadonlySet<string> = new Set(['thinking', 'medium', 'fast', 'ultra']);
 
 /** Per-provider tier overrides merged over MODEL_MAP (kit release, then user). */
 let modelMapOverrides: Record<string, Partial<Record<ModelTier, string>>> = {};
@@ -153,13 +152,13 @@ export function getModelEffort(provider: string, tier: ModelTier): string | unde
 const USER_CONFIGURED_MODEL_PROVIDERS = new Set(['cursor', 'zed', 'windsurf', 'crush', 'opencode', 'kimi']);
 
 /** Matches a `model: <tier>` frontmatter line (with optional trailing whitespace). */
-const MODEL_TIER_RE = /^(model:\s*)(thinking|medium|fast|deep)\s*$/m;
+const MODEL_TIER_RE = /^(model:\s*)(thinking|medium|fast|ultra)\s*$/m;
 
 /** Matches a `model: <tier>` line to remove it entirely (including the trailing newline). */
-const MODEL_LINE_STRIP_RE = /^model:[ \t]*(thinking|medium|fast|deep)[ \t]*\r?\n?/m;
+const MODEL_LINE_STRIP_RE = /^model:[ \t]*(thinking|medium|fast|ultra)[ \t]*\r?\n?/m;
 
 /** Matches {model:<tier>} placeholders in skill body text. */
-const MODEL_REF_RE = /\{model:(thinking|medium|fast|deep)\}/g;
+const MODEL_REF_RE = /\{model:(thinking|medium|fast|ultra)\}/g;
 
 /**
  * Resolve a `model: <tier>` frontmatter line to the provider's real model name.
@@ -184,7 +183,7 @@ export function resolveModel(content: string, provider: string): string {
  * text names a concrete model (e.g. "pass model: opus to Task calls").
  * Resolves for ALL providers — the placeholder must never ship verbatim.
  *
- * @param content  - Skill body text containing `{model:deep}` style refs.
+ * @param content  - Skill body text containing `{model:ultra}` style refs.
  * @param provider - Provider key (claude, codex, gemini, …).
  */
 export function resolveModelRefs(content: string, provider: string): string {

@@ -2,6 +2,7 @@
 name: haily-optimizer
 description: Optimize code along multiple dimensions — simplicity, clarity, efficiency, and dead-code removal — while preserving behavior exactly. Covers readability cleanup, unnecessary complexity, redundant abstractions, and surface-level performance hot-spots. Use after implementation or when /simplify is requested.
 model: medium
+model_max: thinking
 memory: project
 tools: Glob, Grep, Read, Edit, MultiEdit, Write, NotebookEdit, Bash, Task(Explore)
 ---

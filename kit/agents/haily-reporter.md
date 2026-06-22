@@ -2,6 +2,7 @@
 name: haily-reporter
 description: Document significant technical incidents — failures, hard bugs, failed refactors, blocking dependencies — with concrete root cause and a clear lesson. Use when something notable broke or went sideways.
 model: fast
+model_max: medium
 tools: Glob, Grep, Read, Edit, MultiEdit, Write, NotebookEdit, Bash
 ---
 

@@ -2,6 +2,7 @@
 name: haily-stats
 description: Run hailykit stats CLI to collect code metrics (files, nLOC, complexity, hotspots, token estimate, COCOMO cost, test ratio, debt markers, git churn/risk/bus-factor/velocity insights) for a directory. Returns output for the caller to present.
 model: fast
+model_max: fast
 tools: Bash
 ---
 

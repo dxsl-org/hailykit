@@ -31,8 +31,18 @@ Before committing reference changes: `node scripts/check-skill-cross-refs.js`. W
 
 ## Model Tiers (agents)
 
-Agent frontmatter `model:` uses provider-neutral tiers — `thinking` / `medium` / `fast` — resolved per provider by the installer. Never hard-code `opus`/`gpt-5`/etc. in agent source. The authoritative tier→model map ships as `kit/model-map.json` (built-in fallback: `MODEL_MAP` in `cli/installer/converter.ts`; user pin: `~/.hailykit/model-map.json`). When vendor model IDs change, update `kit/model-map.json` — no code change needed. CI validates agent tiers and the map shape via `scripts/check-skill-cross-refs.js`.
+Agent frontmatter `model:` uses provider-neutral tiers — `fast` / `medium` / `thinking` / `ultra` — resolved per provider by the installer. Never hard-code `opus`/`gpt-5`/etc. in agent source. The authoritative tier→model map ships as `kit/model-map.json` (built-in fallback: `MODEL_MAP` in `cli/installer/converter.ts`; user pin: `~/.hailykit/model-map.json`). When vendor model IDs change, update `kit/model-map.json` — no code change needed. CI validates agent tiers and the map shape via `scripts/check-skill-cross-refs.js`.
 
-## Deep Tier / Ultra Mode
+## Session Model & Agent Tiers
 
-`deep` is a fourth map tier reserved for runtime escalation via the `hl-ultra` skill — never pin it on an agent (CI rejects it). In skill body text, `{model:deep}` placeholders resolve to the provider's deep model at install time. Ultra escalation is whitelist-based: only `haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger` escalate; mechanical agents keep their pins. When adding a skill to the ultra-eligible list, update BOTH the skill's `## --ultra Mode` section and the eligible list in `kit/skills/hl-ultra/SKILL.md`.
+Tiers ordered low→high: `fast < medium < thinking < ultra`. In skill body text, `{model:ultra}` placeholders resolve to the provider's top model at install time.
+
+Agent frontmatter has two tier fields:
+- `model:` — floor (minimum tier this agent runs on; required)
+- `model_max:` — ceiling (never exceed this tier regardless of session model; omit to allow up to `ultra`)
+
+**Judgment agents** (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger`) have no `model_max` — they inherit the session model so a developer running on `ultra` gets maximum quality where it matters.
+
+**Mechanical agents** (`haily-git-manager`, `haily-stats`, etc.) pin both `model:` and `model_max:` at `fast` — escalating them wastes tokens with no quality gain.
+
+When adding a new agent, set `model_max:` based on whether its work benefits from a stronger model. Update `kit/model-map.json` when a provider releases a new top-tier model — pin it under the `ultra` key.

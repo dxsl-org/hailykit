@@ -1,6 +1,6 @@
 # Tech Stack & Key Decisions
 
-> Decision record for `hailykit` (TypeScript engine + installer). Author: DXSL. License: PolyForm Noncommercial 1.0.0.
+> Decision record for `hailykit` (TypeScript engine + installer). Author: DXSL. License: GPL-3.0-only.
 
 ## Hard constraints (locked)
 

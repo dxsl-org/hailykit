@@ -2,6 +2,7 @@
 name: haily-test-architect
 description: Design test strategy before implementation — test pyramid, critical paths, boundary conditions, test data, contract tests. Produces a test plan that implementors follow. Use before writing code for a feature, especially in TDD workflows, or when existing test coverage is strategically unclear.
 model: thinking
+model_max: thinking
 memory: project
 tools: Glob, Grep, Read, Bash, WebFetch, WebSearch, Task(Explore)
 ---

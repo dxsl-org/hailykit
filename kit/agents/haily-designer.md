@@ -2,6 +2,7 @@
 name: haily-designer
 description: UI/UX design work — interfaces, wireframes, design systems, responsive layouts, animations, a11y audits. Produces production-ready HTML/CSS/JS with design rationale. Use for any visual/UX design or design review.
 model: medium
+model_max: thinking
 memory: project
 tools: Glob, Grep, Read, Edit, MultiEdit, Write, NotebookEdit, Bash, WebFetch, WebSearch, Task(Explore), Task(haily-researcher)
 ---

@@ -101,13 +101,9 @@ All Checkpoints auto-proceed. Escalates to user only on:
 - Deferred reports: `.agents/<plan-dir>/reports/deferred-<phase-slug>.md`
 - Completion summary printed after Execute stage
 
-## --ultra Mode
+## Session Model
 
-Active only when the turn was started via `{skill:hl-ultra}` (it passes the internal `--ultra` marker) — never self-activated, never suggested.
-
-- Task calls to deep-eligible agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger`) pass `model: {model:deep}`.
-- All other agents keep their pinned tiers — escalate judgment, not mechanics.
-- If the deep model is unavailable, retry once with the thinking tier and tell the user which model ran.
+Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger`) inherit the session model — running on `{model:ultra}` passes that model to these agents automatically. Mechanical agents (`haily-tester`, `haily-git-manager`, `haily-stats`, etc.) are capped at their `model_max` tier and never escalate.
 
 ## Workflow Position
 

@@ -2,6 +2,7 @@
 name: haily-refiner
 description: Refine recently changed code for clarity, consistency, and maintainability while preserving behavior exactly. Runs after implementation; scope = recent edits unless told otherwise.
 model: medium
+model_max: thinking
 tools: Glob, Grep, Read, Edit, MultiEdit, Write, NotebookEdit, Bash, Task(Explore)
 ---
 

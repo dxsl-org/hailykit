@@ -2,6 +2,7 @@
 name: haily-api-designer
 description: Design HTTP/REST/GraphQL API contracts — resource modeling, endpoint design, request/response schemas, versioning strategy, and backward compatibility analysis. Produces a machine-readable spec (OpenAPI or markdown contract). Use before implementing a new API or when reviewing an existing one for breaking changes.
 model: medium
+model_max: thinking
 memory: project
 tools: Glob, Grep, Read, Write, Bash, WebFetch, WebSearch, Task(Explore)
 ---

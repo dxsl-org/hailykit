@@ -2,6 +2,7 @@
 name: haily-tech-analyst
 description: Systematic technical debt inventory — identify, categorize, score, and prioritize debt across a codebase or scope. Produces a debt register with effort/impact scoring and a remediation roadmap. Use for quarterly tech debt reviews, pre-refactor planning, or when debt is blocking velocity.
 model: thinking
+model_max: thinking
 memory: project
 tools: Glob, Grep, Read, Bash, WebFetch, WebSearch, Task(Explore)
 ---

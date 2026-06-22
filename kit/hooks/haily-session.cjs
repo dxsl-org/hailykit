@@ -151,7 +151,7 @@ try {
       `Session startup. Project: ${detections.type || 'unknown'} | PM: ${detections.pm || 'unknown'}`,
       `Plan naming: ${namePattern} | Root: ${baseDir}`,
     ];
-    if (sessionModel) lines.unshift(`🤖 Model: ${formatModelDisplay(sessionModel)}`);
+    if (sessionModel) lines.unshift(`🤖 Session starting: ${formatModelDisplay(sessionModel)}`);
     if (teamInfo.isTeamMember) lines.push(formatTeamContextLine(teamInfo));
     if (resolved.path) lines.push(`Active plan: ${resolved.path} (via ${resolved.resolvedBy})`);
     process.stdout.write(lines.join(' | ') + '\n');
@@ -180,7 +180,7 @@ try {
           ? `${formatModelDisplay(sessionModel)} (${sessionModel})`
           : 'the session model';
         const mapStr = Object.entries(agentMap).map(([k, v]) => `${k}=${v}`).join(', ');
-        const announce = `AGENT TRACE: At the start of your first reply this session, write "🤖 Model: ${sessionModel ? formatModelDisplay(sessionModel) : '<your model name>'}" on its own line. `;
+        const announce = `AGENT TRACE: At the start of your first reply this session, write "🤖 Session starting: ${sessionModel ? formatModelDisplay(sessionModel) : '<your model name>'}" on its own line. `;
         const instruction = announce + (mapStr
           ? `For each Agent tool call, write ⚡ [subagent_type] → [model] on its own line in your response text before the tool call — including when the model equals the session model. inherit = ${sessionLabel}. Model map: ${mapStr}`
           : `For each Agent tool call, write ⚡ [subagent_type] → ${sessionLabel} on its own line in your response text before the tool call.`);

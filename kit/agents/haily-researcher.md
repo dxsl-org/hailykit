@@ -2,6 +2,7 @@
 name: haily-researcher
 description: Conduct structured technical research — evaluate technologies, libraries, and best practices across multiple sources, ending in a ranked recommendation. Use before deciding on a tool, stack, or approach.
 model: medium
+model_max: thinking
 memory: user
 tools: Glob, Grep, Read, Bash, WebFetch, WebSearch
 ---

@@ -228,11 +228,11 @@ test('resolveModel leaves a concrete model name untouched', () => {
   assert.equal(resolveModel(content, 'cursor'), content);
 });
 
-test('resolveModel resolves the deep tier (hl-ultra frontmatter)', () => {
-  const content = '---\nname: hl-ultra\nmodel: deep\n---\n\nBody.';
+test('resolveModel resolves the ultra tier frontmatter', () => {
+  const content = '---\nname: hl-ultra\nmodel: ultra\n---\n\nBody.';
   const result = resolveModel(content, 'claude');
-  assert.ok(result.includes('model: opus'), `expected deep→opus in: ${result}`);
-  // User-configured providers strip the deep line like any other tier.
+  assert.ok(result.includes('model: fable-5'), `expected ultra→fable-5 in: ${result}`);
+  // User-configured providers strip the ultra line like any other tier.
   assert.ok(!resolveModel(content, 'zed').includes('model:'));
 });
 
@@ -240,20 +240,20 @@ test('resolveModel resolves the deep tier (hl-ultra frontmatter)', () => {
 // resolveModelRefs
 // ---------------------------------------------------------------------------
 
-test('resolveModelRefs replaces {model:deep} with the provider model', () => {
-  const body = 'Pass `model: {model:deep}` to Task calls; fallback {model:thinking}.';
+test('resolveModelRefs replaces {model:ultra} with the provider model', () => {
+  const body = 'Pass `model: {model:ultra}` to Task calls; fallback {model:thinking}.';
   const result = resolveModelRefs(body, 'claude');
-  assert.equal(result, 'Pass `model: opus` to Task calls; fallback opus.');
+  assert.equal(result, 'Pass `model: fable-5` to Task calls; fallback opus.');
 });
 
-test('resolveModelRefs honors a user deep-tier pin', () => {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hk-deep-'));
+test('resolveModelRefs honors a user ultra-tier pin', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hk-ultra-'));
   try {
     fs.writeFileSync(path.join(tmp, 'model-map.json'),
-      JSON.stringify({ claude: { deep: 'claude-fable-5' } }), 'utf8');
+      JSON.stringify({ claude: { ultra: 'claude-mythos-1' } }), 'utf8');
     loadModelMapOverrides(tmp);
-    assert.equal(resolveModelRefs('{model:deep}', 'claude'), 'claude-fable-5');
-    // Non-deep tiers stay on built-ins.
+    assert.equal(resolveModelRefs('{model:ultra}', 'claude'), 'claude-mythos-1');
+    // Non-ultra tiers stay on built-ins.
     assert.equal(resolveModelRefs('{model:fast}', 'claude'), 'haiku');
   } finally {
     loadModelMapOverrides();
@@ -262,7 +262,7 @@ test('resolveModelRefs honors a user deep-tier pin', () => {
 });
 
 test('resolveModelRefs falls back to the claude map for unknown providers', () => {
-  assert.equal(resolveModelRefs('{model:deep}', 'cursor'), MODEL_MAP.claude.deep);
+  assert.equal(resolveModelRefs('{model:ultra}', 'cursor'), MODEL_MAP.claude.ultra);
 });
 
 // ---------------------------------------------------------------------------

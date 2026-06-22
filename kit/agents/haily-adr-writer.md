@@ -2,6 +2,7 @@
 name: haily-adr-writer
 description: Capture architectural decisions as Architecture Decision Records (ADRs) — structured documents recording the context, options considered, decision made, and consequences. Use after a significant architectural choice has been agreed on, or when a decision needs permanent documentation.
 model: thinking
+model_max: thinking
 memory: project
 tools: Glob, Grep, Read, Write, Bash, WebSearch
 ---

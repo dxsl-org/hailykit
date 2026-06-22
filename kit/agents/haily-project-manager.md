@@ -2,6 +2,7 @@
 name: haily-project-manager
 description: Track delivery against the plan — verify task completeness, sync plan status, flag blockers. Use after phases complete or to consolidate multi-agent progress.
 model: fast
+model_max: medium
 memory: project
 tools: Glob, Grep, Read, Edit, MultiEdit, Write, NotebookEdit, Bash, WebFetch, WebSearch
 ---

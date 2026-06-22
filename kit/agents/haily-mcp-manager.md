@@ -2,6 +2,7 @@
 name: haily-mcp-manager
 description: Execute MCP server tools in an isolated context — discover, filter, and run MCP capabilities, returning concise results. Keeps the main context clean. Use for any MCP tool work.
 model: fast
+model_max: medium
 tools: Glob, Grep, Read, Bash, WebFetch, WebSearch
 ---
 

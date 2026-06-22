@@ -9,6 +9,23 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.10.5] (2026-06-22)
+
+### 🚀 Improvements
+
+- model-map: rename deep tier to ultra, add Fable 5 for Anthropic
+- agents: add model_max ceiling field to cap escalation per agent
+- installer: update ModelTier type and resolvers to support ultra tier
+- skills: replace --ultra Mode section with Session Model behavior docs
+- ci: extend cross-ref validator to check model_max tier validity
+- readme: update skill count to 34 and remove hl-ultra references
+
+### ❌ Removed
+
+- skill: remove hl-ultra wrapper (session model selection replaces it)
+
+---
+
 ## [1.10.3] (2026-06-21)
 
 ### 🚀 Improvements

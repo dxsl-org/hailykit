@@ -3,7 +3,7 @@ name: hc-ship
 description: "Ship a branch: pre-flight, tests, code review, changelog, commit, push, PR, CI wait, and merge. By default accumulates changes in [Unreleased]. Add --release to bump version, promote changelog, and publish a GitHub release."
 when_to_use: "Invoke to ship a branch — runs pre-flight, tests, review, changelog, and creates a PR. Use --release when you're ready to cut an official versioned release."
 user-invocable: true
-argument-hint: "[--release] [--quick|--full|--dry-run] | rollout [flag-name]"
+argument-hint: "[--release] [--quick|--full|--dry-run] | rollout [flag-name] | changelog --reformat"
 metadata:
   attribution: "Inspired by gstack/ship by Garry Tan (MIT)"
   category: workflow
@@ -23,6 +23,7 @@ Runs the full path from a working branch to a merged PR: pre-flight, tests, revi
 {skill:hc-ship} --full --release             # enforce all steps + publish release
 {skill:hc-ship} --dry-run                    # print planned actions without executing
 {skill:hc-ship} rollout [flag-name]          # feature flag gradual rollout (see below)
+{skill:hc-ship} changelog --reformat         # reformat an existing CHANGELOG to match bullet rules
 ```
 
 | Flag / Subcommand | Behavior |
@@ -34,6 +35,7 @@ Runs the full path from a working branch to a merged PR: pre-flight, tests, revi
 | `--dry-run` | Print what would happen at each step; stop after pre-flight |
 | `--no-ci-wait` | Push + create PR; skip CI wait and auto-merge — user monitors CI manually |
 | `rollout [flag]` | Feature flag gradual rollout: design → deploy with flag off → staged enable (1% → 10% → 50% → 100%) → cleanup. See `references/workflow-feature-rollout.md`. |
+| `changelog --reformat` | Reformat all existing entries in CHANGELOG.md to the canonical bullet style (see below). Does not ship — standalone operation. |
 
 ```
 {skill:hc-ship} rollout feature.checkout.new-payment-flow
@@ -114,6 +116,26 @@ With `--release`:
 ✓ ...
 ✓ Release:     https://github.com/org/repo/releases/tag/v1.2.5
 ```
+
+## changelog --reformat
+
+Standalone operation — no commit, no push, no pipeline. Rewrites every bullet in CHANGELOG.md in place to match the canonical format used by Step 8.
+
+**When to use:** existing project with a CHANGELOG written in inconsistent styles (long lines, bold, em-dashes, multiple concepts per bullet). Run once to normalize; future `/hc-ship` runs stay consistent.
+
+**Process:**
+1. Read CHANGELOG.md (or CHANGES.md). If absent, print "No changelog found." and stop.
+2. For every version section, rewrite each bullet to match the Step 7 bullet rules:
+   - Pattern: `- <component>: <verb phrase>`
+   - Hard cap: 8 words after the colon — cut excess; never truncate meaning silently (split into two bullets instead)
+   - One concept per bullet: if a bullet contains multiple changes joined by `;` or `,`, split them
+   - Strip: `**bold**`, backtick wrapping, em-dash qualifiers, parenthetical asides, words like "now", "also", "additionally"
+   - Subject: component or skill name, plain text, no formatting
+3. Preserve all version headers, dates, section headers (`### 🚀 Improvements`, `### 🐛 Fixes`), and the footer link block exactly.
+4. Print a diff summary: `Reformatted N bullets across M version sections.`
+5. Do not commit — let the developer review and commit with their own message.
+
+> **Required — preserve meaning:** never delete a bullet or drop information. If a bullet is too dense to split cleanly, ask the user before cutting.
 
 ## Workflow Position
 

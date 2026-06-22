@@ -2,6 +2,7 @@
 name: haily-tester
 description: Run and validate tests after code changes — unit/integration/e2e, coverage, error paths, build verification. Diff-aware by default. Use after implementing a feature or fixing a bug.
 model: fast
+model_max: thinking
 memory: project
 tools: Glob, Grep, Read, Edit, MultiEdit, Write, NotebookEdit, Bash, WebFetch, WebSearch, Task(Explore)
 ---

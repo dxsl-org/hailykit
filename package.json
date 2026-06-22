@@ -1,6 +1,6 @@
 {
   "name": "hailykit",
-  "version": "1.10.3",
+  "version": "1.10.5",
   "description": "Skill-based workflow framework for AI coding agents — runtime engine + multi-provider installer",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -28,7 +28,7 @@
     "claude-code"
   ],
   "author": "lungmat@DXSL",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "GPL-3.0-only",
   "engines": {
     "node": ">=20.0.0"
   },

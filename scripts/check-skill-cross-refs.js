@@ -170,16 +170,14 @@ function collectCkReferences() {
   return refs;
 }
 
-// Valid provider-neutral model tiers for kit/agents/*.md frontmatter.
+// Valid provider-neutral model tiers for kit/agents/*.md frontmatter (model: and model_max:).
 // A typo here passes silently through the installer (the resolve regex only
 // matches valid tiers), so the bad value would ship verbatim to user machines.
-// `deep` is deliberately EXCLUDED: it is the runtime-escalation tier
-// (hl-ultra) and must never be pinned on an agent.
-const VALID_MODEL_TIERS = new Set(['thinking', 'medium', 'fast']);
+// Ordered low→high: fast < medium < thinking < ultra.
+const VALID_MODEL_TIERS = new Set(['fast', 'medium', 'thinking', 'ultra']);
 
-// Tiers allowed in kit/model-map.json — agent tiers plus the `deep`
-// escalation tier resolved into hl-ultra and {model:deep} placeholders.
-const VALID_MAP_TIERS = new Set([...VALID_MODEL_TIERS, 'deep']);
+// Tiers allowed in kit/model-map.json — same set as agent tiers.
+const VALID_MAP_TIERS = VALID_MODEL_TIERS;
 
 /**
  * Validates that every kit/agents/*.md declares `model:` with a valid tier.
@@ -200,13 +198,35 @@ function checkAgentModelTiers() {
 
     const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
     const modelMatch = fmMatch && fmMatch[1].match(/^model:\s*['"]?([^\s'"]+)['"]?\s*$/m);
+    const modelMaxMatch = fmMatch && fmMatch[1].match(/^model_max:\s*['"]?([^\s'"]+)['"]?\s*$/m);
+    const rel = path.relative(repoRoot, filePath);
+    const TIER_ORDER = ['fast', 'medium', 'thinking', 'ultra'];
+
     if (!modelMatch) {
-      problems.push({ file: path.relative(repoRoot, filePath), problem: 'missing `model:` tier in frontmatter' });
+      problems.push({ file: rel, problem: 'missing `model:` tier in frontmatter' });
     } else if (!VALID_MODEL_TIERS.has(modelMatch[1])) {
       problems.push({
-        file: path.relative(repoRoot, filePath),
+        file: rel,
         problem: `invalid model tier "${modelMatch[1]}" (expected: ${[...VALID_MODEL_TIERS].join(' | ')})`,
       });
+    }
+
+    if (modelMaxMatch) {
+      if (!VALID_MODEL_TIERS.has(modelMaxMatch[1])) {
+        problems.push({
+          file: rel,
+          problem: `invalid model_max tier "${modelMaxMatch[1]}" (expected: ${[...VALID_MODEL_TIERS].join(' | ')})`,
+        });
+      } else if (modelMatch && VALID_MODEL_TIERS.has(modelMatch[1])) {
+        const floorIdx = TIER_ORDER.indexOf(modelMatch[1]);
+        const ceilIdx = TIER_ORDER.indexOf(modelMaxMatch[1]);
+        if (ceilIdx < floorIdx) {
+          problems.push({
+            file: rel,
+            problem: `model_max "${modelMaxMatch[1]}" is below model floor "${modelMatch[1]}"`,
+          });
+        }
+      }
     }
   }
   return problems;

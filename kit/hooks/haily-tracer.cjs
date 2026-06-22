@@ -6,8 +6,8 @@
  * in the tool input → agent frontmatter pin → session model (HL_SESSION_MODEL /
  * session state, captured by haily-session at SessionStart). Always announces —
  * agents inheriting the session model are shown too, not skipped:
- *   🤖 [haily-brainstormer] → thinking (claude-opus-4-8)
- *   🤖 [Explore] → medium (claude-sonnet-4-6)
+ *   🤖 [haily-brainstormer]: thinking (claude-opus-4-8)
+ *   🤖 [Explore]: medium (claude-sonnet-4-6)
  *
  * Opt-in: set `"model-tracer": true` in haily.json hooks to enable.
  * Config key (isHookEnabled): 'model-tracer'  — default false
@@ -99,7 +99,7 @@ try {
     } else {
       label = 'session model (inherit)';
     }
-    process.stdout.write(`⚡ [${subagentType}] → ${label}\n`);
+    process.stdout.write(`🤖 [${subagentType}]: ${label}\n`);
 
     timer.end({ status: 'ok', exit: 0, subagentType, modelId: modelId || 'inherit' });
     process.exit(0);

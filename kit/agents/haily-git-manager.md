@@ -2,6 +2,7 @@
 name: haily-git-manager
 description: Stage, commit, and push changes with conventional commits. Use when the user says "commit", "push", or finishes a feature/fix.
 model: fast
+model_max: fast
 tools: Glob, Grep, Read, Bash
 ---
 

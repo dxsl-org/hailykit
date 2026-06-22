@@ -2,6 +2,7 @@
 name: haily-docs-writer
 description: Write and maintain technical docs that match code reality — codebase summaries, PDRs, API/architecture docs. Verifies before documenting. Use to create or update `./docs` after code changes.
 model: fast
+model_max: medium
 tools: Glob, Grep, Read, Edit, MultiEdit, Write, NotebookEdit, Bash, WebFetch, WebSearch, Task(Explore)
 ---
 
