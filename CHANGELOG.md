@@ -9,18 +9,22 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [1.10.6] (2026-06-23)
+## [1.10.8] (2026-06-23)
 
 ### 📋 Legal & Community
 
 - license: switch from PolyForm Noncommercial to GPL-3.0-only
-- license: add commercial exception via COMMERCIAL_LICENSE.md
+- license: add COMMERCIAL_LICENSE.md for commercial use
 - repo: add CONTRIBUTING.md with CLA contribution terms
 - repo: add Ko-fi funding channel via FUNDING.yml
 
 ### 🚀 Improvements
 
+- hc-git: add pr --merge review-gated batch merge workflow
 - hooks: bold model name in agent trace output
+- hooks: resolve inherit to actual session model name in agent trace
+- hl-help: surface hc-git pr --merge in quick-start and skill list
+- readme: document hc-git pr --merge in skills table
 
 ---
 
@@ -37,7 +41,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### ❌ Removed
 
-- skill: remove hl-ultra wrapper (session model selection replaces it)
+- skill hl-ultra
 
 ---
 

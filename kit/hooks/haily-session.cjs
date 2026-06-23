@@ -176,14 +176,12 @@ try {
             } catch { /* skip unreadable */ }
           }
         }
-        const sessionLabel = sessionModel
-          ? `${formatModelDisplay(sessionModel)} (${sessionModel})`
-          : 'the session model';
+        const sessionDisplay = sessionModel ? formatModelDisplay(sessionModel) : '<session-model>';
         const mapStr = Object.entries(agentMap).map(([k, v]) => `${k}=${v}`).join(', ');
-        const announce = `AGENT TRACE: At the start of your first reply this session, write "🤖 Session starting: **${sessionModel ? formatModelDisplay(sessionModel) : '<your model name>'}**" on its own line. `;
+        const announce = `AGENT TRACE: At the start of your first reply this session, write "🤖 Session starting: **${sessionDisplay}**" on its own line. `;
         const instruction = announce + (mapStr
-          ? `For each Agent tool call, write ⚡ [subagent_type] → **[model]** on its own line in your response text before the tool call — including when the model equals the session model. inherit = ${sessionLabel}. Model map: ${mapStr}`
-          : `For each Agent tool call, write ⚡ [subagent_type] → **${sessionLabel}** on its own line in your response text before the tool call.`);
+          ? `For each Agent tool call, write 🤖 [subagent_type]: **[model]** on its own line in your response text before the tool call. Resolve [model]: look up [subagent_type] in the Model Map; if found use that value; if NOT found write **${sessionDisplay}** — never write the literal word "inherit". Model Map: ${mapStr}`
+          : `For each Agent tool call, write 🤖 [subagent_type]: **${sessionDisplay}** on its own line in your response text before the tool call.`);
         process.stdout.write(instruction + '\n');
       } catch { /* fail-open — tracer instruction is best-effort */ }
     }

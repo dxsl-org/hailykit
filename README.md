@@ -135,7 +135,7 @@ Open Claude Code after installing — skills are ready immediately.
 | `/hc-ship` | Full release: tests → review → version bump → changelog → push → PR → merge |
 | `/hc-scout` | Parallel codebase discovery — segments repo, spawns concurrent Explore agents |
 | `/hc-security` | STRIDE + OWASP audit. `--quick` for fast secret/dep scan; `--fix` applies remediations |
-| `/hc-git` | Commits, PRs, merges, conflict resolution, sprint retros. Auto-scans for secrets |
+| `/hc-git` | Commits, PRs, merges, conflict resolution, sprint retros, and review-gated batch PR merge (`pr --merge`). Auto-scans for secrets |
 | `/hc-db` | Schema design, queries, migrations, ORM selection (PostgreSQL, MongoDB, MySQL, Redis…) |
 | `/hc-deploy` | First-time platform deploy with cost-optimized auto-detection |
 | `/hc-devops` | Cloud infra, CI/CD, Docker, Kubernetes, GitOps |

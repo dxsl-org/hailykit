@@ -116,6 +116,7 @@ THINK & DECIDE
   {skill:hl-mindmap}      Build and navigate knowledge graphs from topics, URLs, or documents
 GIT & ENVIRONMENT
   {skill:hc-git}                        Commit, push, PR, merge, impact analysis, sprint retro
+  {skill:hc-git} pr --merge <refs>      Review-gate, label, and merge PRs in order; watch post-merge CI
   {skill:hc-git} analyze [ref]          What changed conceptually (intent, arch delta, risk radar)
   {skill:hc-git} retro [period]         Data-driven sprint retrospective from git history
   {skill:hc-git} issues [--auto] [--loop]  Discover, prioritize, and work through GitHub issues
@@ -200,6 +201,7 @@ Read `.claude/scripts/skills_data.yaml`, group by `category`, print with prefix:
 
 ## Development Tools
   {skill:hc-git}              Commits, PRs, merges, impact analysis, sprint retrospectives
+  {skill:hc-git} pr --merge   Review-gate, label, and merge PRs with post-merge CI watch
   {skill:hc-git} analyze      Impact analysis of recent changes
   {skill:hc-git} retro        Sprint retrospective from git history
   {skill:hc-git} issues       Discover + prioritize GitHub issues; delegate to hc-goal [--auto] [--loop]

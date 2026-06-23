@@ -1,6 +1,6 @@
 {
   "name": "hailykit",
-  "version": "1.10.6",
+  "version": "1.10.8",
   "description": "Skill-based workflow framework for AI coding agents — runtime engine + multi-provider installer",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
