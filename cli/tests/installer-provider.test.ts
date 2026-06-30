@@ -128,8 +128,8 @@ test('AntigravityProvider.installSkills: global vs project installation and mani
   // 1. Global install
   const countGlobal = provider.installSkills(claude, testGlobalDir);
   assert.equal(countGlobal, 1);
-  // Expecting: testGlobalDir/hc-test/SKILL.md (flat folders, direct children of testGlobalDir)
-  assert.ok(fs.existsSync(path.join(testGlobalDir, 'hc-test', 'SKILL.md')));
+  // Expecting: testGlobalDir/hc-test.md (flat markdown files in global_workflows)
+  assert.ok(fs.existsSync(path.join(testGlobalDir, 'hc-test.md')));
   const manifestGlobal = JSON.parse(fs.readFileSync(path.join(testGlobalDir, 'hailykit-installed-skills.json'), 'utf8'));
   assert.deepEqual(manifestGlobal, ['hc-test']);
 
@@ -147,7 +147,7 @@ test('AntigravityProvider.installSkills: global vs project installation and mani
   fs.writeFileSync(path.join(testProjectDir, '.hailykit-meta.json'), '{}');
 
   provider.uninstall(testGlobalDir);
-  assert.ok(!fs.existsSync(path.join(testGlobalDir, 'hc-test')));
+  assert.ok(!fs.existsSync(path.join(testGlobalDir, 'hc-test.md')));
   assert.ok(!fs.existsSync(path.join(testGlobalDir, 'hailykit-installed-skills.json')));
 
   provider.uninstall(testProjectDir);
