@@ -37,7 +37,7 @@ function readSkillsManifest(providerDir: string): string[] {
  * Docs (B): https://antigravity.google/docs · https://codelabs.developers.google.com/getting-started-with-antigravity-skills
  *
  * Directory layout (product A):
- *   Global:  ~/.gemini/config/global_workflows/<skill-name>/   (SKILL.md files, same format)
+ *   Global:  ~/.gemini/config/global_workflows/<skill-name>.md   (SKILL.md files, same format)
  *   Project: .antigravity/skills/<skill-name>/
  */
 export class AntigravityProvider extends BaseProvider {

@@ -11,6 +11,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - hc-review: simplification scan, add ceiling + trigger markers
 - installer: add cline provider
+- installer: self-upgrade CLI binary when a newer release is detected (re-run prompt)
 
 ### 🐛 Bug Fixes
 

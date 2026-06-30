@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { fetchRelease, downloadZip } from '../github.js';
 import { extract, makeTempDir, resolveRoot } from '../extractor.js';
 import { mergeClaudeDir, readMetadata } from '../merger.js';
@@ -8,6 +9,14 @@ import { loadModelMapOverrides } from '../converter.js';
 import { setupVenv } from '../venv.js';
 import { resolveProviders } from '../providers/index.js';
 import type { Provider } from '../providers/index.js';
+import { selfUpgradeCliIfNeeded } from './self-upgrade.js';
+
+function readCurrentVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8')) as { version?: string };
+    return pkg.version ?? '0.0.0';
+  } catch { return '0.0.0'; }
+}
 
 export interface UpgradeOptions {
   provider?: string;
@@ -139,6 +148,9 @@ export async function cmdUpgrade(options: UpgradeOptions): Promise<void> {
     const root = resolveRoot(extractDir);
 
     const extractedKitDir = path.join(root, 'kit');
+
+    // Self-upgrade the CLI binary if the release ships a newer version.
+    if (selfUpgradeCliIfNeeded(root, readCurrentVersion())) return;
 
     // Must run before any agent conversion — resolveModel reads the merged map.
     loadModelMapOverrides(extractedKitDir);
