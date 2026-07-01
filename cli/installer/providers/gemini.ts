@@ -128,6 +128,10 @@ export class GeminiProvider extends BaseProvider {
 
       const outDir = path.join(targetProviderDir, 'skills');
       fs.mkdirSync(outDir, { recursive: true });
+      const staleDir = path.join(outDir, entry.name);
+      if (fs.existsSync(staleDir)) {
+        fs.rmSync(staleDir, { recursive: true, force: true });
+      }
       fs.writeFileSync(path.join(outDir, `${entry.name}.md`), bundled, 'utf8');
     }
   }

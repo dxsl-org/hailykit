@@ -1,5 +1,5 @@
 {
-  "version": "1.10.11",
+  "version": "1.10.12",
   "name": "hailykit",
   "description": "Skill-based workflow framework for AI coding agents — Claude Code, Gemini CLI, Cursor, Windsurf, and more.",
   "buildDate": "2026-06-21",

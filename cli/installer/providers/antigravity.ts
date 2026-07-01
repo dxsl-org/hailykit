@@ -83,7 +83,6 @@ export class AntigravityProvider extends BaseProvider {
       if (fs.existsSync(destSkillDir)) {
         fs.rmSync(destSkillDir, { recursive: true, force: true });
       }
-      this._copyNonMdOnly(srcSkillDir, destSkillDir);
       installed.push(skillName);
     }
 
@@ -143,27 +142,6 @@ export class AntigravityProvider extends BaseProvider {
   // Antigravity is a Claude Code fork — uses /hc-cook slash syntax (agentskills.io hyphen convention).
   protected override skillRef(prefix: string, name: string): string {
     return `/${prefix}-${name}`;
-  }
-
-  private _copyNonMdOnly(src: string, dest: string): boolean {
-    let copied = false;
-    for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
-      if (entry.name.startsWith('.')) continue;
-      const srcPath = path.join(src, entry.name);
-      const destPath = path.join(dest, entry.name);
-      if (entry.isDirectory()) {
-        if (this._copyNonMdOnly(srcPath, destPath)) {
-          copied = true;
-        }
-      } else if (!entry.name.endsWith('.md')) {
-        if (!copied && !fs.existsSync(dest)) {
-          fs.mkdirSync(dest, { recursive: true });
-        }
-        fs.copyFileSync(srcPath, destPath);
-        copied = true;
-      }
-    }
-    return copied;
   }
 
   // Not used — installSkills is fully overridden above.
