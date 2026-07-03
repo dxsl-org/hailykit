@@ -5,6 +5,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### 🚀 Improvements
+
+- skills: add `hs-` security-operations domain — `hs-assess` (red-team recon/pentest/CTF), `hs-harden` (blue-team CIS/STIG hardening), `hs-dfir` (blue-team forensics + incident response). Covers security of running systems, distinct from `hc-security`/`hc-fix` which secure the codebase. All carry authorized-use guardrails
+- installer: register the `hs-` domain prefix across converter, Codex uninstall, subagent prefix injector, and the cross-ref checker
+
 ## [1.11.0] (2026-07-03)
 
 ### 🚀 Improvements

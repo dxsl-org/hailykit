@@ -11,7 +11,8 @@ When renaming or deleting ANY file under `kit/` (skills, hooks, agents, standard
 Canonical skill names live in each `kit/skills/*/SKILL.md` frontmatter `name:` field. Domain prefixes:
 
 - `hl-` — universal/utility (thinking, planning, tools, design)
-- `hc-` — coding (incl. AI app frameworks, MCP, docs/extraction)
+- `hc-` — coding (incl. AI app frameworks, MCP, docs/extraction) — security **of the code you write** (`hc-security` appsec, `hc-fix` code/CVE patching)
+- `hs-` — security operations on **running systems** (`hs-assess` red-team recon/pentest/CTF, `hs-harden` blue-team config audit/hardening, `hs-dfir` forensics/incident response). Distinct from `hc-security`/`hc-fix`, which own code-level security.
 
 ## Skill Reference Syntax
 

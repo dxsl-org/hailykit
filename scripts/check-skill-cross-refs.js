@@ -37,7 +37,7 @@ const ALLOWED_BUILTIN_OVERLAPS = new Set(['hl-help']);
 // Capture group 1 = {skill:} form full name; group 2 = slash form full name.
 // NOTE: negative lookbehind (?<![a-zA-Z0-9_.]) excludes file paths like
 // `.claude/skills/hc-mcp/scripts/...` where the slash is preceded by a path char.
-const HL_REF_RE = /\{skill:((?:hl|hc)-[a-z][a-z0-9-]*)\}|(?<![a-zA-Z0-9_.])\/((?:hl|hc)-[a-z][a-z0-9-]*)/g;
+const HL_REF_RE = /\{skill:((?:hl|hc|hd|hs)-[a-z][a-z0-9-]*)\}|(?<![a-zA-Z0-9_.])\/((?:hl|hc|hd|hs)-[a-z][a-z0-9-]*)/g;
 
 /**
  * Recursively collect all files matching a predicate under a directory.
@@ -319,7 +319,7 @@ function main() {
   if (!hasErrors) {
     const refCount = allRefs.length;
     const skillCount = registry.size;
-    console.log(`[OK] skill-cross-refs: ${skillCount} skill(s) registered, ${refCount} reference(s) checked (prefixes: hl/hc) — all valid. Agent model tiers + model-map.json valid.`);
+    console.log(`[OK] skill-cross-refs: ${skillCount} skill(s) registered, ${refCount} reference(s) checked (prefixes: hl/hc/hs) — all valid. Agent model tiers + model-map.json valid.`);
     process.exit(0);
   }
 

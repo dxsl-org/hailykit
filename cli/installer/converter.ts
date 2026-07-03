@@ -5,8 +5,8 @@ import * as path from 'node:path';
 /** Matches YAML frontmatter block at the start of a markdown file. */
 const FRONTMATTER_RE = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
 
-/** Matches {skill:hc-cook} / {skill:hl-brainstorm} references in body text. */
-const SKILL_REF_RE = /\{skill:((?:hc|hd|hl)-[a-z][a-z0-9-]*)\}/g;
+/** Matches {skill:hc-cook} / {skill:hl-brainstorm} / {skill:hs-dfir} references in body text. */
+const SKILL_REF_RE = /\{skill:((?:hc|hd|hl|hs)-[a-z][a-z0-9-]*)\}/g;
 
 /**
  * Matches {agent:X}, {agents:A,B}, {agent-result:X} tags in skill body text.
@@ -261,10 +261,10 @@ export function toCommandName(
   fallback?: string,
 ): string {
   const raw = frontmatter.name || fallback || '';
-  // Current format: already hyphenated — hc-cook, hl-brainstorm, hd-ui-ux
-  if (/^(hc|hd|hl)-/.test(raw)) return sanitizeSlug(raw);
+  // Current format: already hyphenated — hc-cook, hl-brainstorm, hd-ui-ux, hs-dfir
+  if (/^(hc|hd|hl|hs)-/.test(raw)) return sanitizeSlug(raw);
   // Legacy colon format: hc:cook → hc-cook
-  if (/^(hc|hd|hl):/.test(raw)) return sanitizeSlug(raw.replace(':', '-'));
+  if (/^(hc|hd|hl|hs):/.test(raw)) return sanitizeSlug(raw.replace(':', '-'));
   // Legacy bare name: no prefix → assume hl domain
   return `hl-${sanitizeSlug(raw.replace(/^hl[:-]/, ''))}`;
 }

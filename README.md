@@ -116,7 +116,7 @@ Open Claude Code after installing — skills are ready immediately.
 
 ## Skills
 
-35 skills across two domain prefixes, installed together and activated on demand.
+38 skills across three domain prefixes, installed together and activated on demand.
 
 ### Coding — `hc-*`
 
@@ -160,6 +160,16 @@ Open Claude Code after installing — skills are ready immediately.
 | `/hl-mindmap` | Build and navigate knowledge graphs from topics, URLs, or documents |
 | `/hl-context-engineering` | Optimize token usage, debug context failures, design agent memory systems |
 | `/hl-log` | Write a session log to `.agents/logs/` — decisions, lessons, next steps |
+
+### Security Ops — `hs-*`
+
+Security of **running systems** (distinct from `hc-security`/`hc-fix`, which secure the code you write). Authorized-use only.
+
+| Command | What it does |
+|---|---|
+| `/hs-assess` | Red-team assessment of an authorized target: attack-surface recon, vulnerability assessment, pentest, CTF. Orchestrates external tools |
+| `/hs-harden` | Blue-team hardening: config audit against CIS/STIG benchmarks, misconfiguration detection, guarded remediation. `--fix` applies with rollback |
+| `/hs-dfir` | Blue-team forensics + incident response over collected evidence: log-timeline reasoning, IOC/threat-intel correlation, static malware triage |
 
 ---
 

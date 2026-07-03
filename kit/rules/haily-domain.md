@@ -90,6 +90,20 @@ STRIDE/OWASP audit, auto-fix, full scan   → {skill:hc-security}
 Quick secret/dep/vuln scan (pre-commit)   → {skill:hc-security} --quick
 ```
 
+## Security Operations (Systems)
+
+Security of **running systems / infrastructure / evidence** — distinct from code security above.
+
+```
+Recon / pentest / vuln assessment of an authorized target  → {skill:hs-assess}
+Solve a CTF challenge                                        → {skill:hs-assess} --ctf
+Audit a running system/container/cluster vs CIS/STIG         → {skill:hs-harden}
+Apply guarded hardening remediations                         → {skill:hs-harden} --fix
+Investigate an incident that already happened (forensics/IR) → {skill:hs-dfir}
+Build a log timeline / correlate IOCs from collected evidence → {skill:hs-dfir}
+```
+Disambiguate: security of the **code you write** → `{skill:hc-security}` (appsec audit) / `{skill:hc-fix}` (code + CVE patching) · security of a **running system** → `hs-*`. Build/operate Docker/k8s/CI-CD → `{skill:hc-devops}`; **audit their security posture** against benchmarks → `{skill:hs-harden}`. "Scan deps for CVEs" is code-layer → `{skill:hc-fix} deps` or `{skill:hc-security} --quick`, not `hs-assess`. All `hs-*` skills are authorized-use only.
+
 ## AI / LLM
 
 ```

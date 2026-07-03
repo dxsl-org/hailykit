@@ -33,6 +33,19 @@ Flow: `scout → debug → fix → test → review`
 | "analyze this flame graph / heap dump" | `{skill:hc-debug} --profile <artifact>` |
 | "failure spans multiple services" | `{skill:hc-debug} --trace <trace-id>` |
 
+## Security Operations (Systems)
+
+Flow: `assess → harden` (proactive) · `dfir → harden` (post-incident). Authorized-use only. For security of the **code you write**, use `{skill:hc-security}` / `{skill:hc-fix}` instead.
+
+| User Intent | Start |
+|-------------|-------|
+| "pentest / recon / assess this authorized target" | `{skill:hs-assess}` |
+| "solve this CTF challenge" | `{skill:hs-assess} --ctf` |
+| "audit / harden this running system vs CIS/STIG" | `{skill:hs-harden}` |
+| "apply hardening fixes with rollback" | `{skill:hs-harden} --fix` |
+| "we were breached — investigate what happened" | `{skill:hs-dfir}` |
+| "build a log timeline / correlate IOCs from evidence" | `{skill:hs-dfir}` |
+
 ## Planning & Architecture
 
 | User Intent | Start |

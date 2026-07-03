@@ -388,13 +388,17 @@ export class CodexProvider extends BaseProvider {
     // removes agents/ but would otherwise leave dangling config entries Codex warns on.
     this._removeSentinelBlock(path.join(providerDir, 'config.toml'), AGENTS_SENTINEL_START, AGENTS_SENTINEL_END);
 
-    // Remove HailyKit skill dirs from ~/.agents/skills/ (all hl-* and hc-* dirs)
+    // Remove HailyKit skill dirs from ~/.agents/skills/ (all hl-*, hc-*, hs-* dirs)
     const agentsSkillsDir = path.join(os.homedir(), '.agents', 'skills');
     if (!fs.existsSync(agentsSkillsDir)) return;
     let count = 0;
     for (const entry of fs.readdirSync(agentsSkillsDir, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
-      if (entry.name.startsWith('hl-') || entry.name.startsWith('hc-')) {
+      if (
+        entry.name.startsWith('hl-') ||
+        entry.name.startsWith('hc-') ||
+        entry.name.startsWith('hs-')
+      ) {
         fs.rmSync(path.join(agentsSkillsDir, entry.name), { recursive: true, force: true });
         count++;
       }

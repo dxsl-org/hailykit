@@ -308,7 +308,7 @@ These phrases indicate copied or marketing-derived content. Replace or remove.
 
 Never use slash form (`/hc-plan`) in skill body text. Slash form is terminal syntax only.
 
-> **agentskills.io compliance:** The `name:` field uses `[a-z0-9-]` only (no colons), per the [agentskills.io spec](https://agentskills.io/specification). Hyphen separates domain prefix from bare name: `hc-debug` = prefix `hc` + name `debug`. When porting future `hd-*` design skills, use `hc-` prefix per domain routing decision.
+> **agentskills.io compliance:** The `name:` field uses `[a-z0-9-]` only (no colons), per the [agentskills.io spec](https://agentskills.io/specification). Hyphen separates domain prefix from bare name: `hc-debug` = prefix `hc` + name `debug`. Live prefixes: `hl-` (utility), `hc-` (coding), `hs-` (security operations on running systems). When porting future `hd-*` design skills, use `hc-` prefix per domain routing decision.
 
 ### Code Implementation Comments
 
@@ -369,4 +369,4 @@ Standards and methodologies HailyKit applies. Each entry names the standard and 
 - **Defense in Depth** — layered verification: Preflight → Test → Review Circuit → Stress Probe. [NSA 2010; NIST SP 800-30]
 - **Architecture Decision Records (ADR)** — `plan.md` + `phase-XX-*.md` as lightweight ADRs with Scope Contract and blast radius. [Nygard 2011]
 - **Hill Climbing (Iterative Metric Optimization)** — `hc-optimize` skill: atomic change → measure metric → keep/revert per iteration. [Russell & Norvig 2010 ch.4]
-- **agentskills.io Skill Specification** — `SKILL.md` structure; `name:` field format `[a-z0-9-]`; `metadata:` block; `{skill:hc-cook}` cross-reference syntax; domain prefix routing (`hl-`/`hc-`). [agentskills.io/specification, Apache 2.0]
+- **agentskills.io Skill Specification** — `SKILL.md` structure; `name:` field format `[a-z0-9-]`; `metadata:` block; `{skill:hc-cook}` cross-reference syntax; domain prefix routing (`hl-`/`hc-`/`hs-`). [agentskills.io/specification, Apache 2.0]

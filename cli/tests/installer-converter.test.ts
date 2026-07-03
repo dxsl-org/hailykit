@@ -6,6 +6,7 @@ import * as path from 'node:path';
 import {
   parseFrontmatter,
   toCommandName,
+  resolveSkillRefs,
   toGeminiToml,
   toCursorMd,
   isProviderAllowed,
@@ -79,6 +80,19 @@ test('toCommandName accepts current hyphen format', () => {
   assert.equal(toCommandName({ name: 'hc-cook' }), 'hc-cook');
   assert.equal(toCommandName({ name: 'hl-brainstorm' }), 'hl-brainstorm');
   assert.equal(toCommandName({ name: 'hc-mcp-builder' }), 'hc-mcp-builder');
+});
+
+// Regression guard for the hs- security-operations domain prefix.
+// A revert of the converter regex edits (SKILL_REF_RE / toCommandName) must fail here.
+test('toCommandName preserves hs- prefix (no hl- mangling)', () => {
+  assert.equal(toCommandName({ name: 'hs-assess' }), 'hs-assess');
+  assert.equal(toCommandName({ name: 'hs-dfir' }), 'hs-dfir');
+  assert.equal(toCommandName({ name: 'hs:harden' }), 'hs-harden');
+});
+
+test('resolveSkillRefs resolves hs- references', () => {
+  const out = resolveSkillRefs('see {skill:hs-dfir} and {skill:hc-fix}', (p, n) => `/${p}-${n}`);
+  assert.equal(out, 'see /hs-dfir and /hc-fix');
 });
 
 test('toCommandName converts legacy colon format', () => {

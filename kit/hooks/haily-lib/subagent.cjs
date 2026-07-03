@@ -127,7 +127,7 @@ function buildTrustSection(config) {
 
 function buildPrefixSection(env) {
   const pm = env.HL_PACKAGE_MANAGER || 'npm';
-  return [`## Skill Prefix`, `Use skill prefix: /hc:* (coding), /hl:* (utility), /hd:* (design) | PM: ${pm}`];
+  return [`## Skill Prefix`, `Use skill prefix: /hc-* (coding), /hl-* (utility), /hs-* (security ops) | PM: ${pm}`];
 }
 
 module.exports = {

@@ -1,9 +1,9 @@
 ---
 name: hl-help
-description: "Discover skills across 2 prefixes. List, search, filter, or show workflow combos."
+description: "Discover skills across 3 prefixes. List, search, filter, or show workflow combos."
 when_to_use: "Invoke when discovering available skills or getting help with HailyKit."
 user-invocable: true
-argument-hint: "[--list] [--search <keyword>] [--domain <area>] [--prefix <hc|hl>] [--all] [--combos]"
+argument-hint: "[--list] [--search <keyword>] [--domain <area>] [--prefix <hc|hl|hs>] [--all] [--combos]"
 metadata:
   category: utilities
   keywords: [help, discover, search, list, skills, catalog, prefix, domain, workflow, combo]
@@ -13,12 +13,13 @@ metadata:
 
 Browse and search all available skills across all domain prefixes.
 
-## Domain Prefix System (2 prefixes)
+## Domain Prefix System (3 prefixes)
 
 | Prefix | Domain |
 |--------|--------|
 | `hl-*` | Universal — thinking, research, planning, **+ design** (`hl-design`) |
 | `hc-*` | Coding — backend, frontend, infra, testing, dev-tools, AI app frameworks, MCP, docs+extraction |
+| `hs-*` | Security ops — security of running systems: red-team assessment, hardening, forensics/IR (authorized-use only) |
 
 ## Built-in vs HailyKit Skills (Common Confusions)
 
@@ -62,7 +63,7 @@ HailyKit skills are known by different names in other skill catalogs. If you're 
 {skill:hl-help} --list                   # All skills grouped by category
 {skill:hl-help} --search <keyword>       # Search by keyword across name/description/tags
 {skill:hl-help} --domain <area>          # Filter by domain area (see aliases below)
-{skill:hl-help} --prefix <hc|hd|hl>     # Filter by domain prefix
+{skill:hl-help} --prefix <hc|hl|hs>     # Filter by domain prefix
 {skill:hl-help} --all                    # Full catalog with complete descriptions
 {skill:hl-help} --combos                 # Show common workflow chains (feature dev, bugfix, ...)
 ```
@@ -102,6 +103,11 @@ SHIP & REVIEW
   {skill:hc-security}     STRIDE/OWASP audit + secret scan [--quick]
   {skill:hc-test}         Run tests + coverage [--web for Playwright/a11y]
   {skill:hc-ship}         Full release pipeline (test→review→version→PR)
+
+SECURITY OPS (running systems — authorized-use only)
+  {skill:hs-assess}       Red-team: recon, vuln assessment, pentest, CTF [--ctf]
+  {skill:hs-harden}       Blue-team: CIS/STIG config audit + hardening [--fix]
+  {skill:hs-dfir}         Blue-team: forensics + incident response, log timeline, IOCs
 
 UNDERSTAND & EXPLORE
   {skill:hc-scout}        Find files, map dependencies [--pack] [--graph]
@@ -149,7 +155,7 @@ SPECIALIZED
 Canonical chain: brainstorm → plan → cook → test → review → ship → log
 
   {skill:hl-help} --combos          All workflow chains
-  {skill:hl-help} --list            All 35 skills by category
+  {skill:hl-help} --list            All 38 skills by category
   {skill:hl-help} --search <kw>     Find by topic
 
 **MODEL TIERS** — `fast` < `medium` < `thinking` < `ultra`
@@ -183,8 +189,11 @@ Read `.claude/scripts/skills_data.yaml`, group by `category`, print with prefix:
   {skill:hl-mindmap}             Build and navigate knowledge graphs from topics, URLs, or documents
   {skill:hl-context-engineering} Optimize context and agent architecture
 
-## Security (1)
-  {skill:hc-security}         STRIDE/OWASP audit + secret/vuln scan (--quick)
+## Security (4)
+  {skill:hc-security}         STRIDE/OWASP audit + secret/vuln scan (--quick) — code security
+  {skill:hs-assess}           Red-team: recon, vuln assessment, pentest, CTF (--ctf) — authorized targets
+  {skill:hs-harden}           Blue-team: CIS/STIG config audit + hardening (--fix)
+  {skill:hs-dfir}             Blue-team: forensics + incident response, log timeline, IOCs
 
 ## Design & Visual (3)
   {skill:hc-cook} <mockup.png|figma-url>  Replicate UI from mockups/screenshots/video (auto-detected, visual IS spec)
@@ -274,6 +283,7 @@ Filter by domain prefix — shows only skills from that prefix group.
 |---|---|
 | `hl` | Universal skills (thinking, planning, research, design) |
 | `hc` | Coding skills |
+| `hs` | Security-ops skills (assessment, hardening, forensics/IR) |
 
 ### --domain \<area\>
 
@@ -594,5 +604,5 @@ Language- and framework-specific guidance is **auto-loaded** at session start ba
 - Always print skill names with their full prefix (e.g., `{skill:hc-plan}`, `{skill:hl-design}`, `{skill:hl-brainstorm}`)
 - Truncate descriptions to 60 chars in `--list` mode; full description in `--all` mode
 - Sort alphabetically within each category group
-- `--prefix` filter: match skills where `name` starts with `<prefix>-` (e.g., `hl-` or `hc-`)
+- `--prefix` filter: match skills where `name` starts with `<prefix>-` (e.g., `hl-`, `hc-`, or `hs-`)
 - Highlight the core workflow skills (`hc-plan`, `hc-cook`, `hc-fix`, `hc-test`, `hc-ship`) at the top of `--list` output
