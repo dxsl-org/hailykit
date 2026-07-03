@@ -22,11 +22,13 @@ Does the unit fulfill its outline-assigned beat? Evidence = quote the outline be
 - **Major** — present but misplaced or underweighted
 - **Minor** — pacing nit
 
+**Chapter function over checklist** — judge the unit against what its beat *assigns* it. A transitional, foreshadow-planting, or relationship-development unit is not penalized for lacking a climax or payoff moment; flagging "no payoff" on a unit whose beat is setup is a false positive, not rigor. Hook anti-patterns (`references/craft-fiction-prose.md` § Hook craft) are structural findings: a fake hook or unearned rescue is **Major**.
+
 ## Rubric — Continuity *(fiction)*: ConStory-Bench 5 categories
 
 Cross-reference every named entity and fact-claim against the story bible using this checklist, not an open-ended "check for consistency" instruction:
 
-1. **Timeline & Plot Logic** — absolute-time contradictions, duration errors, simultaneity errors, causeless effects, causal violations, abandoned plot threads (dropped foreshadowing)
+1. **Timeline & Plot Logic** — absolute-time contradictions, duration errors, simultaneity errors, causeless effects, causal violations, abandoned plot threads (dropped foreshadowing). **Foreshadow staleness:** any `bible/plot.md` foreshadowing entry not planted, advanced, or paid off within the last 5 units is flagged **Major** — don't wait for the Verify-stage payoff audit to notice a thread going cold
 2. **Characterization** — memory contradictions, knowledge-state inconsistencies ("who knows what when" — cross-check against `bible/timeline.md`'s Active Snapshot and full log), skill fluctuations, forgotten abilities
 3. **World-building** — rule, social-norm, or geography violations
 4. **Factual & Detail** — appearance, naming, quantity mismatches
@@ -54,7 +56,7 @@ Evidence = quote the claim + the matching or contradicting research-note excerpt
 
 ## Rubric — Voice/Style
 
-Compare the unit against the voice profile in `bible/style.md` (or `brief.md`'s register field for short-form): POV, tense, register, diction, sentence-length pattern. Evidence = quote the drifting passage + name the specific attribute that shifted. Severity: **Critical** = POV/tense break; **Major** = tone/register inconsistency; **Minor** = word-choice preference.
+Compare the unit against the voice profile in `bible/style.md` (or `brief.md`'s register field for short-form): POV, tense, register, diction, sentence-length pattern. For fiction, also check against the anti-AI-tone tables in `references/craft-fiction-prose.md` — cite the specific pattern matched ("mood label instead of sensory detail"), not a general impression. Evidence = quote the drifting passage + name the specific attribute that shifted. Severity: **Critical** = POV/tense break; **Major** = tone/register inconsistency; **Minor** = word-choice preference.
 
 Minor findings on this pass are hard-capped — it is the pass most prone to a nitpick flood. **Cold start:** unit 1 has no prior units to compare against; baseline against `style.md`/`brief.md` alone for that unit, not "established voice."
 
@@ -79,18 +81,35 @@ Max 3 review-fix rounds per unit.
 - `ESCALATE` → the orchestrator sets the unit's ledger row to `blocked` with the outstanding findings attached (see `references/workspace-schema.md`'s ledger lifecycle) — never auto-retried.
 - A Tier-1 Critical finding (structural, continuity, or fact-check) blocks Tier-2 passes (voice/style, copyedit) from running on the same unit until it is resolved — polishing or fact-checking prose that structural is about to cut is wasted work.
 
+## Act-close style extraction
+
+When an act closes (the same trigger as the act rollup in `references/context-assembly.md`), the orchestrator delegates one extra `haily-editor` pass over the act's units — extracting the voice that *emerged in the written prose*, not restating the planned profile:
+
+- **3–5 prose rules** — concrete and actionable ("environment description leans on touch and smell over stacked visuals"), never impressions ("beautiful prose, delicate description")
+- **1–2 dialogue voice notes per POV/core character** — diction habits that now distinguish them
+- **Taboos** — aesthetic no-gos that produced review findings during this act
+
+The editor returns these as proposals in its final message (findings-only — it never writes files); the orchestrator dedupes them against existing entries and appends the survivors to `bible/style.md § Emergent rules`, tagged with the act (`[act-02]`). Because `style.md` is always injected, the rules calibrate every subsequent unit automatically. Cap the section at ~15 entries **total** — prose rules, dialogue voice notes, and taboos combined; a later act's dialogue note for a character supersedes (replaces) that character's earlier note rather than stacking. Past the cap, consolidate overlapping entries at the next act close instead of appending — the cap protects style.md's "small by design, always injected full" contract.
+
 ## Division of duties (F6)
 
 `haily-editor` verifies canon-delta entries **semantically only** — each proposed entity or fact classified Confirmed / Conflicting (cites the bible entry) / `new-canon`. It does not validate the delta's **shape** (field names, types, required arrays) — that check runs earlier, before the delta ever reaches the editor: the orchestrator shape-validates every canon delta returned by `haily-writer` against `references/workspace-schema.md`'s schema and rejects/re-requests a malformed one outright. This split keeps a schema bug from ever surfacing as a false continuity finding.
 
 ## Whole-work Verify sweep
 
-At Verify, `haily-editor` runs once against the full assembled manuscript instead of per-unit:
+At Verify, `haily-editor` runs once against the full assembled manuscript instead of per-unit. For long-form work the orchestrator first runs the style-stats script and passes its output into the sweep context:
+
+```
+node <skill-dir>/scripts/style-stats.mjs <workspace>/manuscript/
+```
+
+The script computes whole-manuscript facts no per-unit window can see — recurring phrase tics, verbatim sentences repeated across units, ending-cadence homogeneity, opening time-cue rate. The numbers are **facts, not verdicts**: the editor cites them as Voice/Style evidence ("the phrase 'một nỗi buồn không tên' appears 12× across 6 units") and judges whether each is a problem — a deliberate refrain is not a finding.
 
 - **Cross-unit continuity** — the same 5-category rubric, scoped across every unit, with the same extra scrutiny at the 40–60% narrative position
 - **Structure vs. outline** — every planned beat present across the whole work, in the correct order
 - **Foreshadowing payoff audit** — every `bible/plot.md` foreshadowing entry has a payoff unit, or is flagged unresolved
 - **Provenance-bound citation verification** — re-verify every citation against `research/` sources, same rule as the per-unit fact-check pass
 - **Final copyedit** — a full-manuscript pass for consistency issues that only surface across unit boundaries (naming, numerals, hyphenation)
+- **Style-stats evidence** *(long-form)* — every script-reported phrase tic, repeated sentence, or cadence ratio is either raised as a Voice/Style finding or explicitly waived as intentional
 
 The same Review Circuit (max 3 rounds, early-stop, stall→`ESCALATE`) applies at whole-work scope; an `ESCALATE` here blocks the manuscript-acceptance Checkpoint rather than a single ledger row.

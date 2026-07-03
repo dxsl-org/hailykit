@@ -52,6 +52,7 @@ Soft caps per section, enforced by the rules above rather than a raw token count
 - Beyond 20 units, or whenever summaries alone would exceed ~20% of budget: roll every closed act (5–10 units) into one 150–300-word act summary, and keep the last 5 individual unit summaries flat (most recent, highest relevance to the unit being written).
 - Rollup replaces older individual summaries **in the assembled prompt only** — the originals stay untouched on disk in `summaries/unit-NN.md` for `haily-editor`'s retrieval-on-demand and for the Ship-stage full assembly.
 - Act summaries are generated once, when an act closes, and reused for every subsequent unit's context package until the next act closes — not recomputed per unit.
+- Act close also triggers the **style extraction** pass (`references/review-passes.md` § Act-close style extraction): emergent prose rules appended to `bible/style.md § Emergent rules`, which then reach every later unit through style.md's always-inject rule — no separate SELECT entry needed.
 
 ## Resume protocol
 

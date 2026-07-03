@@ -2,6 +2,8 @@
 
 Same craft criteria across both variants — arc, POV, pacing, consistency — they differ only in scale: a single Freytag arc for short fiction versus a multi-chapter three-act/beat-sheet structure for novel-length work.
 
+Prose-level craft (anti-AI-tone patterns, show-don't-tell, hook archetypes, differentiation, expansion) lives in `references/craft-fiction-prose.md`. At Draft, seed `bible/style.md` with its Prose guardrails digest; at concept development, run its Differentiation checklist before the outline Checkpoint.
+
 ## Track
 
 Short story defaults to the short-form track. Novel always defaults to the long-form track regardless of target length — the persistent bible is mandatory the moment chapters exist, not just past a word-count threshold.
@@ -49,6 +51,8 @@ Short story defaults to the short-form track. Novel always defaults to the long-
 > **Required — beats-are-user-facing:** these beats and their %-anchors are written into `outline.md` at the Draft stage for the user to review at the outline Checkpoint — this is not a hidden internal planning aid. Once approved, the editor reuses the same beat list as its structural-check baseline at Verify.
 
 Use Hero's Journey only as an optional overlay when the genre is fantasy or mythic-adventure (character-transformation focus, versus Save the Cat's plot-mechanics focus) — never as the default. Note the override explicitly in `outline.md` when applied.
+
+**Rolling outline (works >30 units):** past ~30 planned units, a fully detailed single outline over-commits to beats the story will have outgrown by the time it reaches them. Detail per-unit beats for the current act only; later acts stay as skeletons (title, goal, estimated unit count, the beat %-anchors they must land). When an act closes, expand the next act's skeleton into per-unit beats — a lightweight Checkpoint (auto-proceed in `--auto` when the expansion stays within the approved skeleton's goal and beat anchors). The approved macro shape (three-act + beat %-anchors) never changes without a full outline-revision Checkpoint.
 
 **Mandatory "research":** comp titles — real, verifiable published books, never invented for pitch copy; the genre convention/word-count target; a series/worldbuilding bible. The bible is mandatory for the novel track — Build does not begin without one seeded from the approved outline.
 

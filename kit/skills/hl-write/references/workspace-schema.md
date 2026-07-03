@@ -60,7 +60,7 @@ Written once at Route (minimal scaffold — marker + `ledger.md` only; the rest 
 | `research/*.md` | Orchestrator + `haily-researcher` (Recon) | `haily-writer`, `haily-editor` fact-check pass | append new sources; existing notes immutable |
 | `outline.md` | Orchestrator (Draft, post-Checkpoint) | `haily-writer` (beat), `haily-editor` (structural pass) | replace-on-revision (pre-Build only) |
 | `bible/characters.md`, `world.md`, `plot.md`, `glossary.md` | Orchestrator, seeded at Draft, updated only at unit merge | `haily-writer`, `haily-editor` | append/amend at merge; never mid-unit |
-| `bible/style.md` | Orchestrator (Draft, once) | `haily-writer`, `haily-editor` | rarely amended — voice drift is a finding, not a silent edit |
+| `bible/style.md` | Orchestrator (Draft; `## Emergent rules` appends at act close) | `haily-writer`, `haily-editor` | voice profile immutable — drift is a finding, not a silent edit; `## Emergent rules` is append-only, act-tagged, sourced from editor extraction (`references/review-passes.md` § Act-close style extraction), consolidated when past ~15 rules |
 | `bible/timeline.md` | Orchestrator ONLY, at merge | `haily-writer`, `haily-editor` (context) | append-only fact text; status-tag flip on supersede |
 | `summaries/unit-NN.md` | Orchestrator, at merge, from the writer's returned summary | context assembly, `haily-editor` Verify sweep | write-once |
 | `manuscript/unit-NN-<slug>.md` | `haily-writer` directly (Write/Edit) | `haily-editor` (Read, confined to workspace), orchestrator (Ship assembly) | writer owns during Build; frozen after merge |

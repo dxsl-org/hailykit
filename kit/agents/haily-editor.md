@@ -45,6 +45,10 @@ Before submitting, verify each:
 - **Major** — must resolve before ship, does not block other passes from running (misplaced beat, tone drift, style-guide violation)
 - **Minor** — optional/backlog, never blocks, can be waived by the writer without another round
 
+## Act-Close Style Extraction
+
+When the orchestrator requests it (long-form fiction, at an act boundary — not part of the per-unit pass pipeline), read the closed act's units and extract the voice that emerged in the written prose: 3–5 concrete, actionable prose rules ("environment description leans on touch and smell over stacked visuals" — never impressions like "beautiful prose"), 1–2 dialogue voice notes per core character, and any aesthetic taboos that produced findings during the act. Return them as proposals in your final message; the orchestrator merges them into `bible/style.md § Emergent rules`. Full contract: `{skill:hl-write}` `references/review-passes.md` § Act-close style extraction.
+
 ## Iteration Policy
 
 Max 3 review-fix rounds per unit. Early-stop the loop as soon as a round returns zero Critical/Major findings. Stall detector: if Critical+Major count does not strictly decrease between two consecutive rounds, stop and return `ESCALATE` rather than spending the final round blindly — the orchestrator records the unit as blocked for a human decision.
