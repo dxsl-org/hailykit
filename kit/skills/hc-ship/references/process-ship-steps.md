@@ -343,11 +343,16 @@ After CI passes and the branch is merged, publish an official GitHub release.
    ```
    If tag exists: **STOP** — "Tag vX.Y.Z already exists. Bump version and retry."
 
-3. **Create and push tag:**
+3. **Create and push tag — verified, by explicit SHA.** In a tag-triggered regime the tag push publishes a release built from whatever the tag points at; a tag created before the release commit landed on the remote publishes the wrong artifact. This ordering applies on BOTH paths — post-merge PR and direct-push — and when delegating to `haily-git-manager`, instruct it to follow its Tag Protocol (commit → push → verify remote head → tag by SHA → verify tag → push tag), never a batched "commit, push and tag" one-liner.
    ```bash
-   git tag vX.Y.Z
+   RELEASE_SHA=$(git rev-parse HEAD)          # must be the release commit (version bump + changelog)
+   git log -1 --oneline "$RELEASE_SHA"        # confirm subject: chore(release): vX.Y.Z
+   git ls-remote origin refs/heads/<target>   # must equal RELEASE_SHA — mismatch: push first, re-verify
+   git tag -a vX.Y.Z "$RELEASE_SHA" -m "vX.Y.Z"
+   git rev-list -n 1 vX.Y.Z                   # must equal RELEASE_SHA — mismatch: delete local tag, STOP
    git push origin vX.Y.Z
    ```
+   Never `git tag vX.Y.Z` on implicit HEAD without the remote-head check, and never chain tag creation with commit or push in one command line.
 
 4. **Detect release automation** (see `tech-auto-detect.md` § Release Automation Detection). Pushing the tag may have already triggered a workflow that builds and publishes the release. **Run this before any manual release step** — a manual `gh release create` over a CI-created release fails with `HTTP 422: Release.tag_name already exists`.
 

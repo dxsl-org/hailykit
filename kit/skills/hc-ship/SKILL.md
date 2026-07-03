@@ -66,7 +66,7 @@ Runs the full path from a working branch to a merged PR: pre-flight, tests, revi
 10. **Commit** — scan staged diff for secrets; compose `type(scope): description`; include version + changelog in same commit.
 11. **Push** — `git push -u origin <branch>`. Log `✓ Pushed: origin/<branch>`.
 12. **PR + CI** — `gh pr create --base <target>` with structured body; link issues with `Closes #N`. Unless `--no-ci-wait`: wait up to 10 min for required checks; merge when green. With `--no-ci-wait`: output PR URL and exit — user monitors CI manually.
-13. **GitHub release** — after merge: pull target branch, create and push tag `vX.Y.Z`. Then detect release automation (see `tech-auto-detect.md` § Release Automation Detection): if a tag-triggered workflow already publishes the release, let CI build + publish and only enrich notes via `gh release edit` — never `gh release create` (it collides with `422 already exists`). Otherwise build artifacts and `gh release create` with the changelog as notes. Output release URL. *[skipped: no `--release` flag; no version bump; no `gh` CLI; `--quick`]*
+13. **GitHub release** — after merge: pull target branch, verify the release commit is the remote target head, tag it **by explicit SHA**, verify the tag points at it, then push the tag (full sequence: `references/process-ship-steps.md` § Step 13 — never tag implicit HEAD or batch tag with commit/push). Then detect release automation (see `tech-auto-detect.md` § Release Automation Detection): if a tag-triggered workflow already publishes the release, let CI build + publish and only enrich notes via `gh release edit` — never `gh release create` (it collides with `422 already exists`). Otherwise build artifacts and `gh release create` with the changelog as notes. Output release URL. *[skipped: no `--release` flag; no version bump; no `gh` CLI; `--quick`]*
 
 Checkpoint behavior:
 
@@ -89,6 +89,7 @@ Checkpoint behavior:
 | Target branch protected / requires reviews | Never push direct or self-merge; open PR and hand off for required review |
 | Merge method restricted / merge queue | Use the allowed `gh pr merge --squash\|--merge\|--rebase`; enqueue with `--auto` |
 | Tag already exists for version | Stop — warn user; suggest bumping version again |
+| Tag target SHA ≠ remote branch head | Stop — push the release commit and re-verify; never tag ahead of the remote |
 
 ## Output
 
