@@ -5,22 +5,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### 🚀 Improvements
-
-- skills: add `hs-` security-operations domain — `hs-assess` (red-team recon/pentest/CTF), `hs-harden` (blue-team CIS/STIG hardening), `hs-dfir` (blue-team forensics + incident response). Covers security of running systems, distinct from `hc-security`/`hc-fix` which secure the codebase. All carry authorized-use guardrails
-- installer: register the `hs-` domain prefix across converter, Codex uninstall, subagent prefix injector, and the cross-ref checker
-
-## [1.11.0] (2026-07-03)
+## [1.12.0] (2026-07-03)
 
 ### 🚀 Improvements
 
+- skills: add hs-assess red-team recon and pentest skill
+- skills: add hs-harden blue-team CIS and STIG hardening skill
+- skills: add hs-dfir blue-team forensics and incident response skill
 - installer: upgrade Zed provider for native skills and instructions
 - hl-write: write business plans, reports, essays, stories, and books
 - agents: add haily-writer and haily-editor for writing
 
-### 🐛 Bug Fixes
-
-- installer: fix Zed provider overwriting user AGENTS.md content
+---
 
 ## [1.10.14] (2026-07-01)
 
