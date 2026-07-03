@@ -58,6 +58,14 @@ Flow: `scout → debug → brainstorm → plan`
 | "inventory technical debt" | Delegate: `Task(subagent_type="haily-tech-analyst")` |
 | "what changed and what does it mean?" | `{skill:hc-git} analyze [ref]` |
 
+## Writing
+
+| User Intent | Start |
+|-------------|-------|
+| "viết/write <document\|book\|story> X" | `{skill:hl-write} "X"` |
+| "viết tiểu thuyết/tiểu luận/kế hoạch kinh doanh X" | `{skill:hl-write} "X"` |
+| "continue/resume writing X" (long book/novel workspace) | `{skill:hl-write} <workspace-dir>` |
+
 ## Shipping & Release
 
 | User Intent | Start |

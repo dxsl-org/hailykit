@@ -38,8 +38,8 @@
 │  utils/               logger · errors · strip-json-comments   │
 └───────────────────────────────────────────────────────────────┘
 kit/   ← sub "kit": distributable skill catalog (versioned in metadata.json)
-├── skills/            31 skill dirs (hX-name/SKILL.md, where X ∈ {c,d,l})
-├── agents/            19 agent .md files (provider-neutral model tiers)
+├── skills/            35 skill dirs (hX-name/SKILL.md, where X ∈ {c,l})
+├── agents/            22 agent .md files (provider-neutral model tiers)
 ├── templates/         4 task templates (bug, feature, refactor, usage)
 ├── standards/         ~106 language/framework standards (auto-injected)
 ├── rules/             6 markdown rules files (dev standards, workflows, routing)
@@ -91,7 +91,7 @@ CLI `run <tool> --input '{...}'`
 
 The `kit/` directory is a distributable snapshot of the skill catalog, versioned independently. It contains:
 
-- **`skills/`** — 31 skill directories (format: `hX-skill-name/SKILL.md` where X ∈ {c,d,l})
+- **`skills/`** — 35 skill directories (format: `hX-skill-name/SKILL.md` where X ∈ {c,l})
   - Each skill is a self-contained unit with `SKILL.md` (frontmatter + content) and optional `references/` subdirs
   - All skills are production-ready; zero npm dependencies
 
@@ -103,7 +103,7 @@ The `kit/` directory is a distributable snapshot of the skill catalog, versioned
   - `hailykit.md` — CI patterns, metadata deletion protocol, cross-reference integrity rules
   - `haily-documentation.md` — roadmap/changelog maintenance triggers
 
-- **`agents/`** — 19 agent .md files (provider-neutral model assignment)
+- **`agents/`** — 22 agent .md files (provider-neutral model assignment)
   - Each agent has frontmatter with `model: <tier>` where tier ∈ {thinking, medium, fast}
   - Tiers are resolved to provider-specific model names at install time (claude: thinking→opus, medium→sonnet, fast→haiku)
   - User-configured-model providers (cursor, zed, windsurf, opencode, kimi) have the `model:` line stripped at install

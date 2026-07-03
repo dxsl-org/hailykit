@@ -41,7 +41,7 @@ Agent frontmatter has two tier fields:
 - `model:` — floor (minimum tier this agent runs on; required)
 - `model_max:` — ceiling (never exceed this tier regardless of session model; omit to allow up to `ultra`)
 
-**Judgment agents** (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger`) have no `model_max` — they inherit the session model so a developer running on `ultra` gets maximum quality where it matters.
+**Judgment agents** (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger`, `haily-writer`, `haily-editor`) have no `model_max` — they inherit the session model so a developer running on `ultra` gets maximum quality where it matters.
 
 **Mechanical agents** (`haily-git-manager`, `haily-stats`, etc.) pin both `model:` and `model_max:` at `fast` — escalating them wastes tokens with no quality gain.
 

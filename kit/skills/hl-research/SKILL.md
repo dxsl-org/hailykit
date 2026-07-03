@@ -161,6 +161,7 @@ Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-
 
 **Precedes:** `{skill:hl-brainstorm}` — research findings inform option evaluation; `{skill:hc-plan}` — research informs phase design
 **Precedes:** `{skill:hl-mindmap}` — when research surfaces entities and relationships worth persisting as a navigable graph
+**Precedes:** `{skill:hl-write}` — research findings feed an authored document's Recon stage
 **Used alongside:** `{skill:hc-lookup}` — fetch library/repo docs during gather stage
 
 **Versus native `/deep-research`:** on Claude Code, for an exhaustive, open-ended, fact-checked **prose report** where high token cost is acceptable, prefer `/deep-research`. hl-research is the bounded, predictable-cost tier that produces **structured decision artifacts** (comparison matrix, CVE table, migration map) — and it runs on every provider, not just Claude.

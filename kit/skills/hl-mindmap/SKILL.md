@@ -81,6 +81,7 @@ Examples:
 **Follows:** `{skill:hl-research}` — feeds initial research findings into graph building
 **Precedes:** `{skill:hl-visualize}` — for non-HTML export (slides, PDF, Mermaid diagrams)
 **Used alongside:** `{skill:hl-brainstorm}` — map explored concepts as a navigable graph
+**Related:** `{skill:hl-write}` — persist a story or document's entity graph separately if needed
 
 ## References
 

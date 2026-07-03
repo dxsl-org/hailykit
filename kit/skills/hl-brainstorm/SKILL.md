@@ -182,5 +182,6 @@ Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-
 
 **Follows:** `{skill:hc-debug}`, `{skill:hc-scout}`
 **Precedes:** `{skill:hc-plan}` — plan the agreed solution
+**Precedes:** `{skill:hl-write}` — an agreed concept feeds an authored document's Draft stage
 **Related:** `{skill:hl-reasoning}`, `{skill:hl-research}`
 **For LLM context design:** follow with `{skill:hl-context-engineering}` when the topic involves token limits, agent memory, or multi-agent coordination

@@ -116,7 +116,7 @@ Open Claude Code after installing — skills are ready immediately.
 
 ## Skills
 
-34 skills across two domain prefixes, installed together and activated on demand.
+35 skills across two domain prefixes, installed together and activated on demand.
 
 ### Coding — `hc-*`
 

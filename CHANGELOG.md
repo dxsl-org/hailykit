@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🚀 Improvements
+
+- hl-write: universal writing skill, from business plans to novels and books through one pipeline
+- agents: add haily-writer (prose generation) and haily-editor
+
 ## [1.10.15] (2026-07-01)
 
 ### 🚀 Improvements

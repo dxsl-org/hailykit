@@ -167,6 +167,7 @@ Generate a PDF document or fill an existing PDF form. See `references/output-pdf
 
 ## Workflow Position
 
+**Follows:** `{skill:hl-write}` — export a finished manuscript to PDF/HTML
 **Used alongside:** `{skill:hc-cook}` (explain after implementing), `{skill:hc-plan}` (visualize architecture during planning)
 **Auto-invoked by:** `{skill:hc-ship}` — visual diff review before PR creation
 

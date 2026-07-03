@@ -85,6 +85,9 @@ BUILD
   {skill:hc-adr}          Capture or discover architectural decisions [scan]
   {skill:hc-cop}          Port a feature from another repo
 
+WRITE
+  {skill:hl-write}        Write any document — business plan, report, essay, story, novel, or book
+
 FIX & DEBUG
   {skill:hc-fix}                Fix a concrete bug, error, or CI failure
   {skill:hc-fix} --hotfix       Emergency fix for active production incidents
@@ -146,7 +149,7 @@ SPECIALIZED
 Canonical chain: brainstorm → plan → cook → test → review → ship → log
 
   {skill:hl-help} --combos          All workflow chains
-  {skill:hl-help} --list            All 34 skills by category
+  {skill:hl-help} --list            All 35 skills by category
   {skill:hl-help} --search <kw>     Find by topic
 
 **MODEL TIERS** — `fast` < `medium` < `thinking` < `ultra`
@@ -158,7 +161,7 @@ Canonical chain: brainstorm → plan → cook → test → review → ship → l
 Read `.claude/scripts/skills_data.yaml`, group by `category`, print with prefix:
 
 ```
-## Core Workflow (12)
+## Core Workflow (13)
   {skill:hc-goal}          Autonomous development loop — goal to committed code without manual steps
   {skill:hc-plan}          Plan implementations and architectures
   {skill:hc-cook}          Implement features end-to-end
@@ -171,6 +174,7 @@ Read `.claude/scripts/skills_data.yaml`, group by `category`, print with prefix:
   {skill:hc-new}     Bootstrap new projects
   {skill:hc-optimize}          Autonomous iterative task runner
   {skill:hc-worktree}      Parallel branches in isolated folders — no stash/switch. Supports standalone, monorepo (turbo/pnpm/nx), and submodule repos
+  {skill:hl-write}         Write any document — business plan, report, essay, story, novel, or book
 
 ## Thinking & Analysis (5)
   {skill:hl-brainstorm}          Trade-off analysis, 2–3 approaches, expert personas, edge analysis via --debate

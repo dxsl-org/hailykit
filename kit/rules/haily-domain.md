@@ -39,6 +39,15 @@ Deep technical research report              → {skill:hl-research} <topic>
 ```
 Disambiguate: want a persistent graph you can extend → `{skill:hl-mindmap}` · want a one-shot research report → `{skill:hl-research}`.
 
+## Writing / Content
+
+```
+Any authored document (report, article, essay, paper)   → {skill:hl-write} "description"
+Story or book (short story, novel, non-fiction book)     → {skill:hl-write} "description"
+Resume a long-form work in progress                      → {skill:hl-write} <workspace-dir>
+```
+Disambiguate: authored deliverable the user will read as prose (report, essay, story, book) → `{skill:hl-write}` · project/technical documentation from code → `{skill:hc-docs}` · a research report with no authored deliverable → `{skill:hl-research}`. References/sources can feed `{skill:hl-write}` directly as input files.
+
 ## Architecture & Specification
 
 ```
