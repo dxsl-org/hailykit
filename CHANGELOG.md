@@ -5,20 +5,34 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.11.0] (2026-07-03)
+
 ### 🚀 Improvements
 
-- hl-write: universal writing skill, from business plans to novels and books through one pipeline
-- agents: add haily-writer (prose generation) and haily-editor
+- installer: upgrade Zed provider for native skills and instructions
+- hl-write: write business plans, reports, essays, stories, and books
+- agents: add haily-writer and haily-editor for writing
 
-## [1.10.15] (2026-07-01)
+### 🐛 Bug Fixes
+
+- installer: fix Zed provider overwriting user AGENTS.md content
+
+## [1.10.14] (2026-07-01)
+
+### 🚀 Improvements
+
+- installer: implement Lazy Reference Loading for flat skill providers (Antigravity & Gemini CLI), reducing flat skill file sizes by ~90% (~15KB vs ~150KB) and referencing central catalog files in ~/.hailykit/kit/skills/
+- installer: automatically sync central catalog (~/.hailykit/kit) during installation and self-upgrades
+
+---
+
+## [1.10.13] (2026-07-01)
 
 ### 🚀 Improvements
 
 - hc-review: simplification scan, add ceiling + trigger markers
 - installer: add cline provider
 - installer: self-upgrade CLI binary when a newer release is detected
-- installer: implement Lazy Reference Loading for flat skill providers
-- installer: upgrade Zed provider
 
 ### 🐛 Bug Fixes
 

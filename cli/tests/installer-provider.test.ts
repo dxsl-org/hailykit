@@ -293,6 +293,47 @@ test('ZedProvider.installRules writes AGENTS.md instruction file', () => {
   assert.ok(!fs.existsSync(path.join(target, 'hailykit-rules.md')));
 });
 
+test('ZedProvider.installRules upserts AGENTS.md preserving content outside the sentinel block', () => {
+  const root = tmp();
+  const claude = path.join(root, 'claude');
+  const rulesDir = path.join(claude, 'rules');
+  fs.mkdirSync(rulesDir, { recursive: true });
+  fs.writeFileSync(path.join(rulesDir, '01-base.md'), 'Rule 1: fresh content.');
+
+  const target = path.join(root, '.zed');
+  fs.mkdirSync(target, { recursive: true });
+  const pre = 'My personal Zed notes\n<!-- hailykit-rules-start -->\nstale block\n<!-- hailykit-rules-end -->\nMore personal notes\n';
+  fs.writeFileSync(path.join(target, 'AGENTS.md'), pre);
+
+  new ZedProvider().installRules(claude, target);
+
+  const agentsMd = fs.readFileSync(path.join(target, 'AGENTS.md'), 'utf8');
+  assert.match(agentsMd, /My personal Zed notes/);
+  assert.match(agentsMd, /More personal notes/);
+  assert.match(agentsMd, /Rule 1: fresh content\./);
+  assert.doesNotMatch(agentsMd, /stale block/);
+  assert.equal(agentsMd.match(/hailykit-rules-start/g)?.length, 1);
+});
+
+test('ZedProvider.installRules appends the sentinel block to a user-created AGENTS.md with no prior HailyKit content', () => {
+  const root = tmp();
+  const claude = path.join(root, 'claude');
+  const rulesDir = path.join(claude, 'rules');
+  fs.mkdirSync(rulesDir, { recursive: true });
+  fs.writeFileSync(path.join(rulesDir, '01-base.md'), 'Rule 1: fresh content.');
+
+  const target = path.join(root, '.zed');
+  fs.mkdirSync(target, { recursive: true });
+  fs.writeFileSync(path.join(target, 'AGENTS.md'), 'My own instructions, never touched by HailyKit.\n');
+
+  new ZedProvider().installRules(claude, target);
+
+  const agentsMd = fs.readFileSync(path.join(target, 'AGENTS.md'), 'utf8');
+  assert.match(agentsMd, /My own instructions, never touched by HailyKit\./);
+  assert.match(agentsMd, /Rule 1: fresh content\./);
+  assert.equal(agentsMd.match(/hailykit-rules-start/g)?.length, 1);
+});
+
 // ---------------------------------------------------------------------------
 // CodexProvider
 // ---------------------------------------------------------------------------

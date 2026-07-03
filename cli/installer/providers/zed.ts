@@ -148,6 +148,17 @@ export class ZedProvider extends BaseProvider {
     super.uninstall(providerDir);
   }
 
+  /**
+   * Inject HailyKit rules as a sentinel-managed block inside AGENTS.md —
+   * the file Zed reads for always-on instructions (global: `~/.config/zed/`
+   * or `%APPDATA%\Zed\`; project: `.zed/`). AGENTS.md may hold the user's own
+   * personal instructions, so this never overwrites the file wholesale.
+   *
+   * Strategy (idempotent, mirrors codex.ts):
+   *   - Sentinel block present → replace just that block
+   *   - File exists, no sentinel → append the block, preserving user content
+   *   - File absent → create it with only the block
+   */
   installRules(extractedClaudeDir: string, targetProviderDir: string): void {
     const rulesDir = path.join(extractedClaudeDir, 'rules');
     if (!fs.existsSync(rulesDir)) return;
@@ -160,12 +171,36 @@ export class ZedProvider extends BaseProvider {
     }
     if (!parts.length) return;
 
+    const SENTINEL_START = '<!-- hailykit-rules-start -->';
+    const SENTINEL_END = '<!-- hailykit-rules-end -->';
+    const block = [
+      SENTINEL_START,
+      '## HailyKit Workflow Rules',
+      '',
+      '> Skills are available via `/skill-name` in chat.',
+      '> See `.agents/skills/` (project) or `~/.agents/skills/` (global) for full skill instructions.',
+      '',
+      parts.join('\n\n---\n\n'),
+      SENTINEL_END,
+    ].join('\n');
+
     fs.mkdirSync(targetProviderDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(targetProviderDir, 'AGENTS.md'),
-      parts.join('\n\n---\n\n') + '\n',
-      'utf8',
-    );
+    const agentsMd = path.join(targetProviderDir, 'AGENTS.md');
+
+    if (fs.existsSync(agentsMd)) {
+      const existing = fs.readFileSync(agentsMd, 'utf8');
+      fs.writeFileSync(
+        agentsMd,
+        existing.includes(SENTINEL_START)
+          ? existing.replace(new RegExp(`${SENTINEL_START}[\\s\\S]*?${SENTINEL_END}`), block)
+          : existing.trimEnd() + '\n\n' + block + '\n',
+        'utf8',
+      );
+    } else {
+      fs.writeFileSync(agentsMd, block + '\n', 'utf8');
+    }
+
+    // Migration: drop the pre-sentinel dedicated rules file from earlier installs.
     fs.rmSync(path.join(targetProviderDir, 'hailykit-rules.md'), { force: true });
   }
 
