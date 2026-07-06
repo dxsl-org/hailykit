@@ -5,6 +5,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.13.0] (2026-07-07)
+
 ### 🚀 Improvements
 
 - cli: add cross-review command for different-provider AI review
@@ -17,6 +19,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - cross-review: extract findings from CLI envelopes and streamed events
 - cross-review: report which reviewer legs were tried and why
 - model-map: pin gemini to gemini-2.5-pro for the legacy CLI
+
+---
 
 ## [1.12.7] (2026-07-06)
 
