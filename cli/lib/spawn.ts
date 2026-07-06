@@ -34,9 +34,16 @@ const SAFE_ENV = [
   'PROGRAMFILES', 'PROGRAMDATA', 'COMSPEC',
 ];
 
-function scrubbedEnv(): NodeJS.ProcessEnv {
+/**
+ * Build the child env: the SAFE_ENV allowlist plus any caller-named extras.
+ * `allowEnv` exists for tools that legitimately need a credential (cross-review
+ * shells out to AI CLIs that read e.g. OPENAI_API_KEY); only the explicitly
+ * named keys are copied, never a blanket `process.env` passthrough.
+ */
+function scrubbedEnv(allowEnv?: string[]): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
-  for (const k of SAFE_ENV) {
+  const keys = allowEnv && allowEnv.length ? [...SAFE_ENV, ...allowEnv] : SAFE_ENV;
+  for (const k of keys) {
     const v = process.env[k];
     if (v !== undefined) env[k] = v;
   }
@@ -81,6 +88,12 @@ export interface RunOptions {
   /** Reject an executable that resolves inside this tree (defaults to cwd). */
   denyRoot?: string;
   maxBuffer?: number;
+  /** Extra env keys to forward on top of SAFE_ENV (e.g. an AI CLI's API key). */
+  allowEnv?: string[];
+  /** Text piped to the child's stdin. */
+  input?: string;
+  /** Kill the child after this many ms; surfaces as a `spawn_failed` result. */
+  timeoutMs?: number;
 }
 
 /**
@@ -97,9 +110,11 @@ export function runTool(cmd: string, args: string[], opts: RunOptions): ToolResu
   const base = {
     cwd: opts.cwd,
     encoding: 'utf8' as const,
-    env: scrubbedEnv(),
+    env: scrubbedEnv(opts.allowEnv),
     maxBuffer: opts.maxBuffer ?? MAX_BUFFER,
     windowsHide: true,
+    ...(opts.input !== undefined ? { input: opts.input } : {}),
+    ...(opts.timeoutMs ? { timeout: opts.timeoutMs } : {}),
   };
 
   // Node + `shell:false` cannot execute Windows batch shims (`.cmd`/`.bat`)

@@ -3,7 +3,7 @@ name: hc-plan
 description: "Turns a task into a structured, phased plan through research, codebase analysis, and adversarial review. Auto-detects research depth. Use --deep for architecture decisions requiring maximum scrutiny."
 when_to_use: "Invoke when planning a new feature or complex task before implementation."
 user-invocable: true
-argument-hint: "<task> [--quick] [--deep] [--auto] [--tdd] [--resume] | red-team [plan-path] | validate [plan-path]"
+argument-hint: "<task> [--quick] [--deep] [--auto] [--tdd] [--resume] [--cross] | red-team [plan-path] | validate [plan-path]"
 metadata:
   category: workflow
   keywords: [planning, architecture, phases, roadmap, research, design]
@@ -31,6 +31,7 @@ If invoked without arguments or with ambiguous intent, use `AskUserQuestion` (he
 | `--auto` | Autonomous — agent decides all trade-offs, no stops. Composes with `--deep` or `--quick`. |
 | `--tdd` | Behavioral modifier — adds a tests-first structure block to each phase |
 | `--resume` | Memory-augmented planning: load relevant memories (`feedback`, `project`) before Research; write new memories (rejected alternatives, discovered constraints, user preferences) after Red Team. Composes with all other flags. See `references/memory-bridge.md`. |
+| `--cross` | Cross-model review: after Red Team + Validation, send the final plan to an external AI model (different provider than the session) for a second opinion. Advisory only. Composes with all flags; auto-on via `.hl.json crossReview.auto`. See `references/cross-review.md`. |
 
 Flags compose freely: `--quick --auto`, `--deep --auto`, `--tdd --auto`, `--deep --tdd --auto`. `--quick` and `--deep` are mutually exclusive — `--deep` wins if both given.
 
@@ -49,7 +50,7 @@ Flags compose freely: `--quick --auto`, `--deep --auto`, `--tdd --auto`, `--deep
 
 ```
 Scope Check → Research → Codebase Analysis → Solution Design
-→ Plan Writing → Red Team → Validation → Task Hydration → Cook Handoff → Journal
+→ Plan Writing → Red Team → Validation → Cross Review → Task Hydration → Cook Handoff → Journal
 ```
 
 | Stage | Detail | Skip condition |
@@ -63,6 +64,7 @@ Scope Check → Research → Codebase Analysis → Solution Design
 | **Red Team** | `{skill:hc-plan} red-team {plan-path}` — `references/red-team-workflow.md` | `--quick`; default: auto on `--deep`; Interactive: Checkpoint |
 | **Memory WRITE** | Write atomic memories per `references/memory-bridge.md` write protocol: one file per rejected alternative (type: feedback), discovered constraint (type: project), observed user preference (type: feedback); dedup-check before writing; update MEMORY.md index | `--resume` absent; Red Team triggered major revision (defer until re-plan completes) |
 | **Validation** | `{skill:hc-plan} validate {plan-path}` — `references/validate-workflow.md` | `--quick`; default: auto on `--deep`; Interactive: Checkpoint |
+| **Cross Review** | Run `hailykit cross-review --stage plan` on the final plan; present blind-spot findings for adjudication — `references/cross-review.md` | `--cross` absent and `crossReview.auto` not set; no eligible reviewer CLI |
 | **Task Hydration** | `TaskCreate` per phase when CLI available; falls back to `TodoWrite` | Fewer than 3 phases |
 | **Cook Handoff** | Print absolute plan path and `{skill:hc-cook}` invocation (MANDATORY) | — |
 | **Log** | `{skill:hl-log}` on completion — records plan decisions and outcomes to session log | — |
@@ -132,3 +134,4 @@ Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-
 | `references/task-management.md` | Task hydration and Claude Task patterns |
 | `references/plan-dependencies.md` | Dependency detection across plans |
 | `references/memory-bridge.md` | `--resume` mode: memory read protocol, write protocol, relevance scoring, staleness handling, dedup guard, write examples |
+| `references/cross-review.md` | `--cross` mode: when it runs, `hailykit cross-review` invocation, findings interpretation, blind-spot marking, adjudication, privacy |

@@ -28,6 +28,7 @@ Full pipeline from task to committed code. Classifies input automatically, deleg
 | `--spec` | Insert a Spec checkpoint between Draft and Build: draft EARS-notation acceptance criteria via `{skill:hc-spec}` and pause for user approval before implementation begins. In `--auto` mode the spec is drafted and auto-approved. |
 | `--tier fast\|medium\|thinking` | Model tier hint — forwarded to Build and Verify agents (see `references/agent-invocations.md` § Tier Routing). Passed automatically by `{skill:hc-goal}` per phase; absent = session model (backward compatible) |
 | `--strict` | Require the full test suite to be green (restores original zero-regress behavior; overrides default no-new-failures gate) |
+| `--cross` | Forwarded to the Verify stage's review as `{skill:hc-review} --cross` (cross-model second opinion on the diff). Never auto-activates — pass it explicitly or set `.hl.json crossReview.auto`. |
 | `migrate "[description]"` | Large-scale codebase migration — scope analysis → compatibility strategy → incremental phased execution → verification → cleanup. See `references/workflow-migration.md`. |
 
 Flags compose freely: `--quick --auto`, `--quick --tdd`, `--auto --tdd`.
@@ -106,7 +107,7 @@ Stored in `context-snippets.json`: task, acceptanceCriteria, touchpoints, blastR
 4. **Build** — execute plan phases; parallel when Stage Graph allows + `--auto`. Spawn `haily-designer` for frontend work; activate `{skill:hc-db}` for schema/query/migration work. Run compile check after each file. Implementors honor each phase file's `deviation-log` rule — reversible divergences are logged and the pipeline continues without pausing; only irreversible or contract-breaking divergence escalates to a Checkpoint. Run Lean Pass if LOC delta breaches threshold (see `references/process-steps.md` § Lean Pass). Forward `--tier` hint to Build and Verify agents (see `references/agent-invocations.md` § Tier Routing). Log `✓ Build: [N] files changed — [M/M] phases complete`.
    - **Checkpoint (Build exit):** review implementation summary. [skip: `--auto`]
 
-5. **Verify** — spawn `haily-tester` via Task tool; on failures spawn `haily-debugger`; repeat until all pass. Then spawn `haily-reviewer` via Task tool with Scope Contract + Recon context. `--auto`: auto-approve if `references/review-artifacts.md` artifact clears; else apply Auto-Resolve Ladder (see `references/review-gates.md`). Log `✓ Verify: [N/N] tests passed — review [score]/10`.
+5. **Verify** — spawn `haily-tester` via Task tool; on failures spawn `haily-debugger`; repeat until all pass. Then spawn `haily-reviewer` via Task tool with Scope Contract + Recon context. When `--cross` is set (or `.hl.json crossReview.auto`), also run `{skill:hc-review} --cross` on the diff for an external second opinion (advisory). `--auto`: auto-approve if `references/review-artifacts.md` artifact clears; else apply Auto-Resolve Ladder (see `references/review-gates.md`). Log `✓ Verify: [N/N] tests passed — review [score]/10`.
    - **Checkpoint (Verify exit):** [skip: `--auto`]
 
 6. **Ship** — spawn via Task tool in sequence. **Never skip.** A workflow with zero Task calls is incomplete.

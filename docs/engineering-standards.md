@@ -245,6 +245,12 @@ No majority vote. A single evidenced critical finding blocks.
 | `.hl.json` | `lean.threshold.singleFileLoc` | 200 | Lean Pass: max lines in a single file |
 | `.hl.json` | `lean.enabled` | true | Enable/disable Lean Pass |
 | env var | `HL_LEAN_DISABLED` | — | Set to `1` to bypass Lean Pass |
+| `.hl.json` | `crossReview.auto` | false | Run cross-model review without the `--cross` flag |
+| `.hl.json` | `crossReview.reviewer` | — | Force a reviewer leg: codex, gemini, opencode, cline, ollama |
+| `.hl.json` | `crossReview.model` | — | Force the reviewer model (overrides the model-map lookup) |
+| `.hl.json` | `crossReview.tier` | thinking | Model tier to resolve from the map |
+| `.hl.json` | `crossReview.timeoutMs` | 120000 | Per-call timeout for the external reviewer |
+| `.hl.json` | `crossReview.disable` | false | Turn cross-model review off for this repo |
 
 ### Ultra Mode (deep-model escalation)
 

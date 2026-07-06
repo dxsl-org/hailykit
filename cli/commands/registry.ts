@@ -10,6 +10,8 @@ import { cmdDepsAudit } from './deps/audit';
 import { cmdAdrNext } from './adr-next';
 import { cmdLicenseDetect } from './license-detect';
 import { cmdPack } from './pack';
+import { cmdCrossReview } from './cross-review';
+import type { Stage } from '../lib/cross-review/types';
 
 /**
  * Registry of native analysis commands (stats, and the Tier 1–3 tools added by
@@ -294,6 +296,48 @@ secret scan. Use repomix for remote repos / compression / alternate formats.`,
   }),
 };
 
+const CROSS_REVIEW_HELP = `
+hailykit cross-review --stage <plan|code> --input <file> — Second-opinion review by a different-provider AI CLI
+
+Options:
+  --stage <plan|code>       Review a plan (assumptions, sequencing) or a diff (bugs, contracts)
+  --input <file>            Artifact to review (plan.md or a saved diff)
+  --session-provider <id>   Provider you are running under (default: claude) — reviewer must differ
+  --tier <t>                Model tier to resolve: fast|medium|thinking|ultra (default: thinking)
+  --reviewer <leg>          Force a leg: codex|gemini|opencode|cline|ollama (else walk the ladder)
+  --json                    Emit the JSON envelope (machine-readable)
+
+Walks codex → gemini → opencode → cline → ollama, picking the first installed,
+authenticated CLI whose provider differs from --session-provider. Advisory only:
+never edits or blocks. Exits 0 even when no eligible reviewer is found (skip).
+`.trim();
+
+const crossReviewCommand: CommandSpec = {
+  name: 'cross-review',
+  summary: 'Second-opinion review by a different-provider AI CLI',
+  help: CROSS_REVIEW_HELP,
+  valueFlags: ['stage', 'input', 'session-provider', 'tier', 'reviewer'],
+  run: ({ options }) => {
+    const stage = stringOption(options, 'stage', '');
+    const input = stringOption(options, 'input', '');
+    if (stage !== 'plan' && stage !== 'code') {
+      console.error('Usage: hailykit cross-review --stage <plan|code> --input <file>'); return 1;
+    }
+    if (!input) { console.error('cross-review: --input <file> is required'); return 1; }
+    const tier = stringOption(options, 'tier', '');
+    return cmdCrossReview({
+      stage: stage as Stage,
+      input,
+      sessionProvider: stringOption(options, 'session-provider', 'claude'),
+      tier: (['fast', 'medium', 'thinking', 'ultra'].includes(tier) ? tier : undefined) as CrossReviewCmdTier,
+      reviewer: stringOption(options, 'reviewer', '') || undefined,
+      json: options.json === true,
+    });
+  },
+};
+
+type CrossReviewCmdTier = 'fast' | 'medium' | 'thinking' | 'ultra' | undefined;
+
 export const COMMANDS: CommandSpec[] = [
   statsCommand,
   gitInsightsCommand,
@@ -306,6 +350,7 @@ export const COMMANDS: CommandSpec[] = [
   adrNextCommand,
   licenseDetectCommand,
   packCommand,
+  crossReviewCommand,
 ];
 
 /** Look up a registered command by name. */

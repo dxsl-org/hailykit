@@ -5,6 +5,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### 🚀 Improvements
+
+- cli: add cross-review command for different-provider AI review
+- hc-plan: add --cross stage after Red Team and Validation
+- hc-review: add --cross advisory stage after Simplification
+- hc-cook: forward --cross to the Verify review
+- model-map: add cline and ollama provider entries
+
 ## [1.12.7] (2026-07-06)
 
 ### 🚀 Improvements

@@ -3,7 +3,7 @@ name: hc-review
 description: "Adversarial code review pipeline: Spec compliance → Quality (haily-reviewer) → Stress Probe → Simplification Scan. Supports PR, commit, pending, codebase, and UI/UX targets. Post findings inline with --comment, apply to working tree with --fix."
 when_to_use: "Invoke when reviewing code changes, a PR, a commit, or the full codebase."
 user-invocable: true
-argument-hint: "[#PR | COMMIT | --pending | codebase] [--quick] [--comment] [--fix] [--ui [pattern]] [--batch <\"#N,#M,...\">] [--agentic]"
+argument-hint: "[#PR | COMMIT | --pending | codebase] [--quick] [--comment] [--fix] [--ui [pattern]] [--batch <\"#N,#M,...\">] [--agentic] [--cross]"
 metadata:
   category: workflow
   keywords: [review, quality, adversarial, red-team, code-quality, security]
@@ -29,8 +29,9 @@ metadata:
 | `--ui [pattern]` | UI/UX audit — load `references/flow-ui-ux.md` checklist |
 | `--batch <"#N,#M,...">` | Review multiple PRs or commits in one session. Runs full 3-stage review per target; produces per-target findings + Team Health Report. Composes with `--quick` and `--comment`. |
 | `--agentic` | Force-inject OWASP Agentic Top 10 (ASI:2026) checks into Stage 2, regardless of auto-detection. Auto-detect fires on any diff containing LLM/agent SDK imports, `@tool` decorators, or MCP tool schema patterns. |
+| `--cross` | Cross-model review: after the Simplification Scan, send the diff to an external AI model (different provider than the session) for a second opinion; findings are advisory and merged into the report. Auto-on via `.hl.json crossReview.auto`. See `references/flow-cross.md`. |
 
-Flags compose freely: `--quick --fix`, `--quick --comment`, `--fix --comment`, `--batch --quick`, `--batch --comment`.
+Flags compose freely: `--quick --fix`, `--quick --comment`, `--fix --comment`, `--batch --quick`, `--batch --comment`, `--quick --cross`.
 
 ```
 {skill:hc-review}                             # auto-detect from context
@@ -64,6 +65,7 @@ Which stages run per flag combination:
 | `codebase` | skip | Parallel research+review | skip | ✅ (advisory) | Report |
 | `--batch` | ✅ (per target) | ✅ (per target) | ✅ scope-gated (per target) | ✅ (advisory, per target) | Per-target findings + Team Health Report |
 | `--batch --quick` | **skip** | ✅ (per target) | **skip** | **skip** | Per-target findings + Team Health Report |
+| `--cross` | (per base mode) | (per base mode) | (per base mode) | (per base mode) | Base mode + Cross-Model Review (advisory) |
 
 **Input Detection** (priority order; full routing logic in `references/input-routing.md`):
 
@@ -107,6 +109,9 @@ Which stages run per flag combination:
    - **Pass 2 — YAGNI taxonomy:** spawn `haily-reviewer` with 5-tag taxonomy (`delete:`, `stdlib:`, `native:`, `yagni:`, `shrink:`); output `net: -N lines possible` summary
    - Findings are advisory — present to developer; fix now / defer / accept
    - Log `✓ Simplification: [N markers, M findings] — net: -N lines possible`
+
+4.5. **Cross-Model Review** (`references/flow-cross.md`) — advisory; runs only when `--cross` is set or `.hl.json crossReview.auto` is true. Secret-scan the diff, then run `hailykit cross-review --stage code` with the session's provider; merge findings (tag blind-spot catches `[cross: <cli>/<model>]`). Skips silently when no eligible reviewer CLI is installed. Does not block completion.
+   - Log `✓ Cross: [reviewer] — [N findings, M blind-spot] | skipped: [reason]`
 
 5. **Act** — apply results based on flags:
    - `--fix`: apply accepted findings to working tree; run compile check after each; verify no regressions
@@ -168,3 +173,4 @@ Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-
 | `references/checklists/database.md` | Database / migration overlay (locking, backfill safety, N+1, SQL injection, cascade) |
 | `references/checklists/observability.md` | Observability overlay (logging PII, metrics cardinality, tracing, error capture, health checks) |
 | `references/flow-simplification.md` | Stage 4 Simplification Scan: Haily marker harvest + YAGNI taxonomy (5 tags), advisory output |
+| `references/flow-cross.md` | `--cross` mode: secret-safe diff capture, `hailykit cross-review` invocation, size guard, findings merge + blind-spot tagging, privacy |

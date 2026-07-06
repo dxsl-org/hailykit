@@ -55,6 +55,12 @@ export const MODEL_MAP: Record<string, Record<ModelTier, string>> = {
   antigravity: { fast: 'gemini-3.1-flash-lite',         medium: 'gemini-3.5-flash',             thinking: 'gemini-3.1-pro',                    ultra: 'gemini-3.1-pro' },
   // OpenCode config format is "provider/model-id" (e.g. anthropic/claude-sonnet-4-6).
   opencode:    { fast: 'anthropic/claude-haiku-4-5',    medium: 'anthropic/claude-sonnet-4-6',  thinking: 'anthropic/claude-opus-4-8',         ultra: 'anthropic/claude-fable-5' },
+  // Cline is also a "provider/model-id" gateway; cross-review resolves its
+  // reviewer model here (and swaps to a non-session provider when they collide).
+  cline:       { fast: 'anthropic/claude-haiku-4-5',    medium: 'anthropic/claude-sonnet-4-6',  thinking: 'anthropic/claude-opus-4-8',         ultra: 'anthropic/claude-fable-5' },
+  // Ollama models are local; these are hints — cross-review verifies against
+  // `ollama list` and falls back to whatever is actually pulled.
+  ollama:      { fast: 'llama3.2',                      medium: 'qwen2.5-coder:14b',            thinking: 'qwen2.5-coder:32b',                 ultra: 'qwen2.5-coder:32b' },
 };
 
 const VALID_TIERS: ReadonlySet<string> = new Set(['thinking', 'medium', 'fast', 'ultra']);

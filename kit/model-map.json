@@ -28,5 +28,17 @@
     "medium": "anthropic/claude-sonnet-4-6",
     "thinking": "anthropic/claude-opus-4-8",
     "ultra": "anthropic/claude-fable-5"
+  },
+  "cline": {
+    "fast": "anthropic/claude-haiku-4-5",
+    "medium": "anthropic/claude-sonnet-4-6",
+    "thinking": "anthropic/claude-opus-4-8",
+    "ultra": "anthropic/claude-fable-5"
+  },
+  "ollama": {
+    "fast": "llama3.2",
+    "medium": "qwen2.5-coder:14b",
+    "thinking": "qwen2.5-coder:32b",
+    "ultra": "qwen2.5-coder:32b"
   }
 }
