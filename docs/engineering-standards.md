@@ -265,6 +265,7 @@ No majority vote. A single evidenced critical finding blocks.
 | `.hl.json` | `crossReview.tier` | thinking | Model tier to resolve from the map |
 | `.hl.json` | `crossReview.timeoutMs` | 120000 | Per-call timeout for the external reviewer |
 | `.hl.json` | `crossReview.disable` | false | Turn cross-model review off for this repo |
+| `.hl.json` | `quiz.auto` | false | Offer the comprehension quiz before every commit gate |
 
 ### Ultra Mode (deep-model escalation)
 

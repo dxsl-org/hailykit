@@ -5,6 +5,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### 🚀 Improvements
+
+- hc-review: add --quiz comprehension gate before commit
+- hc-cook: offer quiz in Ship after autonomous runs
+
 ## [1.13.0] (2026-07-07)
 
 ### 🚀 Improvements
@@ -14,11 +19,6 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - hc-review: add --cross advisory stage after Simplification
 - hc-cook: forward --cross to the Verify review
 - model-map: add cline and ollama provider entries
-- standards: define canonical --quick/--deep/--auto flag vocabulary
-- ci: reject non-standard flag synonyms in skill argument-hints
-- cross-review: extract findings from CLI envelopes and streamed events
-- cross-review: report which reviewer legs were tried and why
-- model-map: pin gemini to gemini-2.5-pro for the legacy CLI
 
 ---
 

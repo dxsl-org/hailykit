@@ -114,6 +114,7 @@ Stored in `context-snippets.json`: task, acceptanceCriteria, touchpoints, blastR
    - `haily-project-manager` → sync plan across all `phase-XX-*.md`; populate Evidence; update `plan.md` status
    - `docs-manager` → update `./docs/` if changes warrant it
    - `TaskUpdate` → mark Claude Tasks complete (fallback: `TodoWrite`)
+   - When the run used `--auto` (the developer reviewed little of the diff) or `.hl.json` has `quiz.auto: true`, offer the comprehension quiz before the commit question — protocol in `{skill:hc-review}` `references/flow-quiz.md`; record the outcome in the plan
    - `AskUserQuestion` to commit → spawn `haily-git-manager` if yes
    - `{skill:hl-log}` for journal entry
    - Log `✓ Ship: plan synced — [N] agents invoked, committed as [type(scope)]`
