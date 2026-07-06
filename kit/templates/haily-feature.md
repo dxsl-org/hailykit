@@ -5,6 +5,8 @@
 **Status**: Planning  
 **Context Tokens**: <200 words
 
+> **Required — deviation-log:** Log every Decision / Deviation / Surprise in § Deviation Log the moment it occurs — not from memory at the end. On an edge case that diverges from this plan, choose the smallest reversible option, log four lines, and continue; escalate only irreversible or contract-breaking divergence.
+
 ## Executive Summary
 Brief 2-3 sentence description of the feature and its business value.
 
@@ -85,3 +87,12 @@ npm run command
 - [ ] Testing complete — **evidence recorded in phase Evidence section**
 - [ ] Documentation updated
 - [ ] Code review passed
+
+## Deviation Log
+
+<Append-only during implementation. One entry per Decision / Deviation / Surprise, logged when it happens. If empty on close, write "None.">
+
+- <Decision|Deviation|Surprise>: <what, one line>
+  Why: <what triggered it>
+  Impact: <files or contract affected>
+  Revert: <how to undo — or "irreversible, escalated">

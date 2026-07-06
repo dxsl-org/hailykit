@@ -5,6 +5,8 @@
 **Priority**: [Critical/High/Medium/Low]  
 **Context Tokens**: <150 words
 
+> **Required — deviation-log:** Log every Decision / Deviation / Surprise in § Deviation Log the moment it occurs — not from memory at the end. On an edge case that diverges from this plan, choose the smallest reversible option, log four lines, and continue; escalate only irreversible or contract-breaking divergence.
+
 ## Executive Summary
 Brief description of the bug and its impact.
 
@@ -70,3 +72,12 @@ If the fix causes issues:
 - [ ] Run full test suite — **evidence recorded in Verification Plan Evidence section**
 - [ ] Code review
 - [ ] Deploy and verify
+
+## Deviation Log
+
+<Append-only during implementation. One entry per Decision / Deviation / Surprise, logged when it happens. If empty on close, write "None.">
+
+- <Decision|Deviation|Surprise>: <what, one line>
+  Why: <what triggered it>
+  Impact: <files or contract affected>
+  Revert: <how to undo — or "irreversible, escalated">

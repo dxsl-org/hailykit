@@ -57,7 +57,7 @@ Scope Check → Research → Codebase Analysis → Solution Design
 | **Scope Check** | Confirm task boundaries before spending research cycles | Trivially small task |
 | **Memory READ** | Load `references/memory-bridge.md` read protocol: type-filter MEMORY.md (feedback + project), keyword-scan descriptions against plan topic, inject top-5 relevant memories; flag entries >90 days as "verify before acting" | `--resume` absent; MEMORY.md not found |
 | **Research** | Spawn `haily-researcher` subagents in parallel — `references/research-phase.md` | `--quick`; research reports already provided |
-| **Codebase Analysis** | Read relevant files, patterns, constraints — `references/codebase-analysis.md` | Scout reports already provided |
+| **Codebase Analysis** | Read relevant files, patterns, constraints; mine git history for precedent commits (blind-spot detection) — `references/codebase-analysis.md` | Scout reports already provided |
 | **Solution Design** | Evaluate approach options, select best fit — `references/solution-design.md` | — |
 | **Plan Writing** | Produce `plan.md` + phase files — `references/plan-structure.md`, `references/plan-quality.md`. Auto-classify `tier` per phase: `fast` (mechanical/boilerplate), `medium` (logic/integration, default), `thinking` (arch/security/schema). See `references/phase-template.md` for the `tier` field. | — |
 | **Red Team** | `{skill:hc-plan} red-team {plan-path}` — `references/red-team-workflow.md` | `--quick`; default: auto on `--deep`; Interactive: Checkpoint |

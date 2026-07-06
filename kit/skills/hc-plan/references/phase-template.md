@@ -15,6 +15,8 @@ tier: medium          # fast (mechanical/boilerplate) | medium (logic/integratio
 
 # Phase <N>: <Name>
 
+> **Required — deviation-log:** Log every Decision / Deviation / Surprise in § Deviation Log the moment it occurs — not at report time. On an edge case that diverges from this plan, choose the smallest reversible option, log four lines, and continue. Escalate only irreversible or contract-breaking divergence.
+
 ## Overview
 
 <1–2 sentences: what this phase delivers and why it is its own phase.>
@@ -52,6 +54,15 @@ tier: medium          # fast (mechanical/boilerplate) | medium (logic/integratio
 ## Risk Notes
 
 <Known unknowns, gotchas, or decisions that could invalidate this phase's approach. If none, write "None identified.">
+
+## Deviation Log
+
+<Append-only during Build. One entry per Decision / Deviation / Surprise, logged when it happens. If empty at Ship, write "None." so absence is a statement, not an omission.>
+
+- <Decision|Deviation|Surprise>: <what, one line>
+  Why: <what triggered it>
+  Impact: <files or contract affected>
+  Revert: <how to undo — or "irreversible, escalated">
 ```
 
 ## Conventions
@@ -61,3 +72,4 @@ tier: medium          # fast (mechanical/boilerplate) | medium (logic/integratio
 - `dependencies: [1, 2]` means this phase cannot start until phases 1 and 2 are completed
 - Success Criteria items use checkboxes — they become the sync-back source after implementation
 - Implementation Steps must be specific enough that the Implement stage needs no clarification
+- The Deviation Log is append-only during Build and read by `haily-project-manager` during Ship sync; it is written live, never reconstructed from memory at the end

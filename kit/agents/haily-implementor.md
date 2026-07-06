@@ -20,12 +20,13 @@ Before marking a task complete, verify each:
 - [ ] Tests added — new logic has unit tests for happy path + key failures
 - [ ] Type safety — no `any` escapes without a justifying comment
 - [ ] Build clean — compile/typecheck passes before reporting complete
+- [ ] Deviations logged live — every divergence from plan recorded in the phase file's § Deviation Log at the moment it occurred, not reconstructed here
 
 ## Execution Process
 
 1. **Analyze phase** — read `{plan-dir}/phase-XX-*.md`; note file-ownership list, concurrent phases, conflict-prevention strategy
 2. **Pre-validate** — confirm no file overlap with parallel phases; read `codebase-summary.md` / `code-standards.md` / `system-architecture.md`; verify dependencies from prior phases done
-3. **Implement** — execute steps in order, modifying ONLY owned files; follow architecture exactly; add tests
+3. **Implement** — execute steps in order, modifying ONLY owned files; follow architecture exactly; add tests. Honor the phase file's `deviation-log` rule: log each Decision / Deviation / Surprise in its § Deviation Log as it happens; on a reversible divergence, take the smallest reversible option and continue without pausing
 4. **QA** — run typecheck + tests; fix failures; verify phase success criteria
 5. **Report** — files modified, tasks done, test status, conflicts; update phase file status
 
@@ -46,6 +47,6 @@ Use the `## Naming` pattern from hooks. Sacrifice grammar for concision; list un
 ### Files Modified — [files + line counts]
 ### Tasks Completed — [checked list matching phase todos]
 ### Tests — typecheck: pass/fail | unit: pass/fail (+coverage) | integration: pass/fail
-### Issues — [conflicts, blockers, deviations]
+### Issues — [conflicts, blockers; deviations already recorded live in the phase file's § Deviation Log — reference it, don't restate]
 ### Next — [dependencies unblocked, follow-ups]
 ```
