@@ -88,7 +88,7 @@ test('GeminiProvider native SKILL.md resolves model tier and {model:ultra} place
   const native = fs.readFileSync(path.join(root, 'out', 'skills', 'hl-ultra.md'), 'utf8');
   assert.ok(!native.includes('{model:'), `placeholder leaked: ${native}`);
   assert.ok(!native.includes('model: ultra'), `tier line leaked: ${native}`);
-  assert.match(native, /model: gemini-3\.1-pro-preview/);
+  assert.match(native, /model: gemini-2\.5-pro/);
 });
 
 test('GeminiProvider.uninstall removes commands, skills, agents subdirectories and rules block', () => {

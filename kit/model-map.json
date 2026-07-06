@@ -12,10 +12,10 @@
     "ultra": "gpt-5.5"
   },
   "gemini": {
-    "fast": "gemini-3.1-flash-lite",
-    "medium": "gemini-3.5-flash",
-    "thinking": "gemini-3.1-pro-preview",
-    "ultra": "gemini-3.1-pro-preview"
+    "fast": "gemini-2.5-pro",
+    "medium": "gemini-2.5-pro",
+    "thinking": "gemini-2.5-pro",
+    "ultra": "gemini-2.5-pro"
   },
   "antigravity": {
     "fast": "gemini-3.1-flash-lite",

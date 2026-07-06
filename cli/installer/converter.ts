@@ -51,7 +51,11 @@ export const MODEL_MAP: Record<string, Record<ModelTier, string>> = {
   // ~/.hailykit/model-map.json when it becomes available.
   claude:      { fast: 'haiku',                         medium: 'sonnet',                       thinking: 'opus',                              ultra: 'fable-5' },
   codex:       { fast: 'gpt-5.4-mini',                  medium: 'gpt-5.4',                      thinking: 'gpt-5.5',                           ultra: 'gpt-5.5' },
-  gemini:      { fast: 'gemini-3.1-flash-lite',         medium: 'gemini-3.5-flash',             thinking: 'gemini-3.1-pro-preview',            ultra: 'gemini-3.1-pro-preview' },
+  // The legacy gemini CLI (superseded by Antigravity) only serves gemini-2.5-pro
+  // — no tier differentiation. The forward-looking 3.x names live under
+  // `antigravity`, which cross-review keeps out of its ladder until AG-CLI's
+  // headless auth is fixed (google-antigravity/antigravity-cli#78).
+  gemini:      { fast: 'gemini-2.5-pro',                medium: 'gemini-2.5-pro',               thinking: 'gemini-2.5-pro',                    ultra: 'gemini-2.5-pro' },
   antigravity: { fast: 'gemini-3.1-flash-lite',         medium: 'gemini-3.5-flash',             thinking: 'gemini-3.1-pro',                    ultra: 'gemini-3.1-pro' },
   // OpenCode config format is "provider/model-id" (e.g. anthropic/claude-sonnet-4-6).
   opencode:    { fast: 'anthropic/claude-haiku-4-5',    medium: 'anthropic/claude-sonnet-4-6',  thinking: 'anthropic/claude-opus-4-8',         ultra: 'anthropic/claude-fable-5' },

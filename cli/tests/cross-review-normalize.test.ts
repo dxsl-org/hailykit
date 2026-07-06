@@ -51,6 +51,27 @@ test('drops findings without a summary', () => {
   assert.equal(out.findings[0].summary, 'kept');
 });
 
+test('extracts findings from a gemini-style envelope (escaped + fenced)', () => {
+  const inner = '```json\n' + JSON.stringify({ findings: [{ severity: 'critical', summary: 'boom' }] }) + '\n```';
+  const gemini = JSON.stringify({ session_id: 'x', response: inner, stats: { models: {} } });
+  const out = normalizeOutput(gemini);
+  assert.equal(out.findings.length, 1);
+  assert.equal(out.findings[0].severity, 'critical');
+  assert.equal(out.findings[0].summary, 'boom');
+});
+
+test('extracts findings from cline-style NDJSON say events', () => {
+  const answer = JSON.stringify({ findings: [{ severity: 'low', summary: 'note' }] });
+  const stdout = [
+    JSON.stringify({ type: 'agent_event', event: { type: 'iteration_start' } }),
+    JSON.stringify({ type: 'say', text: answer }),
+    JSON.stringify({ type: 'agent_event', event: { type: 'done' } }),
+  ].join('\n');
+  const out = normalizeOutput(stdout);
+  assert.equal(out.findings.length, 1);
+  assert.equal(out.findings[0].summary, 'note');
+});
+
 test('bounded on huge brace-dense output (no O(n^2) hang)', () => {
   // ~1.5 MB of lone "{" then a valid answer at the very end. The old scanner
   // called matchBrace from every "{"; this must return promptly.

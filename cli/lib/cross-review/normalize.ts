@@ -25,7 +25,18 @@ const MAX_ATTEMPTS = 200;
 
 export function normalizeOutput(stdout: string): Normalized {
   const text = stdout.length > SCAN_WINDOW ? stdout.slice(-SCAN_WINDOW) : stdout;
-  const obj = findLastFindingsObject(text);
+  // Layer 1: a findings object sitting directly in the text (ollama's raw JSON,
+  // or a fenced answer the CLI printed verbatim).
+  let obj = findLastFindingsObject(text);
+  // Layer 2: CLIs wrap the model's answer in an envelope — gemini nests it as an
+  // escaped string in `.response`, cline/codex stream it across NDJSON `.text`
+  // events. Parse those structures out and scan their string leaves too.
+  if (!obj) {
+    for (const s of envelopeStrings(text)) {
+      obj = findLastFindingsObject(s);
+      if (obj) break;
+    }
+  }
   if (!obj) {
     const raw = stdout.trim();
     return raw ? { findings: [], raw: raw.slice(0, 4000) } : { findings: [] };
@@ -82,6 +93,42 @@ function findLastFindingsObject(text: string): { findings: unknown[] } | null {
     } catch { /* not the enclosing object — keep walking outward */ }
   }
   return null;
+}
+
+/**
+ * Candidate answer strings pulled from a CLI's JSON envelope, newest-first. The
+ * model's real reply lives in a string field (gemini `.response`) or is streamed
+ * across NDJSON events (cline/codex `.text`); we collect every string leaf plus
+ * the in-order concatenation of them (for chunked streams), so findLastFindingsObject
+ * can be re-run against the actual answer. Bounded so adversarial output can't blow up.
+ */
+function envelopeStrings(text: string): string[] {
+  const leaves: string[] = [];
+  const whole = tryParse(text);
+  if (whole !== undefined) collectStrings(whole, leaves, 0);
+  const perLine: string[] = [];
+  for (const line of text.split('\n')) {
+    const v = tryParse(line.trim());
+    if (v !== undefined) collectStrings(v, perLine, 0);
+    if (leaves.length + perLine.length > 5000) break;
+  }
+  const all = [...leaves, ...perLine];
+  if (perLine.length) all.push(perLine.join('')); // reassemble a chunked stream
+  return all.reverse();
+}
+
+function tryParse(s: string): unknown {
+  if (!s || (s[0] !== '{' && s[0] !== '[')) return undefined;
+  try { return JSON.parse(s); } catch { return undefined; }
+}
+
+function collectStrings(value: unknown, out: string[], depth: number): void {
+  if (depth > 8 || out.length > 5000) return;
+  if (typeof value === 'string') { if (value.includes('findings')) out.push(value); return; }
+  if (Array.isArray(value)) { for (const v of value) collectStrings(v, out, depth + 1); return; }
+  if (typeof value === 'object' && value !== null) {
+    for (const v of Object.values(value)) collectStrings(v, out, depth + 1);
+  }
 }
 
 /** Index of the `}` closing the `{` at `start`, respecting strings; -1 if none. */

@@ -10,6 +10,12 @@ export type Severity = 'critical' | 'medium' | 'low';
 /** The external CLIs the detection ladder walks, in priority order. */
 export type LegName = 'codex' | 'gemini' | 'opencode' | 'cline' | 'ollama';
 
+/**
+ * Detection ladder, highest-priority first. Antigravity (AG-CLI, Google's
+ * successor to the gemini CLI) is intentionally absent: its headless auth is
+ * broken (google-antigravity/antigravity-cli#78) and it exposes no model flag.
+ * Re-add `'antigravity'` here once that lands — the model-map entry is ready.
+ */
 export const LADDER: readonly LegName[] = ['codex', 'gemini', 'opencode', 'cline', 'ollama'];
 
 export type Stage = 'plan' | 'code';
@@ -39,6 +45,10 @@ export interface CrossReviewResult {
   skipped?: { reason: string };
   /** Reviewer output that could not be parsed into findings, kept verbatim. */
   raw?: string;
+  /** Legs considered before the one that answered: why each was skipped or
+   *  fell through. Surfaced so a fall-through isn't silent (e.g. "gemini: bad
+   *  model" → the reason cline ended up answering). */
+  attempts?: string[];
 }
 
 /** `.hl.json` → `crossReview` block. Every field is an optional override. */

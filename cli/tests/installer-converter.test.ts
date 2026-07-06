@@ -208,7 +208,8 @@ test('resolveModel replaces tier with concrete model name for claude', () => {
 test('resolveModel replaces tier with concrete model name for gemini', () => {
   const content = '---\nname: haily-planner\nmodel: medium\n---\n\nBody.';
   const result = resolveModel(content, 'gemini');
-  assert.ok(result.includes('model: gemini-3.5-flash'), `expected gemini flash model in: ${result}`);
+  // Legacy gemini CLI only serves gemini-2.5-pro (no tier differentiation).
+  assert.ok(result.includes('model: gemini-2.5-pro'), `expected gemini-2.5-pro in: ${result}`);
 });
 
 test('resolveModel strips model line entirely for cursor', () => {

@@ -58,6 +58,9 @@ function printHuman(r: CrossReviewResult): void {
   }
   const rv = r.reviewer;
   console.log(`Cross-review by ${rv?.cli} · ${rv?.model} · ${rv?.provider}`);
+  if (r.attempts?.length) {
+    console.log(`  (fell through: ${r.attempts.join('; ')})`);
+  }
   if (!r.findings.length) {
     console.log(r.raw ? `  (no structured findings — reviewer replied unparseably)` : '  no findings');
     return;
