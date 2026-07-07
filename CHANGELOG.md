@@ -5,6 +5,34 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### 🚀 Improvements
+
+- depth-tier: standardize `--quick` / normal / `--deep` as the shared depth axis across eligible skills, with cost framing (cheapest / baseline / 3–5×) and a single `haily.json` `deep.auto` opt-in schema (`docs/engineering-standards.md` → Depth Tiers)
+- hc-plan: `--deep` runs a 2-lens judge panel at Solution Design plus red-team and validation
+- hc-review, hc-security: `--deep` adds refuter votes — 2–3 independent skeptics must fail to overturn a Critical finding before it can block
+- hc-debug, hc-fix: `--deep` spawns a parallel hypothesis panel (2–3 falsification streams) in place of single-stream tracing
+- hc-cook, hc-goal: `--deep` forwards judge-panel/refuter-vote rigor through Verify and phase delegation
+- hl-brainstorm: `--deep` as an alias for `--debate --edges` — no new machinery, the 9-persona debate is already the maximum-scrutiny panel
+- cross-model review (`--cross` / `crossReview.auto`) never auto-activates from `--deep` alone on any skill; when both are authorized, `--deep` upgrades cross findings from advisory to confidence-raising
+- session: add `HL_MODEL_TIER` (fast|medium|thinking|ultra), written once at session start and compared by ordinal rank everywhere it gates behavior
+- hc-cook, hc-plan, hc-review, hc-fix, hc-debug: parity hints suggest `--deep` when session tier is below `ultra` and the task touches a high-risk domain — advisory only, never auto-escalates
+- hc-cook: add Verify-by-Execution (runs prove behavior instead of assuming it) at normal and `--deep` depth
+- hc-fix: rename `--hotfix` to `--quick` for consistency with the shared depth axis
+- config: migrate `.hl.json` to `haily.json` across hooks, CLI, and skill docs
+- agents: add `haily-judge` (apex adjudication agent, `model: ultra`, read-only) — wired into `--deep` verdict points in hc-plan (judge synthesis, red-team), hc-review (refuter adjudication), and hc-debug (hypothesis convergence), with session-model fallback when unavailable
+- hc-cook: Recon pre-Build pass injects 2–3 idiomatic in-repo exemplars (`file:line`, ≤80 lines) into the implementor prompt, with a greenfield escape hatch when no precedent exists
+- subagent context: add a tier-gated `'reason'` scaffold (competing hypotheses → cited evidence → verdict + confidence) alongside the existing `'think'` directive for judgment agents below `ultra`
+- hc-review, hc-fix: append accepted findings to a local `review-history.jsonl`; a 3rd same-category+module recurrence proposes a distillation target (standards entry, guard pattern, lint rule, or memory note) — always a user-approved checkpoint, never a silent write
+- hc-plan: phase template gains an `## Assumptions` ledger (claim + confidence + verification method); hc-cook verifies the top-3 low/medium-confidence entries per phase before Build and halts (interactive) or defers (`--auto`) on a failed assumption
+- hc-cook: Build gate adds an external-API contract check for untyped/loosely-typed paths — new import with zero prior call sites must be verified via `{skill:hc-lookup}` before Finalize (typed languages already covered by typecheck)
+- haily-artifact: `execution-evidence.json` is now a conditionally-required ship-gate artifact — required iff Scope Contract recorded an `evidence: "expected"` marker on `context-snippets.json`; legacy plan dirs without the marker are unaffected
+
+### 🐛 Fixes
+
+- haily-artifact: fix a wiring bug (`readArtifacts()` return shape mismatch) that made the ship/push/pr/deploy artifact gate throw internally and silently fail open on every invocation — shape, policy, and secret-scan validation now actually run before ship
+
+---
+
 ## [1.13.1] (2026-07-07)
 
 ### 🚀 Improvements

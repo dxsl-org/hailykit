@@ -18,6 +18,7 @@ Flow: `plan → cook → test → review → ship → log`
 | "implement with tests first" | `{skill:hc-cook} --tdd` |
 | "migrate library/framework/pattern X → Y" | `{skill:hc-cook} migrate "description"` |
 | "port/extract feature X from <repo>" | `{skill:hc-cop} <source> [feature]` |
+| "high-stakes implementation, adversarial verify before merge" | `{skill:hc-cook} --deep` |
 
 ## Bugfix
 
@@ -27,11 +28,13 @@ Flow: `scout → debug → fix → test → review`
 |-------------|-------|
 | "X is broken", "error in X", "bug in X" | `{skill:hc-fix}` (auto-scouts internally) |
 | "CI is failing", "tests broken" | `{skill:hc-fix} --auto` |
-| "production is down / active incident" | `{skill:hc-fix} --hotfix` |
+| "production is down / active incident" | `{skill:hc-fix} --quick` |
 | "CVE found / deps outdated / audit" | `{skill:hc-fix} deps` |
+| "architectural failure, adversarial verify the fix" | `{skill:hc-fix} --deep` |
 | "investigate why X happens" | `{skill:hc-scout}` then `{skill:hc-debug}` |
 | "analyze this flame graph / heap dump" | `{skill:hc-debug} --profile <artifact>` |
 | "failure spans multiple services" | `{skill:hc-debug} --trace <trace-id>` |
+| "root cause uncertain, adversarial verify against 2-3 hypotheses" | `{skill:hc-debug} --deep` |
 
 ## Security Operations (Systems)
 
@@ -88,6 +91,8 @@ Flow: `scout → debug → brainstorm → plan`
 | "review before merge" | `{skill:hc-review}` |
 | "quick review, no ceremony" | `{skill:hc-review} --quick` |
 | "post review as inline PR comments" | `{skill:hc-review} --comment` |
+| "adversarial verify, high-stakes review before merge" | `{skill:hc-review} --deep` |
+| "thoroughly audit for vulnerabilities before release" | `{skill:hc-security} --deep` |
 
 ## Thinking Spectrum
 
@@ -106,6 +111,7 @@ Increasing depth — match level to problem:
 
 `{skill:hl-brainstorm} --debate` — all 9 personas → GO/CAUTION/STOP verdict
 `{skill:hl-brainstorm} --edges` — 12-dimension edge case analysis (standalone or combined with --debate)
+`{skill:hl-brainstorm} --deep` — alias for `--debate --edges`, no separate machinery
 
 ## Post-Implementation
 

@@ -3,7 +3,7 @@ name: hc-cook
 description: "Feature implementation pipeline: Recon → Draft → Build → Verify → Ship. Auto-detects input type (task description, plan path, image, Figma URL). Delegates all Verify and Ship work to specialist agents — never self-implements testing, review, or finalization."
 when_to_use: "Invoke when executing an implementation plan or feature task end-to-end."
 user-invocable: true
-argument-hint: "<task|plan.md|image.png|figma-url> [--quick] [--auto] [--tdd] [--tier fast|medium|thinking] [--strict] | migrate \"<description>\""
+argument-hint: "<task|plan.md|image.png|figma-url> [--quick] [--deep] [--auto] [--tdd] [--tier fast|medium|thinking] [--strict] | migrate \"<description>\""
 metadata:
   category: workflow
   keywords: [implementation, feature, pipeline, plan-execute, layout, coding]
@@ -16,22 +16,23 @@ Full pipeline from task to committed code. Classifies input automatically, deleg
 ## Usage
 
 ```
-{skill:hc-cook} <task | plan.md | image.png | figma-url> [--quick] [--auto] [--tdd]
+{skill:hc-cook} <task | plan.md | image.png | figma-url> [--quick] [--deep] [--auto] [--tdd]
 ```
 
 | Flag | Behavior |
 |------|----------|
 | *(none)* | Interactive — pauses at each Checkpoint for user approval |
 | `--quick` | Skip Recon + Scope Contract. Go straight to Draft → Build → Verify → Ship. Use when you already understand the codebase — small fixes, known refactors, follow-on tasks. |
+| `--deep` | Verify review runs `{skill:hc-review}` `--deep` semantics (refuter votes on Critical findings) and always spawns the domain-risk second-pass reviewer, not just when a risk domain is touched. The cross-model leg never auto-activates from `--deep` alone — still requires `--cross` or `haily.json crossReview.auto`; when it does run, `--deep` upgrades its findings from advisory to confidence-raising. Mutually exclusive with `--quick` — `--deep` wins if both given. Repo opt-in: `haily.json` `deep.auto` (see `docs/engineering-standards.md` § Depth Tiers); an explicit `--quick` always overrides it. |
 | `--auto` | Autonomous — resolves Checkpoints without pausing; applies Auto-Resolve Ladder on regressions. Run `{skill:hc-plan} validate` first for a clean run. |
 | `--tdd` | Behavioral modifier — write tests before each plan phase, verify after |
 | `--spec` | Insert a Spec checkpoint between Draft and Build: draft EARS-notation acceptance criteria via `{skill:hc-spec}` and pause for user approval before implementation begins. In `--auto` mode the spec is drafted and auto-approved. |
 | `--tier fast\|medium\|thinking` | Model tier hint — forwarded to Build and Verify agents (see `references/agent-invocations.md` § Tier Routing). Passed automatically by `{skill:hc-goal}` per phase; absent = session model (backward compatible) |
 | `--strict` | Require the full test suite to be green (restores original zero-regress behavior; overrides default no-new-failures gate) |
-| `--cross` | Forwarded to the Verify stage's review as `{skill:hc-review} --cross` (cross-model second opinion on the diff). Never auto-activates — pass it explicitly or set `.hl.json crossReview.auto`. |
+| `--cross` | Forwarded to the Verify stage's review as `{skill:hc-review} --cross` (cross-model second opinion on the diff). Never auto-activates — pass it explicitly or set `haily.json crossReview.auto`. |
 | `migrate "[description]"` | Large-scale codebase migration — scope analysis → compatibility strategy → incremental phased execution → verification → cleanup. See `references/workflow-migration.md`. |
 
-Flags compose freely: `--quick --auto`, `--quick --tdd`, `--auto --tdd`.
+Flags compose freely: `--quick --auto`, `--quick --tdd`, `--auto --tdd`, `--deep --auto`, `--deep --tdd`. `--deep` and `--quick` do not compose — `--deep` wins if both given.
 
 ```
 {skill:hc-cook} "Add JWT refresh token rotation"
@@ -39,6 +40,7 @@ Flags compose freely: `--quick --auto`, `--quick --tdd`, `--auto --tdd`.
 {skill:hc-cook} .agents/260531-feature/plan.md
 {skill:hc-cook} "Refactor auth middleware" --tdd
 {skill:hc-cook} "Fix typo in README" --quick
+{skill:hc-cook} "Refactor auth middleware" --deep --auto
 {skill:hc-cook} mockup.png
 {skill:hc-cook} https://figma.com/file/abc123
 {skill:hc-cook} migrate "Moment.js → date-fns"
@@ -51,13 +53,14 @@ Which stages are active per flag combination:
 
 | Mode | Recon | Scope Contract | Draft gate | Spec gate | Build gate | Verify | Ship |
 |------|-------|----------------|-----------|-----------|-----------|--------|------|
-| *(none)* task | ✅ | ✅ | User approval | — | User approval | Full | Full |
-| *(none)* plan-path | skip | skip | User approval | — | User approval | Full | Full |
-| `--quick` | **skip** | **skip** | User approval | — | User approval | Full | Full |
-| `--spec` | ✅ | ✅ | User approval | User approval | User approval | Full | Full |
-| `--auto` | ✅ | skip | Auto | — | Auto | Auto (artifact-gated) | Full |
-| `--spec --auto` | ✅ | skip | Auto | Auto | Auto | Auto | Full |
-| `--tdd` | ✅ | ✅ | User approval | — | TDD sub-phases | Full | Full |
+| *(none)* task | ✅ | ✅ | User approval | — | User approval | Full + execution evidence | Full |
+| *(none)* plan-path | skip | skip | User approval | — | User approval | Full + execution evidence | Full |
+| `--quick` | **skip** | **skip** | User approval | — | User approval | Full — execution evidence skipped | Full |
+| `--deep` | ✅ | ✅ | User approval | — | User approval | Full + refuter votes + domain-risk unconditional | Full |
+| `--spec` | ✅ | ✅ | User approval | User approval | User approval | Full + execution evidence | Full |
+| `--auto` | ✅ | skip | Auto | — | Auto | Auto (artifact-gated) + execution evidence | Full |
+| `--spec --auto` | ✅ | skip | Auto | Auto | Auto | Auto + execution evidence | Full |
+| `--tdd` | ✅ | ✅ | User approval | — | TDD sub-phases | Full + execution evidence | Full |
 
 Ship is **never skipped** in any mode — `haily-project-manager`, `docs-manager`, and `haily-git-manager` always run.
 
@@ -96,7 +99,7 @@ Stored in `context-snippets.json`: task, acceptanceCriteria, touchpoints, blastR
 
 ## Process
 
-1. **Route** — classify first arg via `references/input-detect.md`; select execution path; initialize workspace. Log `✓ Route: [inputType] — mode=[interactive|auto], flags=[list]`
+1. **Route** — classify first arg via `references/input-detect.md`; select execution path; initialize workspace. Parity hint: when `HL_MODEL_TIER` is non-empty and ranks below `ultra` (see `docs/engineering-standards.md` § Depth Tiers) and the task touches a high-risk domain (see `references/agent-invocations.md` § Domain-Risk Review), print one line suggesting `--deep` and proceed at normal depth — never auto-escalate. Log `✓ Route: [inputType] — mode=[interactive|auto], flags=[list]`
 
 2. **Recon** — spawn `{skill:hc-scout}` or parallel Explore agents; capture 3–6 findings; mine git history for precedent commits (`git log --grep` → `git show --stat`) and flag any file in their footprint that current scope omits, each cited by commit hash; capture Scope Contract (see § Scope Contract above); spawn `haily-researcher` agents in parallel (reports ≤150 lines). Log `✓ Recon: [N] findings, Scope Contract locked`. [skip: plan-path, layout]
 
@@ -107,14 +110,14 @@ Stored in `context-snippets.json`: task, acceptanceCriteria, touchpoints, blastR
 4. **Build** — execute plan phases; parallel when Stage Graph allows + `--auto`. Spawn `haily-designer` for frontend work; activate `{skill:hc-db}` for schema/query/migration work. Run compile check after each file. Implementors honor each phase file's `deviation-log` rule — reversible divergences are logged and the pipeline continues without pausing; only irreversible or contract-breaking divergence escalates to a Checkpoint. Run Lean Pass if LOC delta breaches threshold (see `references/process-steps.md` § Lean Pass). Forward `--tier` hint to Build and Verify agents (see `references/agent-invocations.md` § Tier Routing). Log `✓ Build: [N] files changed — [M/M] phases complete`.
    - **Checkpoint (Build exit):** review implementation summary. [skip: `--auto`]
 
-5. **Verify** — spawn `haily-tester` via Task tool; on failures spawn `haily-debugger`; repeat until all pass. Then spawn `haily-reviewer` via Task tool with Scope Contract + Recon context. When `--cross` is set (or `.hl.json crossReview.auto`), also run `{skill:hc-review} --cross` on the diff for an external second opinion (advisory). `--auto`: auto-approve if `references/review-artifacts.md` artifact clears; else apply Auto-Resolve Ladder (see `references/review-gates.md`). Log `✓ Verify: [N/N] tests passed — review [score]/10`.
+5. **Verify** — spawn `haily-tester` via Task tool; on failures spawn `haily-debugger`; repeat until all pass. Run Verify-by-Execution (`references/process-steps.md` § Verify-by-Execution) — normal + `--deep`; skipped on `--quick`. Then spawn `haily-reviewer` via Task tool with Scope Contract + Recon context; when `--deep` is set (or `haily.json deep.auto`, unless `--quick` is explicit), forward `--deep` to the reviewer prompt so it applies `{skill:hc-review}` `--deep` semantics (refuter votes on Critical findings) and always spawn the domain-risk second-pass reviewer unconditionally (`references/agent-invocations.md` § Domain-Risk Review). When `--cross` is set (or `haily.json crossReview.auto`), also run `{skill:hc-review} --cross` on the diff for an external second opinion — `--deep` upgrades this from advisory to confidence-raising when it runs, but never activates the cross leg by itself. `--auto`: auto-approve if `references/review-artifacts.md` artifact clears; else apply Auto-Resolve Ladder (see `references/review-gates.md`). Log `✓ Verify: [N/N] tests passed — review [score]/10 — evidence [N/N] criteria`.
    - **Checkpoint (Verify exit):** [skip: `--auto`]
 
 6. **Ship** — spawn via Task tool in sequence. **Never skip.** A workflow with zero Task calls is incomplete.
    - `haily-project-manager` → sync plan across all `phase-XX-*.md`; populate Evidence; update `plan.md` status
    - `docs-manager` → update `./docs/` if changes warrant it
    - `TaskUpdate` → mark Claude Tasks complete (fallback: `TodoWrite`)
-   - When the run used `--auto` (the developer reviewed little of the diff) or `.hl.json` has `quiz.auto: true`, offer the comprehension quiz before the commit question — protocol in `{skill:hc-review}` `references/flow-quiz.md`; record the outcome in the plan
+   - When the run used `--auto` (the developer reviewed little of the diff) or `haily.json` has `quiz.auto: true`, offer the comprehension quiz before the commit question — protocol in `{skill:hc-review}` `references/flow-quiz.md`; record the outcome in the plan
    - `AskUserQuestion` to commit → spawn `haily-git-manager` if yes
    - `{skill:hl-log}` for journal entry
    - Log `✓ Ship: plan synced — [N] agents invoked, committed as [type(scope)]`
@@ -141,7 +144,7 @@ Apply `references/layout/quality-anti-slop.md` throughout.
 
 ## Session Model
 
-Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger`) inherit the session model — running on `{model:ultra}` passes that model to these agents automatically. Mechanical agents (`haily-tester`, `haily-git-manager`, `haily-stats`, etc.) are capped at their `model_max` tier and never escalate.
+Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger`) inherit the session model — running on `{model:ultra}` passes that model to these agents automatically. Mechanical agents (`haily-tester`, `haily-git-manager`, `haily-stats`, etc.) are capped at their `model_max` tier and never escalate. Depth tiers use the canonical vocabulary (`fast|medium|thinking|ultra`, compared by ordinal rank — never the literal string) and are surfaced to every subagent via `HL_MODEL_TIER`; see `docs/engineering-standards.md` → Depth Tiers.
 
 ## Workflow Position
 

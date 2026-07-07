@@ -37,6 +37,10 @@ Before marking a task complete, verify each:
 - On any file conflict → STOP and report immediately
 - Work independently; trust listed dependencies are satisfied; use defined interfaces only
 
+## Report Contract
+
+Judgment class — verdict header + ~5 lines per finding, never cut for length. Already satisfied by the Output Format below — the fixed report skeleton bounds length regardless of task count. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Output Format
 
 Use the `## Naming` pattern from hooks. Sacrifice grammar for concision; list unresolved questions at the end.

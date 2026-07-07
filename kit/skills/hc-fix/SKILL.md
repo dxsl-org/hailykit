@@ -1,9 +1,9 @@
 ---
 name: hc-fix
-description: "Root-cause-first bug resolution for any symptom: runtime errors, test failures, type errors, lint violations, CI failures, and dependency vulnerabilities. Auto-routes by input type. --hotfix for active production incidents. deps for dependency audits and upgrades."
+description: "Root-cause-first bug resolution for any symptom: runtime errors, test failures, type errors, lint violations, CI failures, and dependency vulnerabilities. Auto-routes by input type. --quick for active production incidents (renamed from the old hotfix flag). --deep for architectural failures. deps for dependency audits and upgrades."
 when_to_use: "Invoke when there is a concrete bug, error, CI failure, or dependency vulnerability to fix."
 user-invocable: true
-argument-hint: "[issue] [--auto] [--hotfix] | deps [scope]"
+argument-hint: "[issue] [--auto] [--quick] [--deep] | deps [scope]"
 metadata:
   category: workflow
   keywords: [bugfix, error, test-failure, CI, lint, debug]
@@ -16,7 +16,7 @@ Find the root cause before writing a single line of fix. Symptom-level patches t
 ## Usage
 
 ```
-{skill:hc-fix} [issue description] [--auto] [--hotfix]
+{skill:hc-fix} [issue description] [--auto] [--quick] [--deep]
 {skill:hc-fix} deps [security | outdated | major <package>]
 ```
 
@@ -24,19 +24,23 @@ Find the root cause before writing a single line of fix. Symptom-level patches t
 |---|---|
 | *(none)* | Interactive — pauses at each Checkpoint; asks before parallelizing |
 | `--auto` | Autonomous — agent decides all trade-offs; auto-parallelizes; exits with report on Critical regressions |
-| `--hotfix` | Emergency mode for **active production incidents** — triage → minimal fix → smoke test → direct push. Bypasses full suite and PR review. See `references/workflow-hotfix.md`. |
+| `--quick` *(renamed from the old `hotfix` flag)* | Emergency mode for **active production incidents** — triage → minimal fix → smoke test → direct push. Bypasses full suite and PR review; direct push requires incident confirmation first. See `references/workflow-quick.md`. |
+| `--deep` | Diagnose runs the `{skill:hc-debug}` hypothesis panel instead of a single trace; Verify's review pass gets `{skill:hc-review}` `--deep` refuter votes on Critical findings. Orthogonal to the Complexity table below — composes with Simple/Moderate/Complex. |
 | `deps` | Dependency audit and upgrade workflow — runs package manager audit, triages CVEs vs outdated, applies in risk-ordered batches. See `references/workflow-deps.md`. |
+
+`--quick` and `--deep` are mutually exclusive — `--deep` wins if both are given, with a one-line notice that incident-speed mode was overridden.
 
 ```
 {skill:hc-fix} "login returns 500 after deploy"
-{skill:hc-fix} "login returns 500 after deploy" --hotfix   # active incident
+{skill:hc-fix} "login returns 500 after deploy" --quick    # active incident (renamed from hotfix)
+{skill:hc-fix} "intermittent data corruption under load" --deep   # panel diagnosis + refuter review
 {skill:hc-fix} deps                                        # full audit + triage
 {skill:hc-fix} deps security                               # CVE patches only
 {skill:hc-fix} deps major react                            # React major version bump
 ```
 
 **Auto-routing for bug fixes** (both modes) — no explicit flag needed:
-- Lint violations → quick path via `references/workflow-quick.md`
+- Lint violations → simple path via `references/workflow-simple.md`
 - TypeScript type errors → types path via `references/workflow-types.md`
 - CI/CD failure → ci path via `references/workflow-ci.md`
 - Test suite failure → test path via `references/workflow-test.md`
@@ -61,15 +65,17 @@ Auto-routing selects the workflow reference from symptom type (see Usage). When 
 
 1. **Scout** (mandatory) — activate `{skill:hc-scout}` or launch 2–3 parallel `Explore` subagents. Map affected files, direct callers, related tests, and recent commits. Read `./docs` if the project is unfamiliar. Log `✓ Scout: [N] files, [M] deps, [K] tests`
 
-2. **Diagnose** (mandatory) — capture exact pre-fix state: error messages, stack traces, failing test output — this becomes the Verify baseline. Activate `{skill:hc-debug}` for systematic root-cause tracing. Form and test hypotheses against codebase evidence. If two or more hypotheses fail, activate `{skill:hl-reasoning}`. Produce a diagnosis report: confirmed root cause, evidence chain, affected scope. See `references/diagnosis-protocol.md`. Log `✓ Diagnose: Root cause: [summary], Scope: [N files]`
+2. **Diagnose** (mandatory) — capture exact pre-fix state: error messages, stack traces, failing test output — this becomes the Verify baseline. Activate `{skill:hc-debug}` for systematic root-cause tracing. Form and test hypotheses against codebase evidence. If two or more hypotheses fail, activate `{skill:hl-reasoning}`. **Under `--deep`:** invoke `{skill:hc-debug} --deep` instead — its hypothesis panel replaces single-stream tracing (see `{skill:hc-debug}` `references/hypothesis-panel.md`; do not duplicate the protocol here). Produce a diagnosis report: confirmed root cause, evidence chain, affected scope. See `references/diagnosis-protocol.md`. Log `✓ Diagnose: Root cause: [summary], Scope: [N files]`
 
 3. **Assess complexity** — classify and select workflow:
 
    | Level | Indicators | Workflow |
    |---|---|---|
-   | Simple | Single file, clear error, lint/type | `references/workflow-quick.md` |
+   | Simple | Single file, clear error, lint/type | `references/workflow-simple.md` |
    | Moderate | Multi-file, investigation required | `references/workflow-standard.md` |
    | Complex | System-wide, architectural impact | `references/workflow-deep.md` |
+
+   Complexity is auto-classified from symptom scope and is independent of the `--deep` flag — `--deep` changes Diagnose/Verify rigor at any complexity level; it does not select the Complex row by itself.
 
    **Parallel detection:** if 2+ issues are independent (no shared files, no dependency order), determine execution:
    - **Interactive:** `AskUserQuestion` — "Found [N] independent issues. Run in parallel?"
@@ -79,9 +85,15 @@ Auto-routing selects the workflow reference from symptom type (see Usage). When 
 
 4. **Fix** — implement per selected workflow. Fix the root cause, not the symptom. Keep changes minimal; follow existing patterns. Load `references/anti-rationalization.md` to avoid shortcut rationalizations. Log `✓ Fix: [N] files changed`
 
-5. **Verify** (mandatory) — re-run the exact pre-fix repro and confirm the symptom no longer appears. Run all tests in modified and transitively-affected files. Walk the full blast radius. Add or update at least one regression test. Run typecheck, lint, and build in parallel. For Standard/Deep: spawn `haily-reviewer` subagent — address all Critical findings. Apply prevention measures (`references/prevention-gate.md`). Write workflow artifacts (`references/workflow-artifacts.md`). If Verify fails, loop back to Diagnose. After 3 failures, stop and discuss architecture. Log `✓ Verify: [N] tests pass, [M] guards added`
+5. **Verify** (mandatory) — re-run the exact pre-fix repro and confirm the symptom no longer appears. Run all tests in modified and transitively-affected files. Walk the full blast radius. Add or update at least one regression test. Run typecheck, lint, and build in parallel. For Standard/Complex: spawn `haily-reviewer` subagent — address all Critical findings. **Under `--deep`:** every Critical finding also gets refuter votes per `{skill:hc-review}` `--deep` semantics (2–3 independent `haily-reviewer` refuters vote to survive or demote the finding) before it can block — vote thresholds live in `{skill:hc-review}`'s own reference, not restated here. Apply prevention measures (`references/prevention-gate.md`). Write workflow artifacts (`references/workflow-artifacts.md`). If Verify fails, loop back to Diagnose. After 3 failures, stop and discuss architecture. Log `✓ Verify: [N] tests pass, [M] guards added`
 
-6. **Finalize** (mandatory) — report root cause, files changed, prevention measures. Spawn `haily-docs-writer` if fix warrants doc updates. Mark Claude Tasks completed. Ask user to commit via `haily-git-manager`. Run `{skill:hl-log}`. Log `✓ Finalize: [action taken]`
+6. **Finalize** (mandatory) — report root cause, files changed, prevention measures. Spawn `haily-docs-writer` if fix warrants doc updates. Mark Claude Tasks completed. **Findings flywheel:** for every accepted Verify finding applied in this fix, append one line to `.agents/review-history.jsonl` and run the recurrence check — skip entirely when `.agents/` is absent (`{skill:hc-review}` `references/flywheel-distillation.md`, same line shape and checkpoint rules; `--auto` folds any distillation proposal into the final report instead of an interactive checkpoint). Ask user to commit via `haily-git-manager`. Run `{skill:hl-log}`. Log `✓ Finalize: [action taken]`
+
+## --deep Mode
+
+Replaces single-stream Diagnose with `{skill:hc-debug}`'s hypothesis panel and adds refuter votes to Verify's Critical findings (see Process steps 2 and 5) — protocols live in those skills, not duplicated here. Recommended whenever the symptom touches a high-risk domain (canonical list: `{skill:hc-cook}` `references/agent-invocations.md` → Domain-Risk Review). No cross-model leg here — refuter votes stay internal to `haily-reviewer` subagents; `--deep` never sends anything externally on its own. Orthogonal to the Simple/Moderate/Complex complexity table: `--deep` raises rigor at whichever complexity level Assess selects. `--quick` and `--deep` are mutually exclusive — `--deep` wins if both are given, with a one-line notice ("`--quick` overridden: `--deep` requested, full rigor applied"). Composes with `--auto`. Auto-on via `haily.json` `deep.auto`; an explicit `--quick` on the invocation overrides the config default.
+
+**Parity hint:** on an `ultra`-tier session the default Diagnose/Verify pass already runs at high scrutiny, but `--deep` still spawns the panel and refuter votes when explicitly requested — a parity hint informs the user's choice, it never substitutes for the flag (never-auto-escalate). Any tier-gated behavior compares `HL_MODEL_TIER` by ordinal rank (`fast(0) < medium(1) < thinking(2) < ultra(3)`), never the literal string.
 
 ## Output
 
@@ -127,9 +139,9 @@ Core:
 - `references/workflow-artifacts.md` — 5 JSON artifacts required before finalize
 
 Per-complexity:
-- `references/workflow-quick.md` — Simple issues
+- `references/workflow-simple.md` — Simple issues
 - `references/workflow-standard.md` — Moderate issues
-- `references/workflow-deep.md` — Complex issues
+- `references/workflow-deep.md` — Complex issues (complexity-classified, not the `--deep` flag)
 - `references/review-cycle.md` — autonomous vs. HITL review loop
 
 Specialized:
@@ -138,5 +150,5 @@ Specialized:
 - `references/workflow-test.md` — test suite failures
 - `references/workflow-types.md` — TypeScript type errors
 - `references/workflow-ui.md` — visual / UI regressions
-- `references/workflow-hotfix.md` — emergency production incident fix (--hotfix)
+- `references/workflow-quick.md` — emergency production incident fix (`--quick`, renamed from the old `hotfix` flag)
 - `references/workflow-deps.md` — dependency audit, CVE patching, major version upgrades (deps)

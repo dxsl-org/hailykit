@@ -32,6 +32,10 @@ Before submitting, verify each:
 4. **Prioritize** — Critical (security, data loss, breaking) > High (perf, type safety, missing error handling) > Med (smells, maintainability) > Low (style).
 5. **Report plan follow-ups** — note which plan tasks look complete; do NOT edit plan files (leave to lead/haily-planner/haily-project-manager).
 
+## Report Contract
+
+Judgment class — verdict header + ~5 lines per finding, never cut for length. Already satisfied by the Output Contract below — VERDICT-first findings already scale per finding. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Output Contract
 
 Human prose report → `.agents/reports/` via the `## Naming` pattern. When running a full review cycle, also emit the `review-decision.json` machine artifact (governed by its schema). Findings as single-line entries, VERDICT first.

@@ -70,7 +70,7 @@ export interface ResolveOutcome {
  * Pick the first ladder-ordered leg whose provider differs from `sessionProvider`.
  * @param legs - detected, ladder-ordered candidate legs.
  * @param sessionProvider - the provider the caller is running under (e.g. "claude").
- * @param cfg - `.hl.json` overrides (forced reviewer/model/tier).
+ * @param cfg - `haily.json` overrides (forced reviewer/model/tier).
  * @param deps - injectable map + ollama probe (tests supply fakes).
  */
 export function resolveLeg(

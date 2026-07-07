@@ -89,3 +89,7 @@ We decided on **[Option C]** because [1-2 sentences: what tipped the balance].
 5. Save the file; report path and one-sentence summary
 
 Output concisely — no preamble or trailing explanation outside the ADR document itself.
+
+## Report Contract
+
+Judgment class — verdict header + ~5 lines per finding, never cut for length. Already satisfied by Process step 5 — path + one-sentence summary only; the ADR file holds the full record. Full rules: `docs/engineering-standards.md` → Agent Report Contract.

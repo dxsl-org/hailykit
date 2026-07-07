@@ -56,6 +56,8 @@ Discard findings that:
 
 ### Adjudicate
 
+Under `--deep`, spawn `haily-judge` with the surviving findings, their evidence, and the classification rubric below as the decision package. If the ultra spawn is unavailable or errors, fall back to the session model with the notice `⚠ apex judge unavailable — verdict by session model` (best-effort: a skill cannot deterministically detect Task-spawn failure). Outside `--deep`, the session model adjudicates directly.
+
 For each surviving finding, classify:
 - **Accept:** finding identifies a real gap; revise the plan
 - **Reject:** finding is based on a misread or already addressed elsewhere; document why

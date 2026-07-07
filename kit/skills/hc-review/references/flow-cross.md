@@ -8,7 +8,7 @@ An advisory stage that sends the review target's diff to an external AI model wh
 
 ## When it runs
 
-- `--cross` flag present, OR `.hl.json` has `crossReview.auto: true`.
+- `--cross` flag present, OR `haily.json` has `crossReview.auto: true`.
 - Composes with every input mode and with `--quick` (`--quick --cross` = Stage 2 Quality + Cross).
 - Skips silently (one-line log) when no eligible reviewer CLI is installed.
 
@@ -40,6 +40,16 @@ Parse `data.findings` and reconcile against Stage 2/3 findings:
 
 Fold cross findings into the normal Act step (interactive present / `--fix` apply / `--comment` post) alongside the other stages' findings, clearly attributed to the cross reviewer.
 
+## --deep Mode
+
+`--deep` never changes whether this stage runs — cross review still fires only when `--cross` is set or `crossReview.auto` is true (see When it runs). It changes how findings are weighted once cross review has already run:
+
+- **Confirmations** (same `file`+`line`+category as a Stage 2/3 finding) raise confidence instead of merely dedup-counting.
+- **Blind-spot Critical findings** from the cross reviewer enter the `--deep` refuter-vote pool (`references/review-adversarial.md` → `## --deep: Refuter Votes`) — they must survive the same votes as any other Critical before they can block.
+- Without `--deep`, cross findings of any kind stay advisory-only — unchanged normal-mode behavior.
+
+> **Required — no auto-egress:** `--deep` never authorizes sending the diff externally by itself. Cross review still requires `--cross` or `crossReview.auto`; `--deep` only reweights findings from an already-authorized run.
+
 ## Privacy
 
-For restricted repos, set `crossReview.reviewer: ollama` (local) or `crossReview.disable: true` in `.hl.json`.
+For restricted repos, set `crossReview.reviewer: ollama` (local) or `crossReview.disable: true` in `haily.json`.

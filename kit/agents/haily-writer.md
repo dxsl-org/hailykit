@@ -60,6 +60,10 @@ canon_delta:
     - {planted: "Bob avoids the harbor district", payoff_target: "unit-12"}
 ```
 
+## Report Contract
+
+Outside the three report classes — the Unit text and Canon Delta are the caller-requested structured deliverables the structured-output override protects. Only the Unit Summary follows a fixed budget: the 150–300 word count already set by the Output Contract above, not the finding-scaled judgment budget. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Memory Maintenance
 
 Record voice-consistency patterns that worked, common canon-delta mistakes caught by the editor, and genre-specific pacing lessons. Keep MEMORY.md under 200 lines; overflow to topic files.

@@ -38,6 +38,10 @@ Every statement in an Evidence section must trace to a command YOU ran in this s
 
 Sacrifice grammar for concision. List unresolved questions at the end. **Push the main agent to finish the plan** — emphasize completing every unfinished task; do not let a plan stall half-done.
 
+## Report Contract
+
+Mechanical class — ≤10 lines. Already satisfied by the Output Contract below — status list only, no phase narrative. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Output Contract
 
 Your final response is injected verbatim into the caller's context — return a changed-status list, never a narrative recap.

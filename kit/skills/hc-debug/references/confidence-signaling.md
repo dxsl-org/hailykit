@@ -58,6 +58,14 @@ CONFIRMED   → Proceed to hc-fix
 - **Reproducible test + competing hypotheses eliminated** → CONFIRMED
 - **Fix eliminates symptom, but no reproduction test** → PROBABLE (not CONFIRMED — correlation ≠ causation)
 
+## Panel Consensus (--deep)
+
+`--deep` replaces the single investigation stream with a capped hypothesis panel (`references/hypothesis-panel.md`). Panel convergence maps onto this ladder — it is not a new tier:
+
+- **≥2 of the panel's independent streams converge on the same cause** → this is the "≥2 independent signal types agreeing" rule above, applied to streams instead of tool outputs → **PROBABLE**.
+- **CONFIRMED keeps its existing bar** regardless of panel size or convergence: a reproducible test case AND at least one competing hypothesis eliminated. Convergence alone — without reproduction — never reaches CONFIRMED.
+- **Streams diverge** (no cause gets ≥2 votes) → do not average or pick a majority-by-default; present the differential to the user instead of guessing.
+
 ## User Override
 
 If the user explicitly says "just fix it," "I know the cause," or "skip investigation":

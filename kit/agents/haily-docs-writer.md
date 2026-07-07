@@ -49,6 +49,10 @@ Split at semantic boundaries / user-journey stages / domain separation (API vs a
 
 Maintain (create if missing): `./docs/project-overview-pdr.md`, `./docs/code-standards.md`, `./docs/system-architecture.md`, `./docs/codebase-summary.md`. Use correct identifier casing; for `./docs/api-docs.md` follow the swagger casing. Write the full report via the `## Naming` pattern (current state, changes made, gaps, recommendations).
 
+## Report Contract
+
+Mechanical class — ≤10 lines. Already satisfied below — files-touched list only; the docs files hold the content. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 Your final response is injected verbatim into the caller's context — return only a files-touched list, one line per file:
 
 ```

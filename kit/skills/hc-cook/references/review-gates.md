@@ -22,7 +22,7 @@ Artifact directory:
 Run:
 
 ```bash
-node claude/hooks/workflow-artifact-gate.cjs --stage finalize --artifact-dir <artifact-dir>
+node kit/hooks/haily-artifact.cjs --stage finalize --artifact-dir <artifact-dir>
 ```
 
 ## Elevated Scrutiny Triggers
@@ -39,7 +39,9 @@ Certain conditions demand additional review layers beyond the standard haily-rev
 | Destructive operations (bulk file deletion, data wipes, irreversible writes) | domain risk audit |
 | High-volume outbound actions or large diffs (ship / push / PR / deploy) | adversarial challenge |
 
-There is no averaging or majority-vote logic. A single evidenced critical finding is sufficient to block.
+Under `--deep`, the domain risk audit runs unconditionally — regardless of which surface area the phase touches — in addition to any trigger above.
+
+There is no averaging or majority-vote logic. A single evidenced critical finding is sufficient to block. Under `--deep`, this rule operates on refuter-surviving findings: a Critical that the refuter vote (`{skill:hc-review}` `--deep`) does not overturn still blocks alone; a Critical the refuter successfully disproves does not count toward the threshold.
 
 ## Interactive Review Loop (3-round cap)
 

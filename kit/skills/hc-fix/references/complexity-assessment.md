@@ -4,7 +4,7 @@ Classify issue complexity before routing to workflow. Assessment happens AFTER S
 
 ## Classification Criteria
 
-### Simple (→ workflow-quick.md) — No Tasks
+### Simple (→ workflow-simple.md) — No Tasks
 
 **Indicators:**
 - Single file affected

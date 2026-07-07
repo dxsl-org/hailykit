@@ -22,6 +22,10 @@ Strict sequence — one step per tool call, verify each result before the next:
 
 Never delete or move a tag that exists on the remote — report the conflict and stop; the caller decides.
 
+## Report Contract
+
+Mechanical class — ≤10 lines. Already satisfied by the fixed template below — it IS the report; never expand it into prose. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Output Contract
 
 Your final response is injected verbatim into the caller's context — return the contract line only, never a narrative recap.

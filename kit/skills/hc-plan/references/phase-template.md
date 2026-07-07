@@ -30,6 +30,14 @@ tier: medium          # fast (mechanical/boilerplate) | medium (logic/integratio
 
 <Component design, data flow, key decisions. Include a brief diagram in text or Mermaid if helpful.>
 
+## Assumptions
+
+<Every claim this phase relies on that has not been directly verified against the codebase — a file exists, an API behaves a certain way, a dependency is available. High-confidence claims pass through Recon unchecked; the top-3 low/medium-confidence entries get spot-verified before Build (`{skill:hc-cook}` Recon pre-Build Pass → Assumption Verification). If empty, write "None — no unverified claims." so absence is a statement, not an omission.>
+
+- **Claim:** <what is assumed true>
+  **Confidence:** high | medium | low
+  **How to verify:** <command to run, file to read, or doc to check>
+
 ## Related Files
 
 - Create: `path/to/new-file.ts`

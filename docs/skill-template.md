@@ -114,12 +114,30 @@ Every step that completes a stage should emit a status line:
 [What this mode does differently. Input, process, output — 3–8 lines max.
 If longer than 8 lines, move content to a references/ file and load it from here.]
 
+## --deep Mode
+
+[Only for skills implementing the shared depth axis (`docs/engineering-standards.md` → Depth Tiers).
+State concretely what deepens — more research streams, an added adversarial/red-team pass, per-item
+depth — and the cost multiplier if it differs from the standard 3–5×. Never claim `--deep` auto-activates;
+point to the never-auto-escalate rule instead of restating it. Omit this section for skills that don't
+offer `--deep`.]
+
 ## Output
 
 [What artifact is produced. Where it's saved. Format.
 Example: "Saves to `.agents/reports/debug-YYMMDD-HHMM-{slug}.md`"]
 
 [Omit this section when output is obvious from the Process section.]
+
+## Session Model
+
+[Optional — include when the skill delegates to judgment agents whose model tier escalates with the
+session. Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`,
+`haily-debugger`, ...) inherit the session model — running on `{model:ultra}` passes that model through
+automatically. Mechanical agents stay capped at their `model_max` tier and never escalate. Depth tiers use
+the canonical vocabulary (`fast|medium|thinking|ultra`, compared by ordinal rank — never the literal
+string) and are surfaced to every subagent via `HL_MODEL_TIER`; see `docs/engineering-standards.md` →
+Depth Tiers. Omit this section for skills with no tier-sensitive agent delegation.]
 
 ## Workflow Position
 
@@ -154,10 +172,11 @@ Use a table for 3+ files. Use bullets for 1–2 files.]
 5.  ## Constraints        ← only if mandatory rules exist
 6.  ## Scope Contract     ← workflow skills only; omit for tool/analysis/thinking skills
 7.  ## Process
-8.  ## [--flag Mode]      ← only if a flag creates substantially different behavior
+8.  ## [--flag Mode]      ← only if a flag creates substantially different behavior (includes ## --deep Mode)
 9.  ## Output             ← only if not obvious from Process
-10. ## Workflow Position
-11. ## References         ← only if reference files are loaded
+10. ## Session Model      ← only if judgment agents in this skill escalate with the session tier
+11. ## Workflow Position
+12. ## References         ← only if reference files are loaded
 ```
 
 Do NOT add sections outside this order. Do NOT add `## Examples` (examples go in `## Usage`). Do NOT add `## Anti-Rationalization` or `## Communication Style`.
@@ -237,3 +256,27 @@ Structural patterns to avoid in SKILL.md:
 | `## Communication Style` section | Delete; coding-level guidelines inject this |
 | `## Anti-Rationalization` table | Remove; context is provided by the rules layer |
 | Numbered pipeline steps ("Step 1:", "Step N:") | Use stage names: Route, Recon, Draft, Build, Verify, Ship |
+
+---
+
+## Agent Report Contract (for kit/agents/*.md, not SKILL.md)
+
+`kit/agents/*.md` files are a different document type from `SKILL.md` — they follow a `## Report Contract` section instead of the section order above. Full canonical wording (universal rules, structured-output override, model-trace exemption) lives once in `docs/engineering-standards.md` Part V → Agent Report Contract. Copy the matching class line verbatim, then add one agent-specific delta — do not re-explain "no process narration" etc. per file:
+
+```markdown
+## Report Contract
+
+Mechanical class — ≤10 lines. [agent-specific delta]. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+```
+
+```markdown
+## Report Contract
+
+Discovery class — ≤40 lines, findings-first. [agent-specific delta]. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+```
+
+```markdown
+## Report Contract
+
+Judgment class — verdict header + ~5 lines per finding, never cut for length. [agent-specific delta]. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+```

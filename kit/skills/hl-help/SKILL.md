@@ -91,7 +91,7 @@ WRITE
 
 FIX & DEBUG
   {skill:hc-fix}                Fix a concrete bug, error, or CI failure
-  {skill:hc-fix} --hotfix       Emergency fix for active production incidents
+  {skill:hc-fix} --quick        Emergency fix for active production incidents
   {skill:hc-fix} deps           Dependency audit, CVE patching, major version upgrades
   {skill:hc-debug}              Investigate unknown root cause
   {skill:hc-debug} --profile    Read heap dump / flame graph → identify bottleneck
@@ -100,7 +100,7 @@ FIX & DEBUG
 
 SHIP & REVIEW
   {skill:hc-review}       Adversarial code review (red-team)
-  {skill:hc-security}     STRIDE/OWASP audit + secret scan [--quick]
+  {skill:hc-security}     STRIDE/OWASP audit + secret scan [--quick] [--deep]
   {skill:hc-test}         Run tests + coverage [--web for Playwright/a11y]
   {skill:hc-ship}         Full release pipeline (test→review→version→PR)
 
@@ -119,7 +119,7 @@ UNDERSTAND & EXPLORE
   {skill:hc-lookup} next.js migration 14-to-15   Migration/changelog lookup
 
 THINK & DECIDE
-  {skill:hl-brainstorm}   Explore options + trade-offs [--persona] [--debate: all personas + edge analysis]
+  {skill:hl-brainstorm}   Explore options + trade-offs [--persona] [--debate: all personas + edge analysis] [--deep: alias for --debate --edges]
   {skill:hl-reasoning}    Step-by-step structured analysis
   {skill:hl-research}     Deep technical research with sources
   {skill:hl-mindmap}      Build and navigate knowledge graphs from topics, URLs, or documents
@@ -183,14 +183,14 @@ Read `.claude/scripts/skills_data.yaml`, group by `category`, print with prefix:
   {skill:hl-write}         Write any document — business plan, report, essay, story, novel, or book
 
 ## Thinking & Analysis (5)
-  {skill:hl-brainstorm}          Trade-off analysis, 2–3 approaches, expert personas, edge analysis via --debate
+  {skill:hl-brainstorm}          Trade-off analysis, 2–3 approaches, expert personas, edge analysis via --debate, --deep (alias for --debate --edges)
   {skill:hl-research}            Deep technical research with sources
   {skill:hl-reasoning}           Step-by-step structured analysis + problem-solving
   {skill:hl-mindmap}             Build and navigate knowledge graphs from topics, URLs, or documents
   {skill:hl-context-engineering} Optimize context and agent architecture
 
 ## Security (4)
-  {skill:hc-security}         STRIDE/OWASP audit + secret/vuln scan (--quick) — code security
+  {skill:hc-security}         STRIDE/OWASP audit + secret/vuln scan (--quick, --deep) — code security
   {skill:hs-assess}           Red-team: recon, vuln assessment, pentest, CTF (--ctf) — authorized targets
   {skill:hs-harden}           Blue-team: CIS/STIG config audit + hardening (--fix)
   {skill:hs-dfir}             Blue-team: forensics + incident response, log timeline, IOCs
@@ -328,6 +328,8 @@ Expert consultation through a specific lens. One persona flag = skip full brains
 | `--creative-director` | Creative vision & experience integrity (encompasses Designer) | Concept → UX Detail |
 | `--manager` | Org capacity + operations (encompasses Operator) | Decision → Ops Detail |
 | `--devil` | Adversarial meta-level — challenges the premise itself | Everything |
+
+`--deep` is an alias for `--debate --edges` — no separate machinery, the 9-persona debate is already the maximum-scrutiny panel. A persona flag combined with `--deep` wins over the alias.
 
 **Examples:**
 ```

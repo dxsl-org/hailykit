@@ -2,11 +2,13 @@ const fs = require('fs');
 const path = require('path');
 const {
   REQUIRED_FILES,
+  EVIDENCE_FILE,
   validateContext,
   validateRiskGate,
   validateVerification,
   validateReviewDecision,
-  validateAdversarial
+  validateAdversarial,
+  validateExecutionEvidence
 } = require('./schema.cjs');
 const { isHardStage } = require('./stage.cjs');
 
@@ -15,7 +17,20 @@ const VALIDATORS = {
   'risk-gate.json': validateRiskGate,
   'verification.json': validateVerification,
   'review-decision.json': validateReviewDecision,
-  'adversarial-validation.json': validateAdversarial
+  'adversarial-validation.json': validateAdversarial,
+  [EVIDENCE_FILE]: validateExecutionEvidence
+};
+
+// Files required only when a deterministic marker says so — never inferred by
+// parsing plan prose. `isRequired` reads only already-parsed REQUIRED_FILES
+// content, so ordering in readArtifacts matters: required files first.
+const CONDITIONAL_FILES = {
+  [EVIDENCE_FILE]: {
+    // hc-cook's Scope Contract sets `evidence: "expected"` on context-snippets.json
+    // when the phase has a runtime surface to drive at Verify time. No marker
+    // (legacy plan dirs, or a phase judged to have no runtime surface) => not required.
+    isRequired: (artifacts) => Boolean(artifacts['context-snippets.json']?.evidence)
+  }
 };
 
 const SECRET_PATTERNS = [
@@ -65,15 +80,16 @@ function readArtifacts(artifactDir) {
     add(errors, 'missing-dir', 'artifact directory is missing');
     return { artifacts, errors };
   }
-  for (const file of REQUIRED_FILES) {
+
+  function readOne(file, required) {
     const filePath = path.join(resolvedDir, file);
     if (!filePath.startsWith(resolvedDir + path.sep)) {
       add(errors, 'path-traversal', 'artifact path escaped directory', file);
-      continue;
+      return;
     }
     if (!fs.existsSync(filePath)) {
-      add(errors, 'missing-artifact', 'required artifact is missing', file);
-      continue;
+      if (required) add(errors, 'missing-artifact', 'required artifact is missing', file);
+      return;
     }
     try {
       artifacts[file] = JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -81,6 +97,15 @@ function readArtifacts(artifactDir) {
       add(errors, 'malformed-json', 'artifact is not valid JSON', file);
     }
   }
+
+  for (const file of REQUIRED_FILES) readOne(file, true);
+  // Conditional files are read AFTER required files: isRequired() predicates
+  // read already-parsed `artifacts` (e.g. the evidence marker lives on
+  // context-snippets.json, a required file read in the loop above).
+  for (const [file, { isRequired }] of Object.entries(CONDITIONAL_FILES)) {
+    readOne(file, isRequired(artifacts));
+  }
+
   return { artifacts, errors };
 }
 
@@ -172,4 +197,4 @@ function validateArtifacts({ artifactDir, stage = 'finalize', config = {} }) {
   return { status, stage, artifactDir, errors, warnings };
 }
 
-module.exports = { validateArtifacts, readArtifacts, scanSecrets, validatePolicy };
+module.exports = { validateArtifacts, readArtifacts, validateShapes, scanSecrets, validatePolicy, CONDITIONAL_FILES };

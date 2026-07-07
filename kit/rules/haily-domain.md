@@ -88,6 +88,7 @@ Monorepo (Turborepo/pnpm/nx) standards auto-inject on `turbo.json` / `nx.json` /
 ```
 STRIDE/OWASP audit, auto-fix, full scan   → {skill:hc-security}
 Quick secret/dep/vuln scan (pre-commit)   → {skill:hc-security} --quick
+Thoroughly audit, adversarial verify Critical findings → {skill:hc-security} --deep
 ```
 
 ## Security Operations (Systems)
@@ -156,6 +157,7 @@ Session-init hook auto-loads these from `standards/` based on detection:
 Analyze flame graph / heap dump / CPU profile   → {skill:hc-debug} --profile <artifact>
 Correlate logs across multiple services          → {skill:hc-debug} --trace <trace-id>
 Performance regression, slow query, high latency → {skill:hc-debug} (routes to performance-diagnostics)
+Adversarial verify against multiple hypotheses   → {skill:hc-debug} --deep
 Metric-driven optimization (N iterations)        → {skill:hc-optimize}
 ```
 

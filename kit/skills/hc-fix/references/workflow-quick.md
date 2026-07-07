@@ -1,82 +1,154 @@
-# Quick Workflow
+# Quick Workflow — Active Incident
 
-Fast scout-diagnose-fix-verify cycle for simple issues.
+Emergency fix for active production incidents (this workflow was activated by the old `hotfix` flag). Speed is secondary to surgical precision — a bad quick fix compounds the incident. Every step has a hard time cap.
 
-## Steps
+**Activation:** `{skill:hc-fix} [description] --quick`
 
-### Step 1: Scout (Minimal)
-Locate affected file(s) and their direct dependencies only.
-- Read error message → identify file path
-- Check direct imports/dependencies of affected file
-- Skip full codebase mapping
+**Non-use:** if the issue is not causing active user impact or data loss right now, use the standard workflow instead.
 
-**Output:** `✓ Step 1: Scouted - [file], [N] direct deps`
+---
 
-### Step 2: Diagnose (Abbreviated)
-Activate `hc:debug` skill. Activate `hl:reasoning` for structured analysis.
+## Pre-conditions (verify before starting)
 
-- Read error message/logs
-- **Capture pre-fix state:** Record exact error output (this is your verification baseline)
-- Identify root cause (usually obvious for simple issues)
-- Skip parallel hypothesis testing for trivial cases
+| Check | Action if fails |
+|-------|----------------|
+| Issue is confirmed in production (not staging/dev) | Revert to standard fix |
+| Rollback plan exists before touching code | Define rollback first, then proceed |
+| On-call lead / incident commander notified | Notify before fixing |
 
-**Output:** `✓ Step 2: Diagnosed - Root cause: [brief description]`
+---
 
-### Step 3: Fix & Verify
-Implement the fix directly.
-- Make minimal changes
-- Follow existing patterns
+## Step 1: Triage (≤5 min)
 
-**Parallel Verification:**
-Launch `Bash` agents in parallel:
+Classify severity to determine scope of bypass:
+
+| Severity | Definition | Bypass |
+|----------|-----------|--------|
+| **S1** — Data loss or security breach | Full test suite skipped; direct push to main | Maximum bypass |
+| **S2** — Full service outage (all users affected) | Fast test path; PR optional | High bypass |
+| **S3** — Partial degradation (<50% users) | Fast test path; PR required | Moderate bypass |
+
+State: severity, user impact estimate, rollback plan, time budget for fix.
+
+Log `✓ Triage: S[N] — [impact] — rollback: [plan]`
+
+---
+
+## Step 2: Diagnose (≤10 min)
+
+Minimum viable diagnosis. Do NOT spend more than 10 minutes here.
+
+1. Read the error: exact message, stack trace, timestamp, frequency
+2. Identify the breaking change: `git log --oneline -10` — what was deployed last?
+3. Narrow to one specific `file:line` root cause
+4. If not found in 10 min → consider rollback of last deploy first, diagnose offline
+
+**Do NOT attempt a fix without a confirmed `file:line` root cause.**
+
+Log `✓ Diagnose: [file:line] — [root cause]`
+
+---
+
+## Step 3: Fix (≤20 min)
+
+**Minimum viable change principle**: the diff must be as small as possible.
+
+- ONE commit. ONE logical change. No refactoring, no cleanup, no improvements.
+- If the fix requires >50 lines changed → stop. Consider rollback instead.
+- Check: does this fix introduce new risk? (new library, schema change, config change)
+- Security check: `git diff --cached | grep -iE "(api[_-]?key|token|password|secret)"` — no secrets
+
+Log `✓ Fix: [N] lines — [file:line]`
+
+---
+
+## Step 4: Minimal Verify (≤10 min)
+
+Do NOT run the full test suite. Run only what directly covers the broken path.
+
+```bash
+# Run only tests in files directly touching the fix
+# e.g. for Node.js:
+npm test -- --testPathPattern="[affected-file]"
+
+# Type check
+npm run typecheck
+
+# Build
+npm run build
 ```
-Task("Bash", "Run typecheck", "Verify types")
-Task("Bash", "Run lint", "Verify lint")
+
+If smoke tests fail → **revert the fix**, execute rollback, diagnose offline.
+
+If smoke tests pass → proceed.
+
+Log `✓ Verify: [N] targeted tests pass — typecheck clean — build clean`
+
+---
+
+## Step 5: Emergency Ship
+
+> **Required — incident confirmation before direct push:** a habitual `--quick` invocation must not silently push to `main`. Before the S1/S2 direct-push path below, confirm this is a genuine incident: interactive mode asks one `AskUserQuestion` ("Confirm S[N] incident — push directly to main, bypassing tests and review?"); `--auto` mode requires an incident link (ticket/page/Slack thread) already present in the invocation. **Without confirmation or a link, fall back to the normal branch + PR ship path (S3 below) regardless of triaged severity.**
+
+### S1/S2 — Direct push (confirmed incident only)
+
+```bash
+git commit -m "hotfix: [description]"
+git push origin main
 ```
 
-**Before/After comparison:** Re-run the EXACT command from pre-fix state capture. Compare output.
+Then trigger redeploy immediately.
 
-See `references/parallel-exploration.md` for patterns.
+### S3 — Fast PR
 
-**Output:** `✓ Step 3: Fixed - [N] files, verified (types/lint passed)`
+```bash
+git push origin hotfix/[description]
+gh pr create --base main --title "hotfix: [description]" --body "S3 incident: [link]" --draft
+# Request emergency review from on-call lead (Slack/PagerDuty)
+gh pr merge --auto --squash  # merge on approval
+```
 
-### Step 4: Review + Prevent
-Use `haily-reviewer` subagent for quick review.
+Log `✓ Ship: [direct push | PR #NNN]`
 
-Prompt: "Quick review of fix for [issue]. Check: correctness, security, no regressions. Score X/10."
+---
 
-**Prevention (abbreviated for Quick):**
-- Type errors/lint: type system IS the test → regression test optional
-- Bug fixes: add at least 1 test covering the fixed scenario
-- Still require before/after comparison of verification output
+## Step 6: Monitor (10 min post-deploy)
 
-**Review handling:** See `references/review-cycle.md`
+Define the **signal** that confirms the fix worked:
 
-**Output:** `✓ Step 4: Review [score]/10 - [prevention measures]`
+| Signal | Tool | Target |
+|--------|------|--------|
+| Error rate drops | Sentry / Datadog | Back to baseline |
+| Latency normalized | APM | P99 < threshold |
+| Service restores | Health check | Returns 200 |
 
-### Step 5: Complete
-Report summary to user.
+Watch for 10 minutes. If signal does not appear → **execute rollback immediately**.
 
-**If autonomous mode:** Ask to commit via `haily-git-manager` subagent if score >= 9.0
-**If HITL mode:** Ask user next action
+Log `✓ Monitor: [signal observed] — incident closed`
 
-**Output:** `✓ Step 5: Complete - [action]`
+---
 
-## Skills/Subagents Activated
+## Step 7: Post-Incident (within 24h — mandatory)
 
-| Step | Skills/Subagents |
-|------|------------------|
-| 1 | `hc:scout` (minimal) or direct file read |
-| 2 | `hc:debug`, `hl:reasoning` |
-| 3 | Parallel `Bash` for verification |
-| 4 | `haily-reviewer` subagent |
-| 5 | `haily-git-manager` subagent |
+A quick fix is a debt instrument. These must happen:
 
-**Extra:** `hl:context-engineering` if dealing with AI/LLM code
+1. Spawn `haily-reporter` subagent → write incident report to `.agents/incidents/`
+2. Open normal fix ticket for proper root-cause resolution
+3. Write regression test (the smoke test from Step 4 promoted to permanent suite)
+4. Review whether monitoring would have caught this earlier (observability gap?)
+5. Update runbook if applicable
 
-## Notes
+Log `✓ Post-incident: incident report written — follow-up ticket created`
 
-- Skip if review fails → escalate to Standard workflow
-- Total steps: 5
-- No planning phase needed
-- Pre-fix state capture is STILL mandatory (even for quick fixes)
+---
+
+## Rollback Decision Tree
+
+```
+Fix deployed →
+  Signal improving within 10 min? → Continue monitoring → Incident closed
+  No improvement after 10 min?  → ROLLBACK NOW → Diagnose offline
+  New symptoms appear?          → ROLLBACK NOW → Diagnose offline
+```
+
+Rollback is not failure. A delayed rollback that cascades is failure.

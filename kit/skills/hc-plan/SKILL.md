@@ -27,11 +27,11 @@ If invoked without arguments or with ambiguous intent, use `AskUserQuestion` (he
 |------|----------|
 | *(none)* | Interactive — agent auto-detects research depth; pauses at each Checkpoint |
 | `--quick` | Skip Research + Red Team + Validation. Go straight to Codebase Analysis → Solution Design → Plan Writing. Use when you already know the codebase and approach — small features, bug fixes, or well-understood refactors. |
-| `--deep` | Force maximum depth: 2–3 researchers + per-phase scout + red-team + validation. Use for architecture decisions where the cost of a wrong approach is high. |
+| `--deep` | Force maximum depth: 2–3 researchers + per-phase scout + a 2-lens judge panel at Solution Design (risk-first + simplicity-first, then judge synthesis — `references/solution-design.md`) + red-team + validation. Cost: 3–5× baseline token cost. When cross review is *also* separately authorized (`--cross` or `crossReview.auto`), its findings upgrade from advisory to confidence-raising instead of merely advisory (`references/cross-review.md`) — `--deep` alone never triggers external egress. Auto-on via `haily.json` `deep.auto: true` (checked at Scope Check, same pattern as `crossReview.auto`); an explicit `--quick` always overrides `deep.auto`. Use for architecture decisions where the cost of a wrong approach is high. |
 | `--auto` | Autonomous — agent decides all trade-offs, no stops. Composes with `--deep` or `--quick`. |
 | `--tdd` | Behavioral modifier — adds a tests-first structure block to each phase |
 | `--resume` | Memory-augmented planning: load relevant memories (`feedback`, `project`) before Research; write new memories (rejected alternatives, discovered constraints, user preferences) after Red Team. Composes with all other flags. See `references/memory-bridge.md`. |
-| `--cross` | Cross-model review: after Red Team + Validation, send the final plan to an external AI model (different provider than the session) for a second opinion. Advisory only. Composes with all flags; auto-on via `.hl.json crossReview.auto`. See `references/cross-review.md`. |
+| `--cross` | Cross-model review: after Red Team + Validation, send the final plan to an external AI model (different provider than the session) for a second opinion. Advisory only. Composes with all flags; auto-on via `haily.json crossReview.auto`. See `references/cross-review.md`. |
 
 Flags compose freely: `--quick --auto`, `--deep --auto`, `--tdd --auto`, `--deep --tdd --auto`. `--quick` and `--deep` are mutually exclusive — `--deep` wins if both given.
 
@@ -55,16 +55,16 @@ Scope Check → Research → Codebase Analysis → Solution Design
 
 | Stage | Detail | Skip condition |
 |-------|--------|----------------|
-| **Scope Check** | Confirm task boundaries before spending research cycles | Trivially small task |
+| **Scope Check** | Confirm task boundaries before spending research cycles. Also resolve `--deep`: explicit flag wins, else `haily.json` `deep.auto: true` behaves as if `--deep` was passed unless `--quick` was given. Parity hint: when `HL_MODEL_TIER` is non-empty and below `ultra` (ordinal rank) and the task touches a high-risk domain (list: `{skill:hc-cook}` `references/agent-invocations.md` → Domain-Risk Review), print one line suggesting `--deep`, then proceed regardless — never auto-enable it. | Trivially small task |
 | **Memory READ** | Load `references/memory-bridge.md` read protocol: type-filter MEMORY.md (feedback + project), keyword-scan descriptions against plan topic, inject top-5 relevant memories; flag entries >90 days as "verify before acting" | `--resume` absent; MEMORY.md not found |
 | **Research** | Spawn `haily-researcher` subagents in parallel — `references/research-phase.md` | `--quick`; research reports already provided |
 | **Codebase Analysis** | Read relevant files, patterns, constraints; mine git history for precedent commits (blind-spot detection) — `references/codebase-analysis.md` | Scout reports already provided |
-| **Solution Design** | Evaluate approach options, select best fit — `references/solution-design.md` | — |
-| **Plan Writing** | Produce `plan.md` + phase files — `references/plan-structure.md`, `references/plan-quality.md`. Auto-classify `tier` per phase: `fast` (mechanical/boilerplate), `medium` (logic/integration, default), `thinking` (arch/security/schema). See `references/phase-template.md` for the `tier` field. | — |
+| **Solution Design** | Evaluate approach options, select best fit — `references/solution-design.md`. Under `--deep`: a judge panel (2 lenses + synthesis) replaces the single-pass evaluation | — |
+| **Plan Writing** | Produce `plan.md` + phase files — `references/plan-structure.md`, `references/plan-quality.md`. Auto-classify `tier` per phase: `fast` (mechanical/boilerplate), `medium` (logic/integration, default), `thinking` (arch/security/schema). Populate each phase's `## Assumptions` section — claim + confidence (high/medium/low) + how-to-verify — from claims made during Research/Codebase Analysis that were not directly grepped/read. See `references/phase-template.md`. | — |
 | **Red Team** | `{skill:hc-plan} red-team {plan-path}` — `references/red-team-workflow.md` | `--quick`; default: auto on `--deep`; Interactive: Checkpoint |
 | **Memory WRITE** | Write atomic memories per `references/memory-bridge.md` write protocol: one file per rejected alternative (type: feedback), discovered constraint (type: project), observed user preference (type: feedback); dedup-check before writing; update MEMORY.md index | `--resume` absent; Red Team triggered major revision (defer until re-plan completes) |
 | **Validation** | `{skill:hc-plan} validate {plan-path}` — `references/validate-workflow.md` | `--quick`; default: auto on `--deep`; Interactive: Checkpoint |
-| **Cross Review** | Run `hailykit cross-review --stage plan` on the final plan; present blind-spot findings for adjudication — `references/cross-review.md` | `--cross` absent and `crossReview.auto` not set; no eligible reviewer CLI |
+| **Cross Review** | Run `hailykit cross-review --stage plan` on the final plan; present blind-spot findings for adjudication — `references/cross-review.md`. Under `--deep`, findings are confidence-raising rather than purely advisory (still evidence-gated) | `--cross` absent and `crossReview.auto` not set; no eligible reviewer CLI |
 | **Task Hydration** | `TaskCreate` per phase when CLI available; falls back to `TodoWrite` | Fewer than 3 phases |
 | **Cook Handoff** | Print absolute plan path and `{skill:hc-cook}` invocation (MANDATORY) | — |
 | **Log** | `{skill:hl-log}` on completion — records plan decisions and outcomes to session log | — |
@@ -109,7 +109,7 @@ When the task is building or agentizing an MCP server, the Cook Handoff must inv
 
 ## Session Model
 
-Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger`) inherit the session model — running on `{model:ultra}` passes that model to these agents automatically. Mechanical agents (`haily-tester`, `haily-git-manager`, `haily-stats`, etc.) are capped at their `model_max` tier and never escalate.
+Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger`) inherit the session model — running on `{model:ultra}` passes that model to these agents automatically. Mechanical agents (`haily-tester`, `haily-git-manager`, `haily-stats`, etc.) are capped at their `model_max` tier and never escalate. Depth tiers use the canonical vocabulary (`fast|medium|thinking|ultra`, compared by ordinal rank — never the literal string) and are surfaced to every subagent via `HL_MODEL_TIER`; see `docs/engineering-standards.md` → Depth Tiers.
 
 ## Workflow Position
 
@@ -125,7 +125,7 @@ Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-
 | `references/scope-check.md` | Scope boundary confirmation before research |
 | `references/research-phase.md` | Researcher agent orchestration |
 | `references/codebase-analysis.md` | File and pattern analysis protocol |
-| `references/solution-design.md` | Approach evaluation framework |
+| `references/solution-design.md` | Approach evaluation framework; `--deep` judge panel (2-lens spawn + synthesis) |
 | `references/plan-structure.md` | Plan directory and file structure |
 | `references/plan-quality.md` | Phase file content standards |
 | `references/phase-template.md` | Phase file template and frontmatter |
@@ -134,4 +134,4 @@ Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-
 | `references/task-management.md` | Task hydration and Claude Task patterns |
 | `references/plan-dependencies.md` | Dependency detection across plans |
 | `references/memory-bridge.md` | `--resume` mode: memory read protocol, write protocol, relevance scoring, staleness handling, dedup guard, write examples |
-| `references/cross-review.md` | `--cross` mode: when it runs, `hailykit cross-review` invocation, findings interpretation, blind-spot marking, adjudication, privacy |
+| `references/cross-review.md` | `--cross` mode: when it runs, `hailykit cross-review` invocation, findings interpretation, blind-spot marking, adjudication, privacy; `--deep` confidence-raising upgrade |

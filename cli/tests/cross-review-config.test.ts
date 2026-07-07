@@ -7,11 +7,15 @@ import { loadCrossReviewConfig } from '../lib/cross-review/config';
 
 function tmp(contents?: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hl-cr-'));
-  if (contents !== undefined) fs.writeFileSync(path.join(dir, '.hl.json'), contents);
+  if (contents !== undefined) {
+    const claudeDir = path.join(dir, '.claude');
+    fs.mkdirSync(claudeDir, { recursive: true });
+    fs.writeFileSync(path.join(claudeDir, 'haily.json'), contents);
+  }
   return dir;
 }
 
-test('missing .hl.json yields empty config', () => {
+test('missing haily.json yields empty config', () => {
   assert.deepEqual(loadCrossReviewConfig(tmp()), {});
 });
 

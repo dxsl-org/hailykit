@@ -25,6 +25,10 @@ Before delivering, verify each:
 
 Use "Query Fan-Out" to sweep sources from multiple angles. Cross-reference to verify; distinguish stable best-practice from experimental.
 
+## Report Contract
+
+Discovery class — ≤40 lines, findings-first. Already satisfied by the Output Contract below — the `[Finding Title]` template scales per finding within budget. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Output Contract
 
 Structured sections, no preamble ("I researched…"), no trailing summary. Use the `## Naming` pattern from hooks for the report file.

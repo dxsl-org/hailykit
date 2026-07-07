@@ -21,3 +21,7 @@ Parse the prompt for:
 Build and run: `hailykit stats [path] [flags]`
 
 Return the full stdout verbatim. If the command fails, return the error message with exit code context.
+
+## Report Contract
+
+Mechanical class — ≤10 lines (the CLI's own table/JSON is the structured-output override — return it verbatim, no extra narration before or after). Full rules: `docs/engineering-standards.md` → Agent Report Contract.

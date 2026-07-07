@@ -164,6 +164,39 @@ enforces this against each skill's `argument-hint:` line.
 
 Interactive is the **default** execution mode — never add an `--interactive` flag for it. `--quick` and `--deep` are mutually exclusive (depth is one axis); `--auto` composes with either. A skill may add its own domain flags freely — the contract governs only these three shared axes.
 
+### Depth Tiers
+
+Three flag-level depths map onto the same axis every eligible skill shares:
+
+| Flag | Depth | Cost |
+|---|---|---|
+| `--quick` | Skip heavier stages (research, adversarial review, per-item passes) | Cheapest |
+| *(none)* | Normal — the skill's default stage set runs at normal thoroughness | Baseline |
+| `--deep` | Maximum scrutiny: more research streams, adversarial/red-team passes, per-item depth | 3–5× the baseline token cost |
+
+> **Required — never-auto-escalate:** a skill must never turn on `--deep` behavior by itself, no matter what it infers from the task (large diff, "critical", "production"). `--deep` is always a user-initiated flag or an explicit `haily.json` `deep.auto` opt-in (below) — never a heuristic decision made mid-run.
+
+**`HL_MODEL_TIER`** — session-scoped, written once at SessionStart (`kit/hooks/haily-session.cjs`) from the active model id, canonical vocabulary only: `fast | medium | thinking | ultra`. This is the ONLY place the vocabulary is defined; every consumer imports or reads the env var rather than re-deriving it. `deriveTier()` (`kit/hooks/haily-lib/model.cjs`) returns `deep` as a legacy display label for `haily-tracer`'s benefit — that string never reaches `HL_MODEL_TIER` or any tier-gated behavior; it is normalized to `ultra` first. Unresolvable model ids (non-Claude sessions without a model-map match) yield an empty value — every consumer must treat empty exactly like "no tier known", never guess.
+
+Consumers compare **ordinal rank**, never the literal string: `fast(0) < medium(1) < thinking(2) < ultra(3)`. A tier-gated behavior is phrased as "runs when tier < ultra" (rank comparison), not "runs unless tier === 'ultra'" (string comparison) — the rank form still fails safe if a fifth tier is ever added above `ultra`.
+
+**Parity hint** — when a skill's default behavior already approximates what `--deep` would add for a *high* session tier (e.g. an `ultra`-tier session doing exhaustive reasoning by default), the skill may note this as a parity hint in its own docs ("On an ultra-tier session, `--deep` adds comparatively little over the default pass") but must still honor an explicit `--deep` flag — a parity hint informs the user's choice, it never substitutes for the flag.
+
+**`haily.json` `deep.auto`** (defined once, here — do not redefine the schema elsewhere): opts a skill's `--deep` behavior on by default for the repo, following the same lowercase shape as `crossReview.auto` / `quiz.auto`:
+
+```json
+{ "deep": { "auto": true } }
+```
+
+Still user-controlled: it lives in a config file the user commits, not inferred at runtime, so it does not violate never-auto-escalate.
+
+Unlike `crossReview.auto` (read by a deterministic CLI reader with a sanitizer, `cli/lib/cross-review/config.ts`), `deep.auto` is read by the LLM directly from `haily.json` at Route/Scope Check — there is no CLI-side validation, so a typo'd key (`Deep.auto`, `deep.Auto`) silently no-ops instead of erroring. The single canonical schema defined above is the mitigation; a validated reader is deliberate future work if misreads show up in practice.
+
+**Documented non-adoption** — these skills deliberately have NO `--quick`/`--deep` flags; do not add them speculatively:
+- `{skill:hc-spec}` — a blocking approval checkpoint, not a depth axis.
+- `{skill:hl-reasoning}` — a methodology skill with no stages to skip or deepen.
+- `{skill:hc-optimize}` — a metric-driven loop, not a research/review pipeline. N-best candidate sampling (N parallel candidates per iteration, keep the best by measure) was scoped as a possible `--deep` mechanism and rejected for now (YAGNI) — it needs worktree isolation per candidate, which does not exist yet. Revisit as its own plan if the single-candidate loop proves insufficient.
+
 ### Build Stage
 
 | Term | Definition | Do NOT use |
@@ -254,18 +287,20 @@ No majority vote. A single evidenced critical finding blocks.
 
 | Config file | Key path | Default | Purpose |
 |---|---|---|---|
-| `.hl.json` | `lean.threshold.locDelta` | 400 | Lean Pass: max total lines changed |
-| `.hl.json` | `lean.threshold.fileCount` | 8 | Lean Pass: max files changed |
-| `.hl.json` | `lean.threshold.singleFileLoc` | 200 | Lean Pass: max lines in a single file |
-| `.hl.json` | `lean.enabled` | true | Enable/disable Lean Pass |
-| env var | `HL_LEAN_DISABLED` | — | Set to `1` to bypass Lean Pass |
-| `.hl.json` | `crossReview.auto` | false | Run cross-model review without the `--cross` flag |
-| `.hl.json` | `crossReview.reviewer` | — | Force a reviewer leg: codex, gemini, opencode, cline, ollama |
-| `.hl.json` | `crossReview.model` | — | Force the reviewer model (overrides the model-map lookup) |
-| `.hl.json` | `crossReview.tier` | thinking | Model tier to resolve from the map |
-| `.hl.json` | `crossReview.timeoutMs` | 120000 | Per-call timeout for the external reviewer |
-| `.hl.json` | `crossReview.disable` | false | Turn cross-model review off for this repo |
-| `.hl.json` | `quiz.auto` | false | Offer the comprehension quiz before every commit gate |
+| `haily.json` | `simplify.threshold.locDelta` | 400 | Lean Pass: max total lines changed |
+| `haily.json` | `simplify.threshold.fileCount` | 8 | Lean Pass: max files changed |
+| `haily.json` | `simplify.threshold.singleFileLoc` | 200 | Lean Pass: max lines in a single file |
+| `haily.json` | `simplify.gate.enabled` | true | Enable/disable Lean Pass |
+| env var | `HL_SIMPLIFY_DISABLED` | — | Set to `1` to bypass Lean Pass |
+| `haily.json` | `crossReview.auto` | false | Run cross-model review without the `--cross` flag |
+| `haily.json` | `crossReview.reviewer` | — | Force a reviewer leg: codex, gemini, opencode, cline, ollama |
+| `haily.json` | `crossReview.model` | — | Force the reviewer model (overrides the model-map lookup) |
+| `haily.json` | `crossReview.tier` | thinking | Model tier to resolve from the map |
+| `haily.json` | `crossReview.timeoutMs` | 120000 | Per-call timeout for the external reviewer |
+| `haily.json` | `crossReview.disable` | false | Turn cross-model review off for this repo |
+| `haily.json` | `quiz.auto` | false | Offer the comprehension quiz before every commit gate |
+| `haily.json` | `output.verbosity` | `standard` | `concise` tightens MAIN-session chat output (status lines ≤1 line, outcome-first summaries, no decorative tables); never changes agent Report Contracts or model-trace lines |
+| env var | `HL_OUTPUT_VERBOSITY` | `standard` | Session-scoped mirror of `output.verbosity`, written by `haily-session.cjs` |
 
 ### Ultra Mode (deep-model escalation)
 
@@ -357,6 +392,30 @@ Rules:
 - Add only when the shortcut is **intentional** — a deliberate tradeoff, not an oversight.
 - Do NOT use to mark TODOs, bugs, or incomplete work — use `// TODO:` for those.
 - `{skill:hc-review}` scans these markers in Stage 4 and surfaces them as advisory findings.
+
+### Agent Report Contract
+
+Every `kit/agents/*.md` file carries a `## Report Contract` section — canonical wording defined once here; agent files carry only the class line plus agent-specific deltas (`docs/skill-template.md` has the copy-paste snippets). Purpose: the caller (main session or another agent) reads the report, not the transcript — a bloated report burns the orchestrator's context and the reader's attention twice. This is the "economy" layer that scopes down to a single agent's own reply; it never touches the model-trace mechanism below.
+
+**Universal rules (every class):**
+- **Finding or verdict FIRST line** — lead with the answer; the caller decides whether to read further.
+- **No process narration** — never "I read X, then grepped Y, then checked Z"; report what was found, not how.
+- **No restating the prompt** — the caller already knows what it asked.
+- **Evidence as `file:line`**, never quoted code blocks — the caller opens the file if it needs the text.
+- **Structured-output override** — when the caller's prompt requests a specific schema (JSON, a fixed artifact file, a machine-readable contract), that request wins over the prose budget below; budgets bound free-form prose, not a caller-mandated structure.
+- **Rationale and evidence are never cut for length** — when budget and substance conflict, drop decoration (headers, transitions, restated context), not information.
+- **Clarity override carries over** from the Output Economy rule (`haily-coding.md`): security warnings, irreversible-action confirmations, and order-sensitive multi-step instructions get full sentences regardless of budget.
+- **Model-trace lines are exempt and untouched** — the `🤖 [agent]: model` announcement (`haily-tracer.cjs`) is a separate, protected mechanism; this contract never shortens, removes, reorders, or defaults it off.
+
+**Budgets by agent class:**
+
+| Class | Agents | Budget |
+|---|---|---|
+| Mechanical | git-manager, stats, tester, reporter, project-manager, docs-writer, mcp-manager | ≤10 lines |
+| Discovery/research | explore, researcher | ≤40 lines, findings-first |
+| Judgment | planner, reviewer, debugger, brainstormer, editor, judge, tech-analyst, test-architect, adr-writer, api-designer, optimizer, designer, refiner, implementor | ~5 lines per finding + a verdict header — scales with finding count, not a fixed cap |
+
+`haily-writer` sits outside the three classes: its chapter/section prose and Canon Delta are the caller-requested structured deliverables the override above protects; only its Unit Summary follows a fixed word count already set by its own Output Contract, not the finding-scaled judgment budget.
 
 ### Example Selection
 

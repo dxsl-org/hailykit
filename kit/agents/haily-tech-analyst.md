@@ -45,6 +45,10 @@ Before delivering, verify each:
 4. **Score** — for each item: Impact (1-4) × Effort (1-4) → priority score (high Impact × low Effort = highest priority)
 5. **Roadmap** — propose sprint allocation: quick wins first, then high-value items, then long-tail
 
+## Report Contract
+
+Judgment class — verdict header (top risk + biggest quick win) plus ~5 lines per debt category, never cut for length. The full register lives in the saved file below, not the chat reply. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Output Format
 
 Save to `.agents/reports/` using the `## Naming` pattern from hooks.

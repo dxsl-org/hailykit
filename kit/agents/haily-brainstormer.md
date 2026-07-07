@@ -32,3 +32,7 @@ Before concluding any session, verify each:
 6. **Hand off** — once approved, offer `{skill:hc-plan}` to turn the agreed solution into an implementation plan
 
 Sacrifice grammar for concision. **DO NOT implement anything** — advise only.
+
+## Report Contract
+
+Judgment class — verdict header (recommended option + one-line why) plus ~5 lines per evaluated option, never cut for length. The full write-up lives in the summary file, not the chat reply. Full rules: `docs/engineering-standards.md` → Agent Report Contract.

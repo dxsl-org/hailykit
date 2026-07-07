@@ -3,7 +3,7 @@
  * haily-session.cjs — SessionStart hook that initialises the HL_* env-var contract.
  *
  * Fires on startup|resume|clear|compact. Detects project type, resolves the active
- * plan, writes all 35 HL_* env vars, and emits a context summary to stdout.
+ * plan, writes all 37 HL_* env vars, and emits a context summary to stdout.
  *
  * Config key (isHookEnabled): 'session-init'  ← old name preserved as user config contract
  * Exit codes: 0 always (fail-open, non-blocking)
@@ -24,7 +24,7 @@ try {
     resolveNamingPattern, getReportsPath, normalizePath, extractTaskListId
   } = require('./haily-lib/config.cjs');
   const { createHookTimer, logHookCrash } = require('./haily-lib/logger.cjs');
-  const { formatModelDisplay } = require('./haily-lib/model.cjs');
+  const { formatModelDisplay, canonicalTier } = require('./haily-lib/model.cjs');
   const { detectProject, buildStaticEnv, getCodingLevelStyleName } = require('./haily-lib/project.cjs');
   const { updateSessionState } = require('./haily-lib/session.cjs');
   const { readActivitySnapshot, writeActivitySnapshot, createEmptyActivitySnapshot } = require('./haily-lib/statusline.cjs');
@@ -44,6 +44,11 @@ try {
     // SessionStart is the only hook event that receives `model` — persist it
     // (env + session state) so PreToolUse hooks like haily-tracer can read it.
     const sessionModel = typeof data.model === 'string' ? data.model : (data.model?.id || '');
+    // Canonical vocabulary (fast|medium|thinking|ultra) — deriveTier's 'deep'
+    // display value is normalized to 'ultra' inside canonicalTier so it never
+    // collides with the --deep flag string. Empty when the model is unknown
+    // (non-Claude providers without a model-map match) — consumers must no-op.
+    const modelTier = canonicalTier(sessionModel) || '';
     const envFile = process.env.CLAUDE_ENV_FILE;
     const baseDir = process.cwd();
 
@@ -59,7 +64,7 @@ try {
     const teamInfo = detectAgentTeam(sessionId);
     const taskListId = extractTaskListId(config);
 
-    // ── Write all 35 HL_* env vars ─────────────────────────────────────────
+    // ── Write all 37 HL_* env vars ─────────────────────────────────────────
     if (envFile) {
       // Session & Plan Config (6)
       writeEnv(envFile, 'HL_SESSION_ID', sessionId);
@@ -103,6 +108,12 @@ try {
       // Coding Level (2)
       writeEnv(envFile, 'HL_CODING_LEVEL', codingLevel);
       writeEnv(envFile, 'HL_CODING_LEVEL_STYLE', codingLevelStyle);
+      // Model Tier (1)
+      writeEnv(envFile, 'HL_MODEL_TIER', modelTier);
+      // Output Economy (1) — 'concise' tightens MAIN-session chat only; never
+      // agent Report Contracts or model-trace lines. Invalid config value
+      // fails safe to 'standard' rather than propagating garbage downstream.
+      writeEnv(envFile, 'HL_OUTPUT_VERBOSITY', config.output?.verbosity === 'concise' ? 'concise' : 'standard');
       // Agent Teams (2, conditional)
       if (teamInfo.isTeamMember) {
         writeEnv(envFile, 'HL_AGENT_TEAM', teamInfo.teamName);
@@ -114,6 +125,7 @@ try {
     updateSessionState(sessionId, (state) => ({
       ...state,
       model: sessionModel || state?.model || null,
+      modelTier: modelTier || state?.modelTier || null,
       sessionOrigin: source,
       activePlan: resolved.resolvedBy === 'session' ? resolved.path : (state?.activePlan || null),
       suggestedPlan: resolved.resolvedBy === 'branch' ? resolved.path : null,
