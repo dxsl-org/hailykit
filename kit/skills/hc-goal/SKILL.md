@@ -3,7 +3,7 @@ name: hc-goal
 description: "Autonomous development loop: give it a goal, it plans, implements, reviews, and commits each phase until done. Bounded by a proxy budget and baseline-relative regression gate. Longer than hc-cook (many phases), cheaper than native goal (structured ledger bounds context). Delegates to hc-plan, hc-cook, and haily-git-manager."
 when_to_use: "Invoke only when the user explicitly types /hc-goal. Do not auto-trigger from natural language — autonomous scope makes accidental activation harmful."
 user-invocable: true
-argument-hint: "\"<goal>\" [--auto] [--tdd] [--retry N] [--budget N] [--budget Xtool] [--strict]"
+argument-hint: "\"<goal>\" [--deep] [--auto] [--tdd] [--retry N] [--budget N] [--budget Xtool] [--strict]"
 metadata:
   category: workflow
   keywords: [autonomous, goal, loop, orchestrate, automate, pipeline, long-running]
@@ -16,12 +16,13 @@ Give it a goal; it plans, implements, reviews, and commits each phase until done
 ## Usage
 
 ```
-{skill:hc-goal} "<goal description>" [--auto] [--tdd] [--retry N] [--budget N] [--budget Xtool] [--strict]
+{skill:hc-goal} "<goal description>" [--deep] [--auto] [--tdd] [--retry N] [--budget N] [--budget Xtool] [--strict]
 ```
 
 | Flag | Behavior |
 |------|----------|
 | *(none)* | Stage-gate — pauses at plan checkpoint and between major stage groups |
+| `--deep` | Pass-through — forwarded verbatim to the `{skill:hc-plan}` invocation at Plan and to every `{skill:hc-cook}` phase delegation at Execute. Egress and domain-risk rules are governed by those downstream skills' own `--deep` semantics — not restated here. Multiplies per-phase token cost 3–5×; pair with `--budget` to bound total spend. Never auto-activates — pass it explicitly or set `haily.json deep.auto`. |
 | `--auto` | Autonomous — runs through; escalates only critical blockers |
 | `--tdd` | Pass-through to `{skill:hc-cook}` — write tests before each phase |
 | `--retry N` | Max analyze→fix attempts per failing phase before deferring (default: 3) |
@@ -34,6 +35,7 @@ Give it a goal; it plans, implements, reviews, and commits each phase until done
 {skill:hc-goal} "Add OAuth login with GitHub and Google" --auto
 {skill:hc-goal} "Migrate from Moment.js to date-fns across the codebase" --auto
 {skill:hc-goal} "Implement rate limiting on all API endpoints" --retry 5 --budget 20
+{skill:hc-goal} "Rework the payment webhook flow" --deep --budget 8
 ```
 
 ## Constraints
@@ -58,12 +60,12 @@ Give it a goal; it plans, implements, reviews, and commits each phase until done
 
 2. **Recon** — spawn Explore agent; capture project type, framework, relevant modules, in-flight plans in `.agents/`. Log `✓ Recon: [N] findings`.
 
-3. **Plan** — delegate to `{skill:hc-plan} --auto "<goal>"` → produces `plan.md` + `phase-NN-*.md` with `tier` and `dependencies` fields per phase. Build Stage Graph from `dependencies` fields.
+3. **Plan** — delegate to `{skill:hc-plan} --auto "<goal>"` (append `--deep` verbatim when set) → produces `plan.md` + `phase-NN-*.md` with `tier` and `dependencies` fields per phase. Build Stage Graph from `dependencies` fields.
    - **Checkpoint (Plan exit):** present plan summary (phase count, parallel-eligible). User: Approve / Revise / Abort. [skip: `--auto`]
    - Log `✓ Plan: [N] phases, Stage Graph built`.
 
 4. **Execute** — loop over phases in Stage Graph order; run parallel when `dependencies` allow:
-   - Delegate `{skill:hc-cook} <phase-NN.md> --tier <phase.tier>` (adds `--auto` when in `--auto` mode).
+   - Delegate `{skill:hc-cook} <phase-NN.md> --tier <phase.tier>` (adds `--auto` when in `--auto` mode; forwards `--deep` verbatim when set — budget-aware: deep multiplies per-phase token cost, pair with `--budget`).
    - After completion: update ledger row (compact result only); check composite budget; check divergence signals (see `references/run-ledger.md` § Divergence Handling). **Discard phase transcript from orchestrator context.**
    - On success → run regression gate; if gate passes → `haily-git-manager` commit; advance.
    - On gate fail or build failure → enter Retry Loop (see § Retry Loop).

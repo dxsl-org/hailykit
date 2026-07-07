@@ -74,11 +74,13 @@ Only spawned after a haily-tester run surfaces failures; never pre-emptively.
 Audit the phase across: acceptance coverage, regression risk, contract stability, pattern consistency, build hygiene.
 Return verdict (pass / conditional / block) + severity-ranked findings.
 
+When `--deep` is set (or `haily.json deep.auto`, unless `--quick` is explicit), forward `--deep` into this prompt so the agent applies `{skill:hc-review}` `--deep` semantics — refuter votes on Critical findings before they count toward the block threshold (see `references/review-gates.md`).
+
 {agent-result:haily-reviewer}
 
 ## Domain-Risk Review
 
-Spawn an additional `haily-reviewer` with a domain-specific lens when the phase touches a high-risk domain. Run after the standard code audit.
+Spawn an additional `haily-reviewer` with a domain-specific lens when the phase touches a high-risk domain. Run after the standard code audit. **Under `--deep`, spawn this reviewer unconditionally** — regardless of whether the phase touches a listed domain below.
 
 **Trigger conditions — spawn domain-risk reviewer when phase touches:**
 
@@ -126,6 +128,26 @@ Docs writer refreshes `./docs` to reflect changes in the current phase.
 {agent:haily-git-manager}
 
 Stage all changes and commit with a conventional-commit message.
+
+## Exemplar Injection
+
+Produced by the Recon pre-Build Pass (`references/process-steps.md` § Exemplar Pull) — normal + `--deep`, skipped on `--quick`. Before spawning `haily-implementor`, append this block to its prompt:
+
+```
+## Exemplar(s)
+<file>:<line>-<line> — <one-line reason this matches the phase's work type>
+<excerpt>
+```
+
+- 2–3 exemplars max, ≤80 lines of excerpt total across all of them combined — trim to the relevant function/block, never paste whole files
+- Source only from the project's own tree — never vendored deps, generated code, `.gitignore`'d paths, or `node_modules`
+- Greenfield hatch: no matching precedent → replace the block with the single line `No in-repo exemplar — follow injected standards.` (never omit silently)
+
+{agent:haily-implementor}
+
+Match this codebase's idiom: follow the injected exemplar(s) above for structure, naming, and error-handling style.
+
+{agent-result:haily-implementor}
 
 ## Parallel Phase Execution
 

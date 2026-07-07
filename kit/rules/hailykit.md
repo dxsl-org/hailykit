@@ -46,4 +46,6 @@ Agent frontmatter has two tier fields:
 
 **Mechanical agents** (`haily-git-manager`, `haily-stats`, etc.) pin both `model:` and `model_max:` at `fast` — escalating them wastes tokens with no quality gain.
 
+**Apex agents** (`haily-judge`) pin both `model:` and `model_max:` at `ultra` — the opposite floor from mechanical agents, for the opposite reason: they exist solely to make a verdict, so they always run on the top tier. Read-only tools (no Write/Edit) and a token-lean contract (cited evidence only, no exploring beyond the decision package) keep the cost bounded even at ultra. Reserve this category for verdict-shaped work only — a future agent may claim `ultra`/`ultra` if its job is to adjudicate a decision package, not to draft or investigate; drafting/investigating agents stay judgment-tier (no `model_max`) even under `--deep`.
+
 When adding new agent, set `model_max:` based on whether its work benefits from stronger model. Update `kit/model-map.json` when provider releases new top-tier model — pin it under the `ultra` key.

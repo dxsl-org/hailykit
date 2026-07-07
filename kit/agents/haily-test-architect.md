@@ -43,6 +43,10 @@ Before delivering, verify each:
 5. **Design pyramid** — assign each scenario to the appropriate layer with justification
 6. **Write test plan** — concrete, specific, implementor-ready
 
+## Report Contract
+
+Judgment class — verdict header (critical-path count + biggest coverage gap) plus ~5 lines per test layer, never cut for length. The full test plan lives in the saved file below, not the chat reply. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Output Format
 
 Save to `.agents/reports/` using the `## Naming` pattern from hooks.

@@ -1,9 +1,9 @@
 ---
 name: hl-brainstorm
-description: "Brainstorm solutions with structured trade-off analysis. Default mode auto-selects persona and edge dimensions from the problem context. Explicit persona flags for targeted consultation. --debate for adversarial multi-persona review. --edges for 12-dimension edge case analysis."
+description: "Brainstorm solutions with structured trade-off analysis. Default mode auto-selects persona and edge dimensions from the problem context. Explicit persona flags for targeted consultation. --debate for adversarial multi-persona review. --edges for 12-dimension edge case analysis. --deep is an alias for --debate --edges."
 when_to_use: "Invoke before choosing among unclear technical options, or to get an expert lens on a specific question."
 user-invocable: true
-argument-hint: "[topic] [--architect|--scientist|--social-scientist|--philosopher|--economist|--strategist|--creative-director|--manager|--devil] [--debate] [--edges]"
+argument-hint: "[topic] [--architect|--scientist|--social-scientist|--philosopher|--economist|--strategist|--creative-director|--manager|--devil] [--debate] [--edges] [--deep]"
 metadata:
   attribution: "Multi-persona debate pattern adapted from autoresearch by Udit Goenka (MIT)"
   category: thinking
@@ -22,6 +22,7 @@ Default: analyze problem → auto-select persona + edge dimensions → targeted 
 {skill:hl-brainstorm} --debate "<proposal>"     # all 9 personas → GO/CAUTION/STOP
 {skill:hl-brainstorm} --edges "<feature>"       # 12-dimension edge analysis only
 {skill:hl-brainstorm} --debate --edges "<prop>" # full: all personas + edge sweep
+{skill:hl-brainstorm} --deep "<proposal>"       # alias for --debate --edges
 ```
 
 | Flag | Behavior |
@@ -38,6 +39,7 @@ Default: analyze problem → auto-select persona + edge dimensions → targeted 
 | `--devil` | Adversarial meta-level — challenges premise itself; no constraints on scope |
 | `--debate` | All 9 personas analyze independently → GO / CAUTION / STOP verdict |
 | `--edges` | 12-dimension edge case sweep |
+| `--deep` | Alias for `--debate --edges` — the 9-persona debate already IS the maximum-scrutiny panel; no separate machinery. If any persona flag is also given, the persona flag wins and one line notes `--deep` was overridden. |
 
 **Persona consultation** (`--[persona]`): answer immediately through that lens — no 5-item discovery, no plan handoff.
 
@@ -128,10 +130,13 @@ All 9 personas analyze the proposal independently. No edge sweep unless `--edges
 ```
 {skill:hl-brainstorm} --debate "<proposal>" [--files <glob>]
 {skill:hl-brainstorm} --debate --edges "<proposal>"    # full: personas + edge sweep
+{skill:hl-brainstorm} --deep "<proposal>"              # same as --debate --edges
 ```
 
 **Use before:** major/high-risk features, significant refactors, architecture changes.
 **Skip when:** trivial changes, pure dep upgrades with no API changes.
+
+`--deep` is documentation sugar for `--debate --edges` — same 9-persona debate, same 12-dimension sweep, no new mechanism. Auto-on via `haily.json` `deep.auto` (see `docs/engineering-standards.md` → Depth Tiers).
 
 ### Debate Protocol
 
@@ -176,7 +181,7 @@ Filter to relevant dimensions; skip irrelevant ones explicitly. Output: dimensio
 
 ## Session Model
 
-Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger`) inherit the session model — running on `{model:ultra}` passes that model to these agents automatically. Mechanical agents (`haily-tester`, `haily-git-manager`, `haily-stats`, etc.) are capped at their `model_max` tier and never escalate.
+Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger`, ...) inherit the session model — running on `{model:ultra}` passes that model through automatically. Mechanical agents stay capped at their `model_max` tier and never escalate. Depth tiers use the canonical vocabulary (`fast|medium|thinking|ultra`, compared by ordinal rank — never the literal string) and are surfaced to every subagent via `HL_MODEL_TIER`; see `docs/engineering-standards.md` → Depth Tiers.
 
 ## Workflow Position
 

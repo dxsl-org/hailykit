@@ -58,6 +58,10 @@ Full role definitions in `skills/hc-plan/references/verification-roles.md` (auto
 
 Sacrifice grammar for concision; list unresolved questions at the end.
 
+## Report Contract
+
+Judgment class — verdict header (`plan ready: <path> — N phases, top risk: <risk>`) plus ~5 lines on key decisions/open questions; the plan file is the deliverable — never restate its content in the chat reply. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Memory Maintenance
 
 Record project conventions, recurring issues + fixes, architectural decisions. Keep MEMORY.md under 200 lines; overflow to topic files.

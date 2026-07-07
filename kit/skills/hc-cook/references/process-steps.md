@@ -3,7 +3,7 @@
 Steps are shared across all input types. Skip conditions vary by input type and flags.
 
 **Input types:** `task` · `plan-path` · `layout-screenshot` · `layout-video` · `layout-figma` · `layout-framer`
-**Flags:** `--quick` (skip Recon+Scope Contract) · `--auto` (skip all gates, auto-parallelize) · `--tdd` (tests-first per phase)
+**Flags:** `--quick` (skip Recon+Scope Contract, skip Verify-by-Execution) · `--deep` (Verify review runs refuter-vote + unconditional domain-risk semantics; never composes with `--quick`) · `--auto` (skip all gates, auto-parallelize) · `--tdd` (tests-first per phase)
 
 **Task Tool Fallback:** `TaskCreate`/`TaskUpdate`/`TaskGet`/`TaskList` are CLI-only — unavailable in VSCode. If they error, use `TodoWrite`. All steps remain functional without Task tools.
 
@@ -78,6 +78,33 @@ Runs immediately after plan is available (both `task` and `plan-path` input type
 3. If no tasks → read plan phases, `TaskCreate` for each unchecked `[ ]` item with priority order and metadata (`phase`, `planDir`, `phaseFile`)
 4. Tasks can be blocked by other tasks via `addBlockedBy`
 
+### Recon pre-Build Pass
+
+Before touching any file in a phase, walk the phase file and repo once — covering Exemplar Pull and Assumption Verification below in the same walk rather than two separate ceremonies. Runs normal + `--deep`; skipped on `--quick` along with the rest of Recon.
+
+#### Exemplar Pull
+
+Locate 2–3 idiomatic in-repo exemplars matching the phase's work type (same layer — route handler / service / migration / test). Selection heuristic: prefer files touched recently (`git log -n 5 --stat -- <dir>`) that passed a prior `haily-reviewer` pass; use `{skill:hc-scout}` or `hailykit contracts` for candidate discovery.
+
+- **Cap:** ≤80 lines of excerpt total across all exemplars combined — inject `file:line` ranges, never full files.
+- **Quality guard:** exemplars must come from the project's own tree only — exclude vendored dependencies, generated code, `.gitignore`'d paths, and `node_modules`-style paths.
+- **Greenfield hatch:** when no relevant precedent exists, state explicitly "no in-repo exemplar — follow injected standards" in the implementor prompt instead of skipping the note silently.
+
+Hand the excerpts to `haily-implementor` per `references/agent-invocations.md` § Exemplar Injection.
+
+**Output:** `✓ Recon pre-Build Pass: [N] exemplars pulled ([X] lines) | greenfield: [yes|no]`
+
+#### Assumption Verification
+
+Read the phase file's `## Assumptions` section (`{skill:hc-plan}` `references/phase-template.md`). Spot-verify the top-3 low/medium-confidence entries per phase — high-confidence entries pass through unchecked — using the how-to-verify method each claim specifies (run the command, read the file, check the doc), fact-checker style (`{skill:hc-plan}` `references/verification-roles.md` → Role: Fact Checker). No `## Assumptions` section (older plan) or fewer than 3 low/medium entries: verify what exists; log `0 assumptions to verify` if none.
+
+- **Pass** — claim confirmed as stated: proceed to Build.
+- **Fail** — claim is false or unverifiable as stated: never build on a known-false assumption.
+  - **Interactive:** halt this phase, return to `{skill:hc-plan}` for re-plan before touching any of this phase's files.
+  - **`--auto`:** defer this phase — record the failed assumption and the verification evidence in the final report, continue with independent phases (hc-goal-style); never silently halt the whole run.
+
+**Output:** `✓ Assumption Verification: [N/3] verified — [pass | fail: reason]`
+
 ### Pre-Code Audit
 
 Before touching any file in a phase, the agent runs this gate:
@@ -89,6 +116,7 @@ Before touching any file in a phase, the agent runs this gate:
 | 3 | **Reuse search** | `grep` / symbol-search for utilities that already do what the phase needs. Duplicating a helper is a review blocker. |
 | 4 | **Surface continuity** | Trace every public interface the phase touches — new code must extend it, not shadow it with a parallel API. |
 | 5 | **Inventory reconciliation** | Walk the phase file list; every entry must map to an actual edit or an explicit deferral note. |
+| 6 | **External-API contract (untyped paths only)** | Strictly scoped to untyped/loosely-typed languages (JS without TS, Python without strict typing, etc.) — typecheck already covers typed languages, this does not duplicate it. When the diff introduces a call to an external library API with no prior usage in the repo (new import + zero existing call sites — greppable), verify the signature via `{skill:hc-lookup}` before Finalize. |
 
 After saving each file, run three micro-gates:
 - **Build gate:** execute the project's type-check / compile command
@@ -193,6 +221,30 @@ Include scout summary and acceptance criteria as context. Return: verdict (pass/
 
 The agent must **never** perform the review itself — always delegate.
 
+**`--deep` forwarding:** when `--deep` is set (or `haily.json deep.auto`, unless `--quick` is explicit), forward `--deep` in the reviewer prompt so the agent applies `{skill:hc-review}` `--deep` semantics — refuter votes on Critical findings — and always include the domain-risk second-pass reviewer regardless of whether a listed domain is touched (`references/agent-invocations.md` § Domain-Risk Review). The cross-model leg still never activates from `--deep` alone.
+
+### Verify-by-Execution
+
+**Runs in:** normal mode and `--deep`. **Skipped on `--quick`** — this is a documented skip, not a silent one; log it.
+
+For each acceptance criterion captured in the Scope Contract, drive the actual affected flow — run the app path, invoke the CLI command, or hit the endpoint directly. The test suite alone does not satisfy this step. Capture evidence per criterion: command output, a log line, or a screenshot.
+
+- **Bounded commands only:** use explicit timeouts or background-launch + probe. Never open an interactive session and wait on it.
+- **Redact secrets:** strip API keys, tokens, and credentials from captured output before it is written into any evidence artifact or report (reuse the secret-scan pattern already applied to review artifacts).
+- **No-runtime-surface escape hatch:** when the phase has no runtime surface to drive (docs-only change, pure refactor with no observable behavior change), state that explicitly per criterion instead of skipping silently — this becomes the `noRuntimeSurface` field below.
+
+Evidence shape — write this object to `execution-evidence.json` in the artifact directory (`references/review-artifacts.md`); mirrored in `kit/hooks/haily-artifact/schema.cjs` `validateExecutionEvidence`:
+
+```
+{ phase, criteria: [{ criterion, command|source, evidenceRef, pass }], noRuntimeSurface? }
+```
+
+`noRuntimeSurface` present and non-empty satisfies the gate on its own — no per-criterion entries required for that phase.
+
+**Requirement is a deterministic marker, never parsed plan prose:** Scope Contract records `evidence: "expected"` on `context-snippets.json` whenever this phase has a runtime surface to drive. The artifact gate (`kit/hooks/haily-artifact/validator.cjs` `CONDITIONAL_FILES`) requires `execution-evidence.json` iff that marker is present on the already-written `context-snippets.json` — no marker (legacy plan dirs, or a phase Scope Contract judged to have no runtime surface) means no requirement, preserving backward compatibility. Hard stages (ship/push/pr/deploy) block when the marker is present but the file is missing or malformed; soft stages (finalize/commit) warn instead.
+
+**Output:** `✓ Verify-by-Execution: [N/N] criteria evidenced — [K] no-runtime-surface | skipped (--quick)`
+
 **Interactive mode:**
 - Enters a fix-review loop (capped at 3 rounds) per `review-gates.md`
 - Requires explicit user sign-off
@@ -205,12 +257,12 @@ The agent must **never** perform the review itself — always delegate.
 **Artifact gate:** write review artifacts per `references/review-artifacts.md`, then validate:
 
 ```bash
-node kit/hooks/workflow-artifact-gate.cjs --stage finalize --artifact-dir <artifact-dir>
+node kit/hooks/haily-artifact.cjs --stage finalize --artifact-dir <artifact-dir>
 ```
 
 High-risk `--auto` runs must surface `AskUserQuestion` before finalize/commit/ship unless `risk-gate.json` contains `humanApproved: true`.
 
-**Output:** `✓ Step 5: Review [score]/10 - [Approved|Auto-approved] - validator [pass|warn|block]`
+**Output:** `✓ Step 5: Review [score]/10 - [Approved|Auto-approved] - validator [pass|warn|block] - evidence [N/N]`
 
 ## Step 6: Finalize
 

@@ -130,6 +130,57 @@ Every finding gets a verdict — no silent dismissals. Critical findings: Accept
 | Reject | Missing null check on `config.apiUrl` | Config loaded at startup with schema validation (config.ts:12), cannot be null at runtime |
 | Defer | No rate limiting on `POST /api/upload` | Valid concern but internal tool; track for public exposure |
 
+## --deep: Refuter Votes
+
+Under `--deep`, single-verdict adjudication is not the last word for Critical findings or for Medium findings the adjudicator marks Accept — "benefit of doubt goes to the adversary" (above) is explicitly overridden for these two categories only. Low findings, and any finding marked Reject or Defer, keep the normal single-pass adjudication unchanged.
+
+### Skeptic Contract
+
+For each Critical finding, and each Medium finding marked Accept, spawn 2–3 independent `haily-reviewer` subagents as refuters. Each refuter prompt:
+
+```
+Refute this code review finding. Your default posture is REFUTE — argue the finding is a false
+positive, already handled, or an impossible path. Only concede the finding stands if you cannot
+construct a refutation after checking the code.
+
+Finding:
+SEVERITY: {SEVERITY}
+CATEGORY: {CATEGORY}
+LOCATION: {file:line}
+ATTACK: {ATTACK}
+IMPACT: {IMPACT}
+
+Read the code at {file:line} and any file it references. Evidence is required — a grep result, a
+line citation, or a reproduction path. An unsupported assertion does not count as a refutation.
+
+Verdict: REFUTED (cite the evidence) or STANDS (explain what you checked and why the finding survives).
+```
+
+### Survival Table
+
+Spawn `haily-judge` with the finding, the refuters' verdicts (REFUTED/STANDS + evidence), and this table as the decision package to make the survives/demotes call. If the ultra spawn is unavailable or errors, fall back to the session model with the notice `⚠ apex judge unavailable — verdict by session model` (best-effort: a skill cannot deterministically detect Task-spawn failure).
+
+Defined once here — every other reference to refuter-vote thresholds in this skill points back to this table, never restates the numbers.
+
+| Refuters spawned | Survives (blocks) iff | Demotes to advisory iff |
+|---|---|---|
+| 2 | 0 successful refutations | ≥1 successful refutation |
+| 3 | ≤1 successful refutation | ≥2 successful refutations |
+
+A successful refutation is a `REFUTED` verdict backed by evidence (grep/code citation). A `REFUTED` verdict with no evidence does not count as successful; a `STANDS` verdict with no evidence still counts as a non-refutation (finding keeps surviving).
+
+### Demotion
+
+Findings that fail to survive votes demote from Accept (block) to advisory — never silently dropped. Attach the refutation text (which refuter, what evidence, which finding) to the demoted entry in the report so the developer can override if the refuter is wrong.
+
+### Logging
+
+Survivors log `refutation-resistant`; demotions log the refuter count and a one-line evidence summary:
+
+```
+✓ Refuter votes: [N] findings checked — [S] survived (refutation-resistant), [D] demoted to advisory
+```
+
 ### Report Format
 
 ```
@@ -183,4 +234,9 @@ Stage 3 (Stress Probe) → findings adjudicated
   ├─ 0 Accepted → PASS → proceed
   ├─ Accepted Critical → BLOCK → fix → re-run Stage 3 (fix diff only)
   └─ Accepted Medium/Low only → fix or defer → proceed
+
+Under --deep, insert before BLOCK:
+Accepted Critical / accepted Medium → Refuter Votes (## --deep: Refuter Votes)
+  ├─ Survives per Survival Table → BLOCK (logged "refutation-resistant")
+  └─ Refuted per Survival Table → demote to advisory (refutation text attached) → proceed
 ```

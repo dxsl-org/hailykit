@@ -109,6 +109,29 @@ Valid decisions: `PASS`, `PASS_WITH_RISK`, `BLOCKED`. Any critical issue, blocki
 
 Low-risk finalize may warn when this file is absent. High-risk, large-diff, auto, ship, push, PR, and deploy flows must produce it. Any disproven claim or reachable regression blocks hard stages.
 
+## Conditional Files
+
+### `execution-evidence.json`
+
+Required only when the Scope Contract set the `evidence` marker on `context-snippets.json` (i.e. the run declared a runtime surface via the Verify-by-Execution substep — see `references/process-steps.md`). Legacy artifact dirs without the marker do not need it and pass unaffected.
+
+```json
+{
+  "phase": "phase-02-login-flow",
+  "criteria": [
+    { "criterion": "login succeeds with valid token", "command": "curl -s localhost:3000/api/login -d @creds.json", "evidenceRef": "200 OK, {\"token\":\"<redacted>\"}", "pass": true }
+  ]
+}
+```
+
+For phases with no runtime surface (docs, pure refactor), state it explicitly instead of listing criteria:
+
+```json
+{ "phase": "phase-05-readme", "noRuntimeSurface": "documentation-only phase, no executable flow" }
+```
+
+Validation is shape + non-empty only (a non-empty `noRuntimeSurface` satisfies it on its own); the redaction policy below applies to captured `evidenceRef` output.
+
 ## Redaction Policy
 
 Artifacts must not contain raw secrets, API keys, bearer tokens, cookies, authorization headers, private keys, or dotenv lines. Command output must be summarized. If a snippet is needed, redact first:

@@ -1,9 +1,9 @@
 ---
 name: hc-debug
-description: "Root-cause analysis for bugs, test failures, CI/CD failures, performance regressions, and unexpected system behavior. Routes to 10 specialist techniques (systematic debugging, root-cause tracing, defense-in-depth, verification, investigation methodology, log/CI analysis, performance diagnostics, reporting, task management, frontend verification). Core mandate: investigate before fixing."
+description: "Root-cause analysis for bugs, test failures, CI/CD failures, performance regressions, and unexpected system behavior. Routes to 10 specialist techniques (systematic debugging, root-cause tracing, defense-in-depth, verification, investigation methodology, log/CI analysis, performance diagnostics, reporting, task management, frontend verification). --deep spawns a parallel falsification panel. Core mandate: investigate before fixing."
 when_to_use: "Invoke when investigating issues, diagnosing failures, or analyzing unexpected behavior."
 user-invocable: true
-argument-hint: "[issue description] [--frontend] [--profile artifact] [--trace trace-id]"
+argument-hint: "[issue description] [--deep] [--frontend] [--profile artifact] [--trace trace-id]"
 metadata:
   category: workflow
   keywords: [debug, investigation, root-cause, CI, performance, test-failure]
@@ -16,12 +16,13 @@ Diagnoses bugs, test failures, CI/CD pipeline errors, and performance regression
 ## Usage
 
 ```
-{skill:hc-debug} [issue description] [--frontend] [--profile artifact] [--trace trace-id]
+{skill:hc-debug} [issue description] [--deep] [--frontend] [--profile artifact] [--trace trace-id]
 ```
 
 | Flag | Routes to |
 |------|-----------|
 | *(none)* | Symptom routing table — describe the symptom and the correct technique is selected |
+| `--deep` | Parallel hypothesis panel — 2–3 `haily-debugger` streams, each falsifying a distinct candidate cause. See `references/hypothesis-panel.md`. No `--quick` counterpart — symptom routing already scales down for simple cases. |
 | `--frontend` | Frontend Verification — visual regression, UI bugs, console errors, network issues |
 | `--profile [artifact]` | Profiling Analysis — reads heap dump, flame graph, or CPU profile to identify bottleneck |
 | `--trace [trace-id\|symptom]` | Distributed Debugging — correlates logs across services, identifies fault domain |
@@ -29,6 +30,7 @@ Diagnoses bugs, test failures, CI/CD pipeline errors, and performance regression
 ```
 {skill:hc-debug} "login endpoint returns 500 intermittently"
 {skill:hc-debug} "checkout page slow on mobile"
+{skill:hc-debug} "payment webhook drops events under load" --deep
 {skill:hc-debug} "button hover state looks wrong in Safari" --frontend
 {skill:hc-debug} --profile heap-dump.json
 {skill:hc-debug} --profile flamegraph.svg
@@ -68,6 +70,7 @@ Select the row that best matches the presenting symptom. Load the reference file
 3. Work through all phases before writing any fix. Skipping phases to save time costs more time.
 4. When the issue spans multiple techniques (e.g., a CI failure masking a performance regression), apply them in routing-table order: broader investigation before specialist analysis.
 5. On confirmed root cause, compute confidence level per `references/confidence-signaling.md`; emit `Confidence: [LEVEL] ([N] signals: [types])`. At SUSPECTED, write the hypothesis with the next falsification step instead of proceeding to `{skill:hc-fix}`. At PROBABLE or CONFIRMED, write a one-paragraph cause statement and proceed to `{skill:hc-fix}`.
+6. **`--deep` only:** if step 5 lands at SUSPECTED and a differential of 2–3 falsifiable candidates exists, spawn the hypothesis panel (`references/hypothesis-panel.md`) instead of stopping at a single hypothesis. Recommended whenever the symptom touches a high-risk domain (auth, secrets, payments, migrations, public API contracts, CI/deploy, filesystem, production config — same domain list as `{skill:hc-cook}`'s `references/agent-invocations.md` → Domain-Risk Review) or a wrong root cause would be expensive to reverse.
 
 ## Red Flags
 
@@ -94,6 +97,12 @@ Stop and restart from systematic investigation if any of these thoughts occur:
 
 - `scripts/find-polluter.sh` — bisects a test suite to identify which test is polluting shared state and causing downstream failures; companion doc at `scripts/find-polluter.test.md`
 
+## --deep Mode
+
+Spawns a capped 2–3 stream hypothesis panel instead of a single investigation stream — full protocol in `references/hypothesis-panel.md`. Convergence (≥2 streams agreeing) satisfies the existing SUSPECTED→PROBABLE bar in `references/confidence-signaling.md`; CONFIRMED keeps its existing reproduction requirement regardless of panel size. Divergent streams surface a differential to the user instead of a guess. Recommended whenever the symptom touches a high-risk domain (canonical list: `{skill:hc-cook}` `references/agent-invocations.md` → Domain-Risk Review). No cross-model leg here — all panel streams are internal `haily-debugger` subagents; `--deep` never sends anything externally. No `--quick` counterpart exists for this skill. Cost: 3–5× baseline (`docs/engineering-standards.md` → Depth Tiers), bounded by the 3-stream cap.
+
+**Parity hint:** on an `ultra`-tier session the default single-stream trace already runs at high scrutiny, but `--deep` still spawns the full panel when explicitly requested or via `haily.json` `deep.auto` — a parity hint informs the user's choice, it never substitutes for the flag (never-auto-escalate). Any tier-gated behavior compares `HL_MODEL_TIER` by ordinal rank (`fast(0) < medium(1) < thinking(2) < ultra(3)`), never the literal string.
+
 ## Output
 
 Reports save to `.agents/debug/debug-YYMMDD-HHMM-{slug}.md`. Minimum contents: symptom, evidence collected, confirmed root cause, fix recommendation. Report header must include: `**Confidence:** SUSPECTED | PROBABLE | CONFIRMED ([N] signals: [types])` immediately after the root cause statement. Use `references/reporting-standards.md` for structure.
@@ -103,6 +112,7 @@ Reports save to `.agents/debug/debug-YYMMDD-HHMM-{slug}.md`. Minimum contents: s
 | File | Content |
 |------|---------|
 | `references/confidence-signaling.md` | SUSPECTED/PROBABLE/CONFIRMED vocabulary, signal type ranking, fix gate rule, display format, examples |
+| `references/hypothesis-panel.md` | `--deep` parallel falsification panel: differential construction, stream assignment, independence rule, convergence/divergence resolution |
 
 ## Workflow Position
 

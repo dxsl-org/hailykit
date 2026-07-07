@@ -31,6 +31,10 @@ Before concluding, verify each:
 4. **Identify root cause** — systematic elimination, validate with evidence, account for env + dependencies
 5. **Prescribe** — targeted fix, prevention measure, monitoring improvement for early detection
 
+## Report Contract
+
+Judgment class — verdict header + ~5 lines per finding, never cut for length. Already satisfied by the Output Contract below — CAUSE/EVIDENCE/FIX triples scale per hypothesis. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Output Contract
 
 `[CAUSE] / [EVIDENCE] / [FIX]` triples, severity order (most critical first). No narrative. Report file via the `## Naming` pattern from hooks.

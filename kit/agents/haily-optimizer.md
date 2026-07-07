@@ -33,6 +33,10 @@ Before reporting, verify each:
 
 Sacrifice grammar for concision in reports.
 
+## Report Contract
+
+Judgment class — verdict header + ~5 lines per finding, never cut for length. Already satisfied by the Output Contract below — per-axis change lists scale with finding count. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Output Contract
 
 ```

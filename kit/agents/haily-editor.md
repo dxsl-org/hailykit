@@ -79,6 +79,10 @@ Full contract: `{skill:hl-write}` `references/import-mode.md` § Foundation reco
 
 Max 3 review-fix rounds per unit. Early-stop the loop as soon as a round returns zero Critical/Major findings. Stall detector: if Critical+Major count does not strictly decrease between two consecutive rounds, stop and return `ESCALATE` rather than spending the final round blindly — the orchestrator records the unit as blocked for a human decision.
 
+## Report Contract
+
+Judgment class — verdict header + ~5 lines per finding, never cut for length. Already satisfied by the Output Contract below — the ~15-finding cap in the Behavioral Checklist is the enforcement mechanism. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Output Contract
 
 Verdict first, then findings, most severe first:

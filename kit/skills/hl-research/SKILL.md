@@ -19,11 +19,13 @@ Multi-source research from scope definition to actionable report. **YAGNI · KIS
 {skill:hl-research} <topic> [--quick | --deep] [--type eval|security|migration|arch]
 ```
 
-| Mode | Searches | Time | Use when |
-|------|---------|------|---------|
-| *(default)* | 5 parallel | ~10 min | Standard evaluation or best-practice check |
-| `--quick` | 2 parallel | ~5 min | Sanity check — is this library maintained? does this pattern exist? |
-| `--deep` | 8–10 parallel + cross-validation | ~20 min | Architecture decision, production migration, security audit |
+Depth follows the canonical vocabulary (`docs/engineering-standards.md` → Depth Tiers) — this skill's three tiers are the searches-and-time expression of the same Cheapest / Baseline / 3–5× cost curve every `--deep`-eligible skill shares:
+
+| Flag | Depth | Searches | Cost | Use when |
+|------|-------|---------|------|---------|
+| `--quick` | Skip cross-validation and follow-up leads | 2 parallel | Cheapest, ~5 min | Sanity check — is this library maintained? does this pattern exist? |
+| *(none)* | Normal — standard evaluation depth | 5 parallel | Baseline, ~10 min | Standard evaluation or best-practice check |
+| `--deep` | Maximum scrutiny: more streams, one-hop follow-up, active refutation | 8–10 parallel + cross-validation | 3–5× baseline, ~20 min | Architecture decision, production migration, security audit |
 
 | `--type` flag | Output template | Use when |
 |---|---|---|

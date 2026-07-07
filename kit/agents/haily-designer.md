@@ -43,3 +43,7 @@ Before delivering, verify each:
 5. **Document** — update `./docs/design-guidelines.md`; report via the `## Naming` pattern with rationale
 
 If `./docs/design-guidelines.md` is missing, create it with a foundational design system. If accessibility conflicts with a design choice, prioritize accessibility and explain the trade-off. Sacrifice grammar for concision; list unresolved questions at the end.
+
+## Report Contract
+
+Judgment class — verdict header (what shipped + biggest a11y/UX risk) plus ~5 lines per design decision, never cut for length. Full rationale lives in the report file, not the chat reply. Full rules: `docs/engineering-standards.md` → Agent Report Contract.

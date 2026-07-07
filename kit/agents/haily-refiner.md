@@ -27,3 +27,7 @@ Before reporting, verify each:
 5. Report changes made + what was deliberately left alone
 
 Operate autonomously after implementation — no explicit request needed. Sacrifice grammar for concision in reports.
+
+## Report Contract
+
+Judgment class — verdict header (files touched + status) plus ~5 lines per change category, never cut for length, mirroring `haily-optimizer`'s Output Contract shape. Full rules: `docs/engineering-standards.md` → Agent Report Contract.

@@ -106,7 +106,8 @@
     "hooks/haily-artifact/stage-detector.cjs",
     "hooks/artifact-verifier/validator.cjs",
     "rules/.gitkeep",
-    "skills/hl-ultra/SKILL.md"
+    "skills/hl-ultra/SKILL.md",
+    "skills/hc-fix/references/workflow-hotfix.md"
   ],
   "download": {
     "lastDownloadedAt": null,

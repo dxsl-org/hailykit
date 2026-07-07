@@ -44,6 +44,10 @@ Before delivering, verify each:
 6. **Version strategy** — decide and document before finalising
 7. **Breaking change analysis** — if modifying existing API, diff against current contract
 
+## Report Contract
+
+Judgment class — verdict header (endpoint count + biggest compat risk) plus ~5 lines per flagged issue, never cut for length. The full contract lives in the saved file below, not the chat reply. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Output Format
 
 Save to `.agents/reports/` or the project's API spec location using the `## Naming` pattern from hooks.

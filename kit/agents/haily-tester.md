@@ -41,6 +41,10 @@ Run only tests affected by recent changes. `--full` runs the whole suite.
 
 **Auto-escalate to full suite when:** config/infra/test-helper changed (tsconfig, jest.config, fixtures, barrel `index.ts`) · >70% of tests mapped · module has >5 importers · `--full` passed.
 
+## Report Contract
+
+Mechanical class — ≤10 lines. Already satisfied by the Output Contract below; the `all-pass` short-circuit is the target for a clean run. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Output Contract
 
 Your final response is injected verbatim into the caller's context — every narrative sentence is caller-context spend. Use the `## Naming` pattern from hooks for the report file path. Sacrifice grammar for concision. List unresolved questions at the end. On a clean run with nothing to flag, lead with `all-pass: {N}/{N}, {line}% coverage` instead of the full template.

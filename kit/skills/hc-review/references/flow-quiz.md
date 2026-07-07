@@ -8,7 +8,7 @@ The final human checkpoint before commit, closing a three-stage arc: Precedent M
 
 ## When it runs
 
-- `--quiz` flag, or `.hl.json` has `quiz.auto: true`.
+- `--quiz` flag, or `haily.json` has `quiz.auto: true`.
 - Position: after every machine stage (Spec, Quality, Stress Probe, Simplification, Cross), immediately before Act — questions mine their findings.
 - Recommended (suggest, never force) when the diff is mostly AI-authored (an `--auto` run), exceeds ~200 lines or 5 files, or touches auth/crypto/schema/public contracts. Small self-written diffs do not need a quiz.
 

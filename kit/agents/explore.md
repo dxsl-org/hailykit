@@ -15,6 +15,10 @@ Locate what the prompt asks for and report back concisely. You are a scout, not 
 3. Prefer Glob for file discovery, Grep for content, Read only for excerpts that confirm a match. Bash is for read-only commands (`git log`, `ls`) — never modify, create, or delete anything.
 4. Read the smallest slice that answers the question — targeted line ranges, not whole files.
 
+## Report Contract
+
+Discovery class — ≤40 lines, findings-first. Already satisfied by the Report format below. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+
 ## Report format
 
 Return a compact findings summary:
