@@ -21,7 +21,8 @@ try {
   const { createHookTimer, logHookCrash } = require('./haily-lib/logger.cjs');
   const { getSections, buildIdSection, buildPlanSection, buildReportsSection,
     buildLangSection, buildRulesSection, buildVenvSection, buildNamingSection,
-    buildPlanCliSection, buildTrustSection, buildPrefixSection
+    buildPlanCliSection, buildTrustSection, buildPrefixSection, buildThinkSection,
+    buildReasonSection, buildEconSection
   } = require('./haily-lib/subagent.cjs');
 
   // NOTE: config key 'subagent-init' preserved — user-facing contract
@@ -65,6 +66,9 @@ try {
       'plan-cli': () => buildPlanCliSection(agentType),
       trust:      () => buildTrustSection(config),
       prefix:     () => buildPrefixSection(enrichedEnv),
+      think:      () => buildThinkSection(enrichedEnv),
+      reason:     () => buildReasonSection(enrichedEnv),
+      econ:       () => buildEconSection(),
     };
 
     const parts = sectionKeys

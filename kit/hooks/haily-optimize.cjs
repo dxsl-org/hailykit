@@ -27,11 +27,24 @@ const { createHookTimer, logHookCrash } = require('./haily-lib/logger.cjs');
 // THRESHOLDS
 // ═══════════════════════════════════════════════════════
 
-const THRESHOLDS = {
-  locDelta:      400,   // total added+removed lines across all tracked files
-  fileCount:     8,     // number of changed files
-  singleFileLoc: 200,   // largest single-file added-line count
+// Tier-keyed breach thresholds: a deep-tier (ultra) session already reasons at
+// max budget so it earns the looser fail-safe default; unknown/empty tier
+// (non-Claude or undetected sessions) gets the SAME fail-safe default rather
+// than the tighter one — never tighten a gate against a session we can't
+// confirm. Tiers below ultra get the tighter gate since normal-mode passes
+// benefit most from an earlier nudge to simplify.
+const THRESHOLDS_BY_TIER = {
+  ultra:    { locDelta: 400, fileCount: 8, singleFileLoc: 200 },
+  thinking: { locDelta: 250, fileCount: 5, singleFileLoc: 150 },
+  medium:   { locDelta: 250, fileCount: 5, singleFileLoc: 150 },
+  fast:     { locDelta: 250, fileCount: 5, singleFileLoc: 150 },
 };
+const DEFAULT_THRESHOLDS = THRESHOLDS_BY_TIER.ultra;
+
+/** @returns {{locDelta:number, fileCount:number, singleFileLoc:number}} */
+function resolveThresholds() {
+  return THRESHOLDS_BY_TIER[process.env.HL_MODEL_TIER] || DEFAULT_THRESHOLDS;
+}
 
 const HARD_VERBS = ['ship', 'push', 'merge', 'pr', 'deploy', 'publish'];
 const SOFT_VERBS = ['commit', 'finalize', 'release'];
@@ -100,11 +113,11 @@ function computeSignals(cwd) {
   return { totalLoc, fileCount: files.size, maxFileLoc };
 }
 
-function evaluateBreaches(signals) {
+function evaluateBreaches(signals, thresholds) {
   return [
-    signals.totalLoc      > THRESHOLDS.locDelta      && `${signals.totalLoc} LOC delta`,
-    signals.fileCount     > THRESHOLDS.fileCount      && `${signals.fileCount} files changed`,
-    signals.maxFileLoc    > THRESHOLDS.singleFileLoc  && `single file +${signals.maxFileLoc} LOC`,
+    signals.totalLoc      > thresholds.locDelta      && `${signals.totalLoc} LOC delta`,
+    signals.fileCount     > thresholds.fileCount      && `${signals.fileCount} files changed`,
+    signals.maxFileLoc    > thresholds.singleFileLoc  && `single file +${signals.maxFileLoc} LOC`,
   ].filter(Boolean);
 }
 
@@ -126,6 +139,10 @@ function buildMessage(breaches, severity) {
 // MAIN
 // ═══════════════════════════════════════════════════════
 
+// Guarded so `require()` (unit tests) only loads the pure functions above
+// without running the hook — it reads stdin and calls process.exit, which
+// would hang/kill a test runner.
+if (require.main === module) {
 try {
   if (process.env.HL_OPTIMIZE_DISABLED === '1') process.exit(0);
   if (!isHookEnabled('haily-optimize')) process.exit(0);
@@ -155,7 +172,7 @@ try {
 
   const cwd = payload.cwd || process.cwd();
   const signals = computeSignals(cwd);
-  const breaches = evaluateBreaches(signals);
+  const breaches = evaluateBreaches(signals, resolveThresholds());
 
   if (breaches.length === 0) {
     timer.end({ status: 'ok', exit: 0 });
@@ -179,3 +196,6 @@ try {
   try { require('./haily-lib/logger.cjs').logHookCrash('haily-optimize', e); } catch { /* ignore */ }
   process.exit(0); // fail-open
 }
+}
+
+module.exports = { resolveThresholds, evaluateBreaches, matchedSeverity, computeSignals, THRESHOLDS_BY_TIER };

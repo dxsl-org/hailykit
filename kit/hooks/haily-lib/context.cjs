@@ -702,6 +702,24 @@ function buildRulesSection({ devRulesPath, skillsVenv, plansPath, docsPath }) {
 }
 
 /**
+ * Build output-verbosity section. Only emits for the non-default 'concise'
+ * mode — 'standard' needs no reminder, so the common case pays zero extra
+ * bytes on this 5-minute-TTL injection. Scope is MAIN-session chat only: it
+ * never governs agent Report Contracts (kit/agents/*.md) or model-trace lines
+ * (`haily-tracer.cjs`), which this hook does not touch.
+ * @param {string} [verbosity] - config.output.verbosity value
+ * @returns {string[]} Lines for the output-mode section
+ */
+function buildOutputModeSection(verbosity) {
+  if (verbosity !== 'concise') return [];
+  return [
+    `## Output Mode`,
+    `- Verbosity: concise — status lines ≤1 line, summaries lead with outcome, no decorative tables. Model-trace lines are exempt.`,
+    ``
+  ];
+}
+
+/**
  * Build modularization section
  * @returns {string[]} Lines for modularization section
  */
@@ -945,7 +963,8 @@ function buildReminder(params) {
     framework,
     frameworkExtras,
     configDirName,
-    prompt
+    prompt,
+    outputVerbosity
   } = params;
 
   // Respect hooks config — skip sections when their corresponding hook is disabled
@@ -965,7 +984,8 @@ function buildReminder(params) {
     ...buildFrameworkExtrasStandardsSection(frameworkExtras, configDirName),
     ...buildPathsSection({ reportsPath, plansPath, docsPath, docsMaxLoc }),
     ...buildPlanContextSection({ planLine, reportsPath, gitBranch, validationMode, validationMin, validationMax, activePhaseSummary }),
-    ...buildNamingSection({ reportsPath, plansPath, namePattern })
+    ...buildNamingSection({ reportsPath, plansPath, namePattern }),
+    ...buildOutputModeSection(outputVerbosity)
   ];
 }
 
@@ -1032,7 +1052,8 @@ function buildReminderContext({ sessionId, config, staticEnv, configDirName = '.
     framework,
     frameworkExtras,
     configDirName,
-    prompt
+    prompt,
+    outputVerbosity: cfg.output?.verbosity
   };
 
   const lines = buildReminder(params);
@@ -1056,7 +1077,8 @@ function buildReminderContext({ sessionId, config, staticEnv, configDirName = '.
       frameworkExtrasStandards: buildFrameworkExtrasStandardsSection(frameworkExtras, configDirName),
       paths: buildPathsSection({ reportsPath: params.reportsPath, plansPath: params.plansPath, docsPath: params.docsPath, docsMaxLoc: params.docsMaxLoc }),
       planContext: buildPlanContextSection(planCtx),
-      naming: buildNamingSection({ reportsPath: params.reportsPath, plansPath: params.plansPath, namePattern: params.namePattern })
+      naming: buildNamingSection({ reportsPath: params.reportsPath, plansPath: params.plansPath, namePattern: params.namePattern }),
+      outputMode: buildOutputModeSection(params.outputVerbosity)
     }
   };
 }
@@ -1082,6 +1104,7 @@ module.exports = {
   buildFrameworkExtrasStandardsSection,
   buildContextualRulesSection,
   buildModularizationSection,
+  buildOutputModeSection,
   buildPathsSection,
   buildPlanContextSection,
   buildNamingSection,

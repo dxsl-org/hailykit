@@ -43,6 +43,9 @@ const DEFAULT_CONFIG = {
   },
   paths: { docs: 'docs', plans: '.agents' },
   docs: { maxLoc: 800 },
+  // 'concise' tightens MAIN-session chat output only (status lines, summaries) —
+  // never agent Report Contracts (kit/agents/*.md) and never model-trace lines.
+  output: { verbosity: 'standard' },
   locale: { thinkingLanguage: null, responseLanguage: null },
   assistant: {
     name: null,

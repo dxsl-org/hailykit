@@ -17,36 +17,48 @@ const path = require('node:path');
 // AGENT → SECTION MAP  (behavioral contract — do not reorder)
 // ═══════════════════════════════════════════════════════
 
+// NOTE: 'econ' (Output Economy reminder) is appended to every row and to
+// ALL_SECTIONS — unlike 'think'/'reason' it is NOT tier-gated (see
+// buildEconSection): concise reporting is model-independent, so every agent
+// type gets it regardless of HL_MODEL_TIER.
 const AGENT_SECTIONS = {
   // ── Core workflow ──────────────────────────────────────────────────────────
-  'haily-researcher':       ['id', 'plan', 'reports', 'lang', 'naming', 'trust', 'prefix'],
-  'haily-planner':          ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix'],
-  'haily-implementor':      ['id', 'plan', 'reports', 'lang', 'rules', 'venv', 'naming', 'plan-cli', 'trust', 'prefix'],
-  'haily-designer':         ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix'],
-  'haily-refiner':          ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix'],
-  'haily-tester':           ['id', 'plan', 'reports', 'lang', 'rules', 'venv', 'trust', 'prefix'],
-  'haily-debugger':         ['id', 'plan', 'reports', 'lang', 'rules', 'venv', 'naming', 'trust', 'prefix'],
-  'haily-reviewer':         ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix'],
-  'haily-optimizer':        ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix'],
-  'haily-brainstormer':     ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix'],
-  'haily-project-manager':  ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix'],
-  'haily-docs-writer':      ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix'],
-  'haily-reporter':         ['id', 'plan', 'reports', 'lang', 'naming', 'trust', 'prefix'],
-  'haily-git-manager':      ['id', 'plan', 'trust', 'prefix'],
-  'haily-mcp-manager':      ['id', 'trust', 'prefix'],
+  'haily-researcher':       ['id', 'plan', 'reports', 'lang', 'naming', 'trust', 'prefix', 'econ'],
+  'haily-planner':          ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix', 'think', 'reason', 'econ'],
+  'haily-implementor':      ['id', 'plan', 'reports', 'lang', 'rules', 'venv', 'naming', 'plan-cli', 'trust', 'prefix', 'econ'],
+  'haily-designer':         ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix', 'econ'],
+  'haily-refiner':          ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix', 'econ'],
+  'haily-tester':           ['id', 'plan', 'reports', 'lang', 'rules', 'venv', 'trust', 'prefix', 'econ'],
+  'haily-debugger':         ['id', 'plan', 'reports', 'lang', 'rules', 'venv', 'naming', 'trust', 'prefix', 'think', 'reason', 'econ'],
+  'haily-reviewer':         ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix', 'think', 'reason', 'econ'],
+  'haily-optimizer':        ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix', 'econ'],
+  'haily-brainstormer':     ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix', 'think', 'reason', 'econ'],
+  'haily-project-manager':  ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix', 'econ'],
+  'haily-docs-writer':      ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix', 'econ'],
+  'haily-reporter':         ['id', 'plan', 'reports', 'lang', 'naming', 'trust', 'prefix', 'econ'],
+  'haily-git-manager':      ['id', 'plan', 'trust', 'prefix', 'econ'],
+  'haily-mcp-manager':      ['id', 'trust', 'prefix', 'econ'],
   // ── Senior-dev specialists ────────────────────────────────────────────────
-  'haily-adr-writer':       ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix'],
-  'haily-tech-analyst':     ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix'],
-  'haily-test-architect':   ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix'],
-  'haily-api-designer':     ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix'],
+  'haily-adr-writer':       ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix', 'econ'],
+  'haily-tech-analyst':     ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix', 'econ'],
+  'haily-test-architect':   ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix', 'econ'],
+  'haily-api-designer':     ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix', 'econ'],
+  // ── Apex (adjudication-only, top-tier by definition — no think boost) ──────
+  'haily-judge':            ['id', 'plan', 'trust', 'prefix', 'econ'],
 };
 
-const ALL_SECTIONS = ['id', 'plan', 'reports', 'lang', 'rules', 'venv', 'naming', 'trust', 'prefix'];
+const ALL_SECTIONS = ['id', 'plan', 'reports', 'lang', 'rules', 'venv', 'naming', 'trust', 'prefix', 'econ'];
 
 const PLAN_CLI_AGENTS = new Set([
   'haily-reviewer', 'haily-planner', 'haily-project-manager', 'haily-optimizer',
   'haily-brainstormer', 'haily-implementor', 'haily-test-architect',
 ]);
+
+// Agents whose work is single-pass judgment (architecture, review, root-cause,
+// debate) rather than mechanical execution — the extended-thinking directive
+// targets these. A later phase (--deep model escalation) reuses this list, so
+// keep it exported rather than inlining the agent names elsewhere.
+const JUDGMENT_AGENTS = ['haily-planner', 'haily-reviewer', 'haily-debugger', 'haily-brainstormer'];
 
 /**
  * Returns the ordered section key list for a given agent type.
@@ -130,10 +142,66 @@ function buildPrefixSection(env) {
   return [`## Skill Prefix`, `Use skill prefix: /hc-* (coding), /hl-* (utility), /hs-* (security ops) | PM: ${pm}`];
 }
 
+// Explicit allowlist (not a rank comparison) — an unrecognized or future tier
+// string must no-op rather than accidentally satisfy a "< ultra" check.
+const THINK_BOOST_TIERS = new Set(['thinking', 'medium', 'fast']);
+
+/**
+ * Extended-thinking directive for judgment agents running below the deep tier.
+ * Empty, 'ultra', or any unrecognized HL_MODEL_TIER value yields `[]` — the
+ * ultra tier already reasons at max budget, and unknown/non-Claude sessions
+ * must never receive a Claude-specific keyword that could confuse them.
+ * @param {NodeJS.ProcessEnv} env @returns {string[]}
+ */
+function buildThinkSection(env) {
+  const tier = env.HL_MODEL_TIER || '';
+  if (!THINK_BOOST_TIERS.has(tier)) return [];
+  return [
+    `## Depth Directive`,
+    `ultrathink: reason exhaustively before concluding — verify assumptions, consider alternatives, and check your work before responding.`,
+  ];
+}
+
+/**
+ * Reasoning-contract scaffold for judgment agents (see JUDGMENT_AGENTS) running
+ * below the deep tier. Shares THINK_BOOST_TIERS gate with buildThinkSection —
+ * same fail-safe rule: empty, 'ultra', or unrecognized tier yields `[]`. Ultra
+ * sessions already reason at max budget without a forced template; forcing one
+ * on unknown/non-Claude sessions risks confusing a model with no such contract.
+ * @param {NodeJS.ProcessEnv} env @returns {string[]}
+ */
+function buildReasonSection(env) {
+  const tier = env.HL_MODEL_TIER || '';
+  if (!THINK_BOOST_TIERS.has(tier)) return [];
+  return [
+    `## Reasoning Contract`,
+    `State competing hypotheses/options → cite file:line evidence per claim → end with verdict + confidence (high/medium/low) + what would change it.`,
+  ];
+}
+
+/**
+ * Condensed Output Economy reminder for subagent reports. Applied to every
+ * agent type (see AGENT_SECTIONS/ALL_SECTIONS note above) — unlike
+ * buildThinkSection/buildReasonSection this is NOT gated by HL_MODEL_TIER;
+ * concise reporting is a behavior contract, not a reasoning-budget boost, so
+ * it costs nothing to apply uniformly. Two lines by design (see
+ * docs/token-overhead.md 'econ' entry). Never mentions or governs the
+ * model-trace announcement (`haily-tracer.cjs` / `🤖 [agent]: model` lines) —
+ * that is a separate, protected mechanism this directive must not touch.
+ * @returns {string[]}
+ */
+function buildEconSection() {
+  return [
+    `## Output Economy`,
+    `Report per your Report Contract: finding first, no process narration, evidence as file:line. Full sentences for what you keep.`,
+  ];
+}
+
 module.exports = {
-  AGENT_SECTIONS, ALL_SECTIONS,
+  AGENT_SECTIONS, ALL_SECTIONS, JUDGMENT_AGENTS,
   getSections,
   buildIdSection, buildPlanSection, buildReportsSection, buildLangSection,
   buildRulesSection, buildVenvSection, buildNamingSection, buildPlanCliSection,
-  buildTrustSection, buildPrefixSection,
+  buildTrustSection, buildPrefixSection, buildThinkSection, buildReasonSection,
+  buildEconSection,
 };
