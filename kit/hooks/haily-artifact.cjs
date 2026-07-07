@@ -22,7 +22,7 @@ try {
   const { createHookTimer, logHookCrash } = require('./haily-lib/logger.cjs');
   const { resolveArtifactDir } = require('./haily-artifact/locator.cjs');
   const { detectStage, isHardStage, isSoftStage } = require('./haily-artifact/stage.cjs');
-  const { readArtifacts, validateShapes, scanSecrets } = require('./haily-artifact/validator.cjs');
+  const { validateArtifacts } = require('./haily-artifact/validator.cjs');
 
   const GATE_DISABLED_ENV = 'HL_WORKFLOW_ARTIFACT_GATE_DISABLED';
 
@@ -76,14 +76,23 @@ try {
       process.exit(0);
     }
 
-    // Validate artifacts
-    const artifacts = artifactDir
-      ? readArtifacts(artifactDir)
-      : { files: {}, errors: ['Artifact directory not found. Run hc:cook or hc:fix to generate artifacts, or pass --artifact-dir explicitly.'] };
-    const shapeErrors = validateShapes(artifacts.files);
-    const secretHits = scanSecrets(artifacts.files);
-    const allErrors = [...(artifacts.errors || []), ...(shapeErrors || []), ...(secretHits || [])];
-    const hasErrors = allErrors.length > 0;
+    // Validate artifacts via the validateArtifacts composite — the single
+    // source of truth for shape, policy, and evidence-marker rules (reading
+    // artifacts and re-deriving hard/soft logic here duplicated and drifted
+    // from validator.cjs; that drift is what caused the fail-open bug this
+    // fixes). Manual mode (--stage) always applies hard-stage strictness —
+    // CLI/test invocations expect a full pass/fail signal, never a silently
+    // downgraded warning — by forcing `stage` into the hard set for this call.
+    const effectiveConfig = manualMode
+      ? { ...gateConfig, hardStages: Array.from(new Set([...(gateConfig.hardStages || ['ship', 'push', 'pr', 'deploy']), stage])) }
+      : gateConfig;
+    const hard = isHardStage(stage, effectiveConfig);
+    const result = validateArtifacts({ artifactDir, stage, config: effectiveConfig });
+    const toText = (issue) => `${issue.message}${issue.file ? ` (${issue.file}${issue.field ? '.' + issue.field : ''})` : ''}`;
+    // Soft stages never block regardless of severity (existing contract) — fold
+    // warnings in for reporting so a soft-stage issue still surfaces to the user.
+    const allIssues = hard ? result.errors : [...result.errors, ...result.warnings];
+    const hasErrors = allIssues.length > 0;
 
     if (!hasErrors) {
       const msg = `Review artifacts validated for stage: ${stage}`;
@@ -97,26 +106,26 @@ try {
       process.exit(0);
     }
 
-    // Errors found
-    const summary = `Artifact gate (${stage}): ${allErrors.length} issue(s):\n${allErrors.slice(0, 5).join('\n')}`;
+    const messages = allIssues.map(toText);
+    const summary = `Artifact gate (${stage}): ${messages.length} issue(s):\n${messages.slice(0, 5).join('\n')}`;
 
-    if (manualMode || isHardStage(stage, gateConfig)) {
-      if (jsonOutput) { process.stdout.write(JSON.stringify({ status: 'block', stage, errors: allErrors }) + '\n'); }
+    if (hard) {
+      if (jsonOutput) { process.stdout.write(JSON.stringify({ status: 'block', stage, errors: allIssues }) + '\n'); }
       else {
         // NOTE: Both JSON block and exit 2 — belt-and-suspenders for hard stages
         process.stdout.write(JSON.stringify({ continue: false, decision: 'block', reason: summary }) + '\n');
       }
-      process.stderr.write(`[haily-artifact] BLOCKED (${stage}): ${allErrors[0]}\n`);
-      timer.end({ status: 'block', exit: 2, stage, errorCount: allErrors.length });
+      process.stderr.write(`[haily-artifact] BLOCKED (${stage}): ${messages[0]}\n`);
+      timer.end({ status: 'block', exit: 2, stage, errorCount: allIssues.length });
       process.exit(2);
     }
 
     // Soft stage — warn but allow
-    const warnMsg = `Soft-stage (${stage}) artifact warning: ${allErrors[0]}`;
+    const warnMsg = `Soft-stage (${stage}) artifact warning: ${messages[0]}`;
     process.stdout.write(JSON.stringify({
       hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: warnMsg }
     }) + '\n');
-    timer.end({ status: 'warn', exit: 0, stage, errorCount: allErrors.length });
+    timer.end({ status: 'warn', exit: 0, stage, errorCount: allIssues.length });
     process.exit(0);
   }
 

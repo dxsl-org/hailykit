@@ -6,6 +6,11 @@ const REQUIRED_FILES = [
   'adversarial-validation.json'
 ];
 
+// Written by hc-cook's Verify-by-Execution substep. Not in REQUIRED_FILES —
+// its requirement is conditional on the `evidence` marker in
+// context-snippets.json (see validator.cjs CONDITIONAL_FILES).
+const EVIDENCE_FILE = 'execution-evidence.json';
+
 const DECISIONS = new Set(['PASS', 'PASS_WITH_RISK', 'BLOCKED']);
 const CONTRACT_STATUSES = new Set(['OK', 'CHANGED', 'BROKEN', 'UNKNOWN']);
 const MODES = new Set([
@@ -40,6 +45,12 @@ function validateContext(value) {
   }
   for (const key of ['acceptanceCriteria', 'touchpoints', 'publicContracts', 'blastRadius']) {
     if (!hasArray(value[key])) push(errors, key, 'must be a non-empty array');
+  }
+  // `evidence` is an optional presence marker (e.g. "expected") set by hc-cook's
+  // Scope Contract when the phase has a runtime surface to drive at Verify time.
+  // Absent = legacy/no requirement; present = must be a non-empty string.
+  if (value.evidence !== undefined && !hasText(value.evidence)) {
+    push(errors, 'evidence', 'must be a non-empty string when present');
   }
   return errors;
 }
@@ -110,11 +121,40 @@ function validateAdversarial(value) {
   return errors;
 }
 
+/**
+ * Shape: { phase, criteria: [{ criterion, command|source, evidenceRef, pass }], noRuntimeSurface? }
+ * `noRuntimeSurface` present and non-empty satisfies the gate on its own — the
+ * validator judges shape and non-emptiness only, never the truthfulness of content.
+ */
+function validateExecutionEvidence(value) {
+  const errors = [];
+  if (!isObject(value)) return [{ path: 'execution-evidence.json', message: 'must be an object' }];
+  if (hasText(value.noRuntimeSurface)) return errors;
+  if (!hasText(value.phase)) push(errors, 'phase', 'must be a non-empty string');
+  if (!hasArray(value.criteria)) {
+    push(errors, 'criteria', 'must include at least one criterion, or set noRuntimeSurface');
+    return errors;
+  }
+  value.criteria.forEach((criterion, index) => {
+    const base = `criteria[${index}]`;
+    if (!isObject(criterion)) return push(errors, base, 'must be an object');
+    if (!hasText(criterion.criterion)) push(errors, `${base}.criterion`, 'must be a non-empty string');
+    if (!hasText(criterion.command) && !hasText(criterion.source)) {
+      push(errors, `${base}.command|source`, 'must provide command or source');
+    }
+    if (!hasText(criterion.evidenceRef)) push(errors, `${base}.evidenceRef`, 'must be a non-empty string');
+    if (typeof criterion.pass !== 'boolean') push(errors, `${base}.pass`, 'must be boolean');
+  });
+  return errors;
+}
+
 module.exports = {
   REQUIRED_FILES,
+  EVIDENCE_FILE,
   validateContext,
   validateRiskGate,
   validateVerification,
   validateReviewDecision,
-  validateAdversarial
+  validateAdversarial,
+  validateExecutionEvidence
 };
