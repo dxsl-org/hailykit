@@ -32,7 +32,7 @@ export interface RunCrossReviewOptions {
 }
 
 export function runCrossReview(opts: RunCrossReviewOptions): CrossReviewResult {
-  if (opts.config.disable) return { findings: [], skipped: { reason: 'disabled in .hl.json' } };
+  if (opts.config.disable) return { findings: [], skipped: { reason: 'disabled in haily.json' } };
 
   const legs = detectLegs(opts.detectDeps ?? realDeps());
   if (!legs.length) return { findings: [], skipped: { reason: 'no eligible reviewer CLI found on PATH' } };

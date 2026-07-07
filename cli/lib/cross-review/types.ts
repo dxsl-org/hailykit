@@ -51,7 +51,7 @@ export interface CrossReviewResult {
   attempts?: string[];
 }
 
-/** `.hl.json` → `crossReview` block. Every field is an optional override. */
+/** `haily.json` → `crossReview` block. Every field is an optional override. */
 export interface CrossReviewConfig {
   /** Always run even without the skill flag. Consumed by skills, not this tool. */
   auto?: boolean;

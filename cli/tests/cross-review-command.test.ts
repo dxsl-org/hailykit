@@ -80,8 +80,9 @@ test('command exits 0 on a graceful skip (no reviewer)', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hl-cmd-'));
   const file = path.join(dir, 'plan.md');
   fs.writeFileSync(file, '# plan');
-  // Force disable via .hl.json so no real CLI is spawned in the test.
-  fs.writeFileSync(path.join(dir, '.hl.json'), JSON.stringify({ crossReview: { disable: true } }));
+  // Force disable via haily.json so no real CLI is spawned in the test.
+  fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.claude', 'haily.json'), JSON.stringify({ crossReview: { disable: true } }));
   const code = cmdCrossReview({ stage: 'plan', input: file, sessionProvider: 'claude', json: true, cwd: dir });
   assert.equal(code, 0);
 });
