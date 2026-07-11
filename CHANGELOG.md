@@ -5,6 +5,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### 🚀 Improvements
+
+- hl-write: add academic writing playbooks — thesis/dissertation (Luận văn ThS / Luận án TS / international thesis) and literary criticism (close-reading essay / phê bình chân dung tác giả / review)
+- hl-write: add `citation-styles.md` reference — 6 styles (APA 7, MLA 9, Chicago Notes-Biblio, Chicago Author-Date, IEEE, Vancouver) with mechanically-checkable rules, check tiers, and Vietnamese/East-Asian name-order conventions
+- hl-write: IMRaD skeleton gains Abstract and Keywords sections
+- hl-write: extended copyedit/fact-check rubrics in `review-passes.md` (citation-format validation, verbatim-quote fixed-string checking, primary-text provenance exclusion)
+- haily-editor: streamlined manifest handling for references and playbooks
+- scripts: check-skill-cross-refs now validates file paths in SKILL.md References tables
+
+### 🐛 Fixes
+
+- hc-db: correct stale path reference
+
 ## [1.14.0] (2026-07-08)
 
 ### 🚀 Improvements

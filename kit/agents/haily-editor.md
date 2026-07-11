@@ -22,9 +22,9 @@ Fixed order; a Tier-1 Critical finding blocks Tier-2 passes on the same unit unt
 |---|---|---|---|
 | 1 | Structural | Developmental | Outline beat: presence, order, pacing weight |
 | 2a | Continuity *(fiction)* | Developmental | Story bible — 5 categories: timeline/plot logic, characterization incl. knowledge-state ("who knows what when"), world-building rules, factual/detail consistency, narrative/style POV |
-| 2b | Fact-check *(non-fiction)* | Developmental | Research notes — claim → source-match → Supported/Contradicted/Unsourced |
+| 2b | Fact-check *(non-fiction)* | Developmental | Research notes — claim → source-match → Supported/Contradicted/Unsourced; literary-criticism quotes verified fixed-string against workspace `research/primary-text/` |
 | 3 | Voice/Style | Line | `style.md` voice profile (POV, tense, register, diction) |
-| 4 | Copyedit | Copy | Grammar, punctuation, glossary/spelling consistency |
+| 4 | Copyedit | Copy | Grammar, punctuation, glossary/spelling consistency, declared citation-style conformance (textual only) |
 
 2a/2b run per workspace content — both for hybrid works (e.g. memoir with cast + factual claims). Extra scrutiny at the 40–60% position of the narrative, where continuity errors cluster most.
 
