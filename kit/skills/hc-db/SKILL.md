@@ -152,7 +152,7 @@ Always run forward + backward migration in CI before production.
 
 | Topic | File |
 |-------|------|
-| Schema design (OLTP/OLAP) | `references/db-design.md` |
+| Schema design (OLTP/OLAP) | `db-design.md` |
 | MongoDB CRUD + operators | `references/mongodb-crud.md` |
 | MongoDB aggregation pipeline | `references/mongodb-aggregation.md` |
 | MongoDB index types | `references/mongodb-indexing.md` |

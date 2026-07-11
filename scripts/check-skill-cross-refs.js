@@ -4,7 +4,9 @@
  *
  * CI gate: verifies that all /hl-*, /hc-* references in kit/ markdown files
  * point to a registered skill name (from SKILL.md frontmatter) and do not
- * collide with Claude Code built-in commands.
+ * collide with Claude Code built-in commands. Also validates that every
+ * `references/...` / `scripts/...` path in a SKILL.md's `## References`
+ * table resolves to a real file under that skill's own directory.
  *
  * Usage: node scripts/check-skill-cross-refs.js
  * Exit 0 = all references valid (or no references found)
@@ -13,7 +15,7 @@
 
 'use strict';
 
-const { readFileSync, readdirSync, lstatSync } = require('fs');
+const { readFileSync, readdirSync, lstatSync, existsSync } = require('fs');
 const path = require('path');
 
 const repoRoot = path.resolve(__dirname, '..');
@@ -310,6 +312,55 @@ function checkFlagVocabulary() {
   return problems;
 }
 
+/**
+ * Validates that every relative path referenced inside a SKILL.md's `## References`
+ * table (or inline `references/...` / `scripts/...` mentions in that section) resolves
+ * to a real file under the skill's own directory. Scope is intentionally narrow: only
+ * the References section, only `references/` and `scripts/` paths, only fs.existsSync —
+ * URLs and `{skill:...}` refs are already covered by collectCkReferences().
+ * Returns Array<{ file, problem }>.
+ */
+function checkReferencesTablePaths() {
+  const skillsDir = path.join(claudeDir, 'skills');
+  const problems = [];
+
+  for (const filePath of findFiles(skillsDir, (entry) => entry === 'SKILL.md')) {
+    let content;
+    try {
+      content = readFileSync(filePath, 'utf8');
+    } catch {
+      continue; // unreadable files are reported by the registry pass
+    }
+
+    // Line-based section extraction — a lazy [\s\S]*? lookahead for end-of-string
+    // combined with the /m flag matches end-of-line instead, truncating after one line.
+    const lines = content.split('\n');
+    // `^## Reference` also matches heading variants like `## Reference Map` (hl-context-engineering)
+    const startIdx = lines.findIndex((line) => /^## Reference/.test(line));
+    if (startIdx === -1) continue; // no References section — nothing to validate
+    let endIdx = lines.findIndex((line, idx) => idx > startIdx && /^## /.test(line));
+    if (endIdx === -1) endIdx = lines.length;
+    const sectionText = lines.slice(startIdx + 1, endIdx).join('\n');
+
+    const skillDir = path.dirname(filePath);
+    const rel = path.relative(repoRoot, filePath);
+    const pathRe = /`((?:references|scripts)\/[^`\s]+)`/g;
+    const seen = new Set();
+    let match;
+    while ((match = pathRe.exec(sectionText)) !== null) {
+      const refPath = match[1];
+      if (seen.has(refPath)) continue;
+      seen.add(refPath);
+      const resolved = path.join(skillDir, refPath);
+      if (!existsSync(resolved)) {
+        problems.push({ file: rel, problem: `References table path does not resolve: ${refPath}` });
+      }
+    }
+  }
+
+  return problems;
+}
+
 function main() {
   const { registry, collisions } = buildSkillRegistry();
   const allRefs = collectCkReferences();
@@ -369,10 +420,20 @@ function main() {
     console.error('');
   }
 
+  const refPathProblems = checkReferencesTablePaths();
+  if (refPathProblems.length > 0) {
+    hasErrors = true;
+    console.error('[X] Broken References-table path(s):');
+    for (const { file, problem } of refPathProblems) {
+      console.error(`  - ${file}: ${problem}`);
+    }
+    console.error('');
+  }
+
   if (!hasErrors) {
     const refCount = allRefs.length;
     const skillCount = registry.size;
-    console.log(`[OK] skill-cross-refs: ${skillCount} skill(s) registered, ${refCount} reference(s) checked (prefixes: hl/hc/hs) — all valid. Agent model tiers + model-map.json + flag vocabulary valid.`);
+    console.log(`[OK] skill-cross-refs: ${skillCount} skill(s) registered, ${refCount} reference(s) checked (prefixes: hl/hc/hs) — all valid. Agent model tiers + model-map.json + flag vocabulary + References-table paths valid.`);
     process.exit(0);
   }
 
