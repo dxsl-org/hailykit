@@ -3,7 +3,8 @@
 Three variants selected by language × degree. All three default to the long-form track — no thesis or
 dissertation falls under the short-form threshold. A *tiểu luận* (course paper) stays in
 `playbook-academic-writing.md`; a single-work literary analysis routes to `playbook-literary-criticism.md`;
-a graduate-level luận văn/luận án (Master's or PhD thesis/dissertation) routes here.
+a graduate-level luận văn/luận án (Master's or PhD thesis/dissertation) routes here; đề cương/thuyết minh/
+research or grant proposal → `playbook-research-proposal.md`.
 
 ## Language Selection
 

@@ -1,6 +1,6 @@
 # Business Report Playbook — Business Plan · Market Research Report · Business/Technical Report
 
-One skeleton, three named variants. All three share an evidence-backed, exec-summary-first, findings-to-recommendations mode — they differ only in which sections are mandatory and how deep the market-sizing evidence goes.
+One skeleton, three named variants. All three share an evidence-backed, exec-summary-first, findings-to-recommendations mode — they differ only in which sections are mandatory and how deep the market-sizing evidence goes. báo cáo hành chính theo thể thức NĐ30 (cơ quan context) → `playbook-vn-administrative.md`.
 
 ## Shared Skeleton
 

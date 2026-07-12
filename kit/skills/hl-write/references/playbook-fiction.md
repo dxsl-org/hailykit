@@ -71,6 +71,13 @@ Use Hero's Journey only as an optional overlay when the genre is fantasy or myth
 
 **Unit:** one Build unit = one chapter, ~2,000–4,000 words (thrillers run shorter, fantasy longer — adjust to the brief's stated genre).
 
+**Webnovel/truyện-đăng-kỳ serial pacing (note, not a separate variant):** a serialized web release
+(Wattpad/Webnovel/truyện-đăng-kỳ platforms) keeps the same beat sheet and bible mechanics above but tightens
+per-chapter pacing for a high-volume release cadence — a cliffhanger or open question at the end of every
+chapter, chapters run shorter (~2,000–3,000 words) than the general novel-chapter range, and the writer/outline
+plan for frequent (often daily or near-daily) releases rather than a single monolithic publication. This
+changes cadence and chapter-ending craft only; beats, %-anchors, and the bible stay unchanged.
+
 ## Anti-Fabrication Guardrail (both variants)
 
 > **Required — real-comps-only:** comp titles used in pitch, query, or proposal copy must be real, verifiable published works — never invented to sound plausible. Worldbuilding and canon rules established in the bible are binding; a chapter that contradicts them gets fixed, the bible does not silently change.

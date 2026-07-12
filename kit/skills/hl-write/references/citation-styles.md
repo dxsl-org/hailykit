@@ -1,8 +1,9 @@
 # Citation Styles
 
 Shared citation-style reference for `hl-write`'s academic playbooks. Consumers: `playbook-academic-writing.md`,
-`playbook-academic-thesis.md`, `playbook-literary-criticism.md`. Each playbook's citation-style brief field
-resolves against this file rather than repeating the rules — one source of truth (DRY).
+`playbook-academic-thesis.md`, `playbook-literary-criticism.md`, `playbook-research-proposal.md`,
+`playbook-educational-content.md`. Each playbook's citation-style brief field resolves against this file
+rather than repeating the rules — one source of truth (DRY).
 
 > **Section-contract:** the headings below (`Style Rules`, `Check Tiers`, `Cross-Style Pitfalls`,
 > `Vietnamese/East-Asian Name Order`, `Style Resolution`, `Out of Scope`) are a stable anchor contract —

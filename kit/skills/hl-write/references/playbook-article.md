@@ -1,10 +1,20 @@
-# Article Playbook — News Article · Blog Post
+# Article Playbook — News Article · Blog Post · Op-Ed
 
-Two short-form, attribution-driven variants, both audience-first. They differ in ordering discipline: strict inverted-pyramid for news, search-intent-structured for blog.
+Three short-form, attribution-driven variants. News and blog are audience-first and differ in ordering
+discipline — strict inverted-pyramid for news, search-intent-structured for blog. Op-Ed is advocacy-first:
+one sustained argument for a single position, never multi-source objectivity.
 
 ## Track
 
-Both variants default to the short-form track — well under the ~8,000-word long-form threshold. A multi-part investigative series is the one exception: treat each part as its own unit and confirm the track at Recon if the series as a whole grows past the threshold.
+All three variants default to the short-form track — well under the ~8,000-word long-form threshold. A
+multi-part investigative series is the one exception: treat each part as its own unit and confirm the track at
+Recon if the series as a whole grows past the threshold.
+
+**Boundary:** a press release or other company-voiced announcement is advocacy on behalf of a company, not
+neutral third-party reporting → `playbook-marketing-copy.md`'s Press Release variant; neutral reporting on the
+same event stays in this playbook's News Article variant. A delivered, spoken argument for one position →
+`playbook-speech.md`'s Persuasive variant; the same argument in published, non-delivered prose → this
+playbook's Op-Ed variant below — delivery is the differentiator, not topic or length.
 
 ## Variant: News Article
 
@@ -55,6 +65,50 @@ Both variants default to the short-form track — well under the ~8,000-word lon
 
 **Unit:** one Build unit = one H2 section.
 
-## Anti-Fabrication Guardrail (both variants)
+## Variant: Op-Ed
+
+**Skeleton:** Hook + setup → thesis/nut graf (stated by end of paragraph 2–4) → one sustained argument with
+supporting evidence → concession paragraph addressing the opposition's strongest counterargument → actionable,
+memorable close.
+
+*Example nut-graf placement:* a 700-word piece opens with a one-sentence anecdotal hook, gives one sentence of
+setup, then states the thesis in paragraph 3 — leaving the remaining ~550 words for the argument, concession,
+and close.
+
+**Mandatory evidence:** every statistic traces to source data, not secondary aggregation; the concession
+paragraph names the opposition's actual strongest argument, never a weak or discredited one.
+
+**Fabrication risks:** strawmanning (rebutting a weak/discredited counterpoint instead of the strongest real
+objection — fix: name the most prominent real objection); cherry-picked statistics (citing secondary
+aggregation instead of going to source data); ad hominem (critiquing the people who hold the counter-argument
+instead of the argument itself).
+
+**Review criteria:**
+1. Thesis/nut graf lands by end of paragraph 2–4
+2. Exactly one argument sustained throughout — no diluted secondary points
+3. Concession paragraph names the opposition's actual strongest argument, not a strawman
+4. Every statistic traces to source data, not secondary aggregation
+5. Critique targets arguments, not people (no ad hominem)
+6. Close is actionable/memorable, not a bare restatement of the thesis
+
+**Length:** 600–800 words — The Washington Post hard-caps op-ed submissions at 800; The New York Times accepts
+400–1,200 but rewards concision. Treat 800 as the practical ceiling unless the brief names a different outlet.
+
+**Unit:** one Build unit = the whole op-ed; its short length rarely benefits from splitting.
+
+## Anti-Fabrication Guardrail (all variants)
 
 > **Required — attribution-before-print:** no quote, statistic, or named source reaches the draft without a matching entry in `research/`. Unsourced claims are flagged for the writer to source or hedge, never silently invented.
+
+> **Required — op-ed-advocacy-bounded:** op-ed's single-position advocacy relaxes stance and structure, never
+> the attribution-before-print floor above — arguing persuasively is not license to invent a statistic, quote,
+> or source; the same fact-check discipline as news and blog applies.
+
+## Sources
+
+Op-ed length/structure: washingtonpost.com/opinions/2022/op-ed-writing-guide-washington-post-examples,
+helpcenter.washingtonpost.com/hc/en-us/articles/115003675788-Submit-an-op-ed, theopedproject.org/submissions,
+hks.harvard.edu (js_op-ed_classic_structure). Advocacy-vs-news-vs-blog boundary: en.wikipedia.org/wiki/Op-ed,
+uark.pressbooks.pub/journalismethics/chapter/chapter-3. Fabrication risks (strawman/cherry-pick/ad hominem):
+the-learning-agency.com/guides-resources/write-an-op-ed, communicators.duke.edu/writing-media/writing-
+effective-op-eds.
