@@ -67,6 +67,121 @@ Weight sources by reliability. A finding supported only by a tutorial has low co
 
 ---
 
+## Academic Research (--type academic)
+
+Scholarly/scientific research forks the source universe, credibility ladder, and recency rule from the tech-shaped sections above — for `--type academic`, use this section instead of Source Credibility Ladder / Recency Rules.
+
+### Query Fan-Out (Academic)
+
+**Quick mode (2 searches)**
+
+| # | Angle | Query pattern |
+|---|-------|--------------|
+| 1 | Literature exists? | `"does peer-reviewed literature on [X] exist"` (Google Scholar / Semantic Scholar) |
+| 2 | Recent review | `"[X] recent review OR survey [year]"` |
+
+**Default mode (5 searches)**
+
+| # | Angle | Query pattern |
+|---|-------|--------------|
+| 1 | Broad scholarly search | Google Scholar / Semantic Scholar: `"[X]"` |
+| 2 | Preprint server | `site:arxiv.org [X]` |
+| 3 | Review / meta-analysis | `"[X] systematic review OR meta-analysis"` |
+| 4 | Domain database | PubMed / IEEE Xplore / SSRN (pick domain-appropriate): `"[X]"` |
+| 5 | Citation walk | Open one seminal paper on `[X]`, follow its reference list |
+
+**Deep mode (8–10 searches)**
+
+All 5 default angles + citation-walking both directions and cross-validation:
+
+| # | Angle | Query pattern |
+|---|-------|--------------|
+| 6 | Citation-walk forward | Who cites the seminal paper found in angle 5 |
+| 7 | Citation-walk backward | What the seminal paper cites |
+| 8 | Replication search | `"[claim] replication OR failed to reproduce"` |
+| 9 | Conflicting-findings cross-validation | Re-search any finding supported by only one paper |
+| 10 | Methodology / provenance critique | `"[X] methodology critique OR dataset bias OR benchmark provenance"` |
+
+### Credibility Ladder (Academic)
+
+Own ladder, forked from the tech ladder above rather than reused: same authoritative-first direction (rigor beats reach), but a different source universe — a vendor blog is Tier 1 in tech; here, unreviewed prose is low tier regardless of author prestige.
+
+| Tier | Source type | Confidence |
+|------|------------|-----------|
+| **T1 — Meta-analysis / systematic review** | Aggregates multiple studies with an explicit method | High |
+| **T2 — Peer-reviewed primary paper** | Published, peer-reviewed original research | High |
+| **T3 — Preprint** | arXiv, bioRxiv, SSRN — not yet peer-reviewed | Medium |
+| **T4 — Conference abstract / thesis** | Presented but not journal-reviewed | Medium-low |
+| **T5 — Blog / secondary science journalism** | Popularization, no original data | Low |
+| **T6 — LLM inference** | Synthesized without a source | Very low — flag explicitly |
+
+**Rule:** a load-bearing claim requires ≥ T2. Never state T5/T6 as fact without explicit qualification.
+
+### Recency Override (Academic)
+
+- Seminal papers are **exempt** from the 12-month rule — publication age alone does not devalue a foundational result.
+- Weight **replication status and citation count** over publication date; a well-replicated older finding outranks an unreplicated recent one.
+- Flag any **retraction** explicitly — check retraction notices/watch lists before treating a paper as settled.
+
+---
+
+## Market Research (--type market)
+
+Market/competitive research forks the source universe, credibility ladder, and recency rule from the tech-shaped sections above — for `--type market`, use this section instead of Source Credibility Ladder / Recency Rules.
+
+### Query Fan-Out (Market)
+
+**Quick mode (2 searches)**
+
+| # | Angle | Query pattern |
+|---|-------|--------------|
+| 1 | Market size estimate | `"[market] market size TAM [year]"` |
+| 2 | Top competitors | `"[market] top competitors [year]"` |
+
+**Default mode (5 searches)**
+
+| # | Angle | Query pattern |
+|---|-------|--------------|
+| 1 | Industry reports | `"[market] industry report [year]"` |
+| 2 | Funding / usage data | Crunchbase / app-store rankings: `"[company] funding OR downloads [year]"` |
+| 3 | Filings / earnings | `"[company] 10-K OR S-1 OR earnings [year]"` |
+| 4 | Analyst notes | `"[market] analyst report OR forecast [year]"` |
+| 5 | Review platforms & pricing | G2 / Capterra: `"[product] reviews"` + `"[product] pricing"` |
+
+**Deep mode (8–10 searches)**
+
+All 5 default angles + segment/positioning depth and independent verification:
+
+| # | Angle | Query pattern |
+|---|-------|--------------|
+| 6 | Segment breakdown | `"[market] segments OR verticals breakdown [year]"` |
+| 7 | Competitor moat / positioning | `"[competitor] moat OR differentiation OR positioning"` |
+| 8 | Pricing-model comparison | `"[market] pricing model comparison [year]"` |
+| 9 | Trend / tailwind sourcing | `"[market] trends OR tailwinds [year]"` |
+| 10 | Independent contradiction | Re-search any single-sourced number against an independent source |
+
+### Credibility Ladder (Market)
+
+**This inverts the tech ladder above:** a vendor's own docs are Tier 1 in tech (trusting the maintainer to describe their own product); in market research the vendor is a biased party describing itself, so vendor-originated claims sit at the bottom.
+
+| Tier | Source type | Confidence |
+|------|------------|-----------|
+| **T1 — Primary data / official filings** | 10-K, S-1, earnings calls, government/census data | High |
+| **T2 — Analyst / reputable industry report** | Gartner, Forrester, CB Insights, etc. | High |
+| **T3 — Methodical third-party survey** | Independent survey with disclosed methodology | Medium |
+| **T4 — Review-platform aggregate** | G2/Capterra aggregate ratings (not single reviews) | Medium-low |
+| **T5 (LOW) — Press releases / vendor PR** | Vendor's own announcements, marketing pages | Low — inverts the tech ladder; treat as a claim to verify, not a fact |
+
+**Rule:** a market-sizing or competitive claim sourced only from vendor PR is `UNVERIFIED` until corroborated by a T1–T3 source.
+
+### Recency Override (Market)
+
+- Market data decays fast — prefer sources ≤ 12 months old for sizing and pricing.
+- Filings are authoritative **as of their reporting period** — cite the period, not just the filing date.
+- Flag any figure older than the latest reporting cycle as stale.
+
+---
+
 ## Specialized Query Templates
 
 ### Technology evaluation
@@ -106,6 +221,24 @@ Weight sources by reliability. A finding supported only by a tutorial has low co
 "[pattern] at scale [company] [year]"
 ```
 
+### Academic research
+
+```
+"[topic] systematic review meta-analysis"
+"[topic] arxiv"
+"[claim] replication OR failed to reproduce"
+"[seminal paper] cited by" (citation-walk forward)
+```
+
+### Market research
+
+```
+"[market] market size TAM [year] report"
+"[company] competitors alternatives pricing"
+"[market] 10-K OR S-1 OR earnings"
+"[product] G2 OR Capterra reviews"
+```
+
 ---
 
 ## Active Refutation Protocol (default + deep)
@@ -131,6 +264,11 @@ Tag the result:
 - `CONTESTED` — credible counter-evidence exists; present both sides
 
 **Hard cap:** at most 3 refutation searches — this is a bounded rigor pass, not a second fan-out. Contested findings must appear in `## Unresolved Questions`.
+
+### Domain-Specific Refutation Targets
+
+- **Academic (`--type academic`):** target replication failures and retractions — `"[claim] replication OR failed to reproduce"`, `"[paper] retracted OR retraction notice"`.
+- **Market (`--type market`):** target vendor-PR bias — find an independent T1–T3 source that contradicts any single-sourced number: `"[claimed figure] independent OR contradicts OR disputed"`.
 
 ---
 

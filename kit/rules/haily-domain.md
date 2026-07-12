@@ -36,8 +36,10 @@ Code metrics (nLOC, complexity, token est)  → {skill:hl-stats}
 Build knowledge graph from topic/entities   → {skill:hl-mindmap} <topic>
 Extend existing graph with new entity/rel   → {skill:hl-mindmap} <file.json> <query>
 Deep technical research report              → {skill:hl-research} <topic>
+Market / competitive research (size, competitors, pricing)  → {skill:hl-research} <topic> --type market
+Literature review / scholarly research (no authored deliverable) → {skill:hl-research} <topic> --type academic
 ```
-Disambiguate: want persistent graph you can extend → `{skill:hl-mindmap}` · want one-shot research report → `{skill:hl-research}`.
+Disambiguate: want persistent graph you can extend → `{skill:hl-mindmap}` · want one-shot research report → `{skill:hl-research}` · market/competitive analysis as a decision artifact → `{skill:hl-research} --type market` · a literature review with no prose deliverable → `{skill:hl-research} --type academic` · an authored market-research report or thesis the reader consumes as prose → `{skill:hl-write}`.
 
 ## Writing / Content
 
@@ -46,7 +48,7 @@ Any authored document (report, article, essay, paper)   → {skill:hl-write} "de
 Story or book (short story, novel, non-fiction book)     → {skill:hl-write} "description"
 Resume a long-form work in progress                      → {skill:hl-write} <workspace-dir>
 ```
-Disambiguate: authored deliverable user will read as prose (report, essay, story, book) → `{skill:hl-write}` · project/technical documentation from code → `{skill:hc-docs}` · research report with no authored deliverable → `{skill:hl-research}`. References/sources can feed `{skill:hl-write}` directly as input files.
+Disambiguate: authored deliverable user will read as prose (report, essay, story, book) → `{skill:hl-write}` · project/technical documentation from code → `{skill:hc-docs}` · research report with no authored deliverable → `{skill:hl-research}` · a research artifact (competitor matrix, literature review) with no authored prose → `{skill:hl-research} --type market|academic`. References/sources can feed `{skill:hl-write}` directly as input files.
 
 ## Architecture & Specification
 

@@ -13,6 +13,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - hl-write: extended copyedit/fact-check rubrics in `review-passes.md` (citation-format validation, verbatim-quote fixed-string checking, primary-text provenance exclusion)
 - haily-editor: streamlined manifest handling for references and playbooks
 - scripts: check-skill-cross-refs now validates file paths in SKILL.md References tables
+- hl-research: add `--type academic` (scholarly/literature-review research — meta-analysis-first credibility ladder, citation-walking, replication-aware refutation) and `--type market` (market/competitive research — filings-first ladder, press-release-as-low-tier, competitor matrix output)
 
 ### 🐛 Fixes
 

@@ -1,12 +1,12 @@
 ---
 name: hl-research
-description: "Deep technical research for technology evaluation, security review, migration planning, and architecture decisions. Supports --quick (5 min sanity check) and --deep (20 min production-grade evaluation)."
-when_to_use: "Invoke when researching a technical topic, library, or best practice before deciding. Use --quick for fast validation, --deep for architecture decisions."
+description: "Deep technical, academic, and market research — technology evaluation, security review, migration planning, architecture decisions, literature review, market/competitor analysis. Supports --quick (5 min sanity check) and --deep (20 min production-grade evaluation)."
+when_to_use: "Invoke when researching a technical topic, library, or best practice before deciding, or when the ask is a scholarly literature review or market/competitive research (\"nghiên cứu thị trường\"). Use --quick for fast validation, --deep for architecture decisions."
 user-invocable: true
-argument-hint: "<topic> [--quick | --deep] [--type eval|security|migration|arch]"
+argument-hint: "<topic> [--quick | --deep] [--type eval|security|migration|arch|academic|market]"
 metadata:
   category: thinking
-  keywords: [research, evaluation, analysis, solutions, security, migration, architecture]
+  keywords: [research, evaluation, analysis, solutions, security, migration, architecture, academic, scholarly, literature-review, market, competitor]
 ---
 
 # hl:research — Technical Intelligence
@@ -16,7 +16,7 @@ Multi-source research from scope definition to actionable report. **YAGNI · KIS
 ## Usage
 
 ```
-{skill:hl-research} <topic> [--quick | --deep] [--type eval|security|migration|arch]
+{skill:hl-research} <topic> [--quick | --deep] [--type eval|security|migration|arch|academic|market]
 ```
 
 Depth follows the canonical vocabulary (`docs/engineering-standards.md` → Depth Tiers) — this skill's three tiers are the searches-and-time expression of the same Cheapest / Baseline / 3–5× cost curve every `--deep`-eligible skill shares:
@@ -33,14 +33,16 @@ Depth follows the canonical vocabulary (`docs/engineering-standards.md` → Dept
 | `security` | CVEs + affected versions + patch status + mitigations | Security review or audit |
 | `migration` | From/to state + gotchas + order of operations | Planning an upgrade or migration |
 | `arch` | Case studies + trade-offs + when NOT to use | Architecture pattern evaluation |
+| `academic` | Literature review — findings by theme + evidence strength + citations + gaps | Scholarly or scientific research |
+| `market` | Market size + segments + competitor matrix + trends + risks | Market or competitive research |
 
 ## Constraints
 
 > **Required — parallel searches:** Run all search calls concurrently. Never run searches sequentially when they are independent.
 
-> **Required — recency first:** Prioritize information from the last 12 months unless historical context is explicitly needed. For security topics, always check for recent CVEs and advisories.
+> **Required — recency first:** Prioritize information from the last 12 months unless historical context is explicitly needed. For security topics, always check for recent CVEs and advisories. For `--type academic`/`market`, use the per-domain recency override in `references/research-protocol.md` instead.
 
-> **Required — source credibility weighting:** Official docs and maintainer blogs outrank tutorials. Production case studies outrank theoretical analysis. See `references/research-protocol.md` for the full credibility ladder.
+> **Required — source credibility weighting:** Official docs and maintainer blogs outrank tutorials. Production case studies outrank theoretical analysis. `--type academic` and `--type market` use their own ladders (`market` inverts the tech ordering — vendor PR is low tier, not Tier 1) — see `references/research-protocol.md` for the full credibility ladders.
 
 > **Required — read by tier (token discipline):** Use search snippets for breadth. Full-fetch a source (`{skill:hc-lookup}` / WebFetch) ONLY for the 1–3 highest-credibility (Tier 1–2) results. Never full-read low-tier pages — that is the token sink this skill exists to avoid.
 
@@ -48,7 +50,7 @@ Depth follows the canonical vocabulary (`docs/engineering-standards.md` → Dept
 
 ## Process
 
-1. **Scope** — decompose the topic into explicit sub-questions, then map each to a search angle (targeted queries beat repeated rewording — fewer wasted searches). Identify recency requirements, evaluation criteria, depth limits. Select `--type` from topic keywords if unspecified. If the question is already inverted (signals: "why avoid", "origin of", "is X actually", "why is there no"), open with the inversion pass instead of forward fan-out.
+1. **Scope** — decompose the topic into explicit sub-questions, then map each to a search angle (targeted queries beat repeated rewording — fewer wasted searches). Identify recency requirements, evaluation criteria, depth limits. Select `--type` from topic keywords if unspecified — `academic` on "paper/study/meta-analysis/literature/scholarly/arxiv/clinical/peer-reviewed", `market` on "market size/competitor/TAM/pricing/G2/Crunchbase/industry report/nghiên cứu thị trường". If the question is already inverted (signals: "why avoid", "origin of", "is X actually", "why is there no"), open with the inversion pass instead of forward fan-out.
 
 2. **Gather** — use the session's native search tool. Apply Query Fan-Out: each parallel search covers a distinct angle (official docs, security, performance, community sentiment, comparisons). Read by tier (snippet-first; full-fetch only Tier 1–2 via `{skill:hc-lookup}`/WebFetch). See `references/research-protocol.md` for query templates.
    - `--quick`: 2 searches (essential facts + community health)
@@ -153,6 +155,45 @@ Depth follows the canonical vocabulary (`docs/engineering-standards.md` → Dept
 
 ## Implementation Notes
 ## Alternatives
+## Unresolved Questions
+```
+
+### `--type academic` — Literature Review
+
+```markdown
+# Literature Review: [Research Question]
+**Date:** YYYY-MM-DD · **Depth:** quick|standard|deep
+
+## Verdict
+[What does the literature currently support? One sentence.]
+
+## Key Findings by Theme
+## Evidence Strength per Claim
+| Claim | Support tier | Replication status |
+|---|---|---|
+
+## Citations
+## Research Gaps
+## Unresolved Questions
+```
+
+### `--type market` — Market Research
+
+```markdown
+# Market Research: [Market / Product]
+**Date:** YYYY-MM-DD · **Depth:** quick|standard|deep
+
+## Verdict
+[Is this market attractive, or who is the leading competitor? One sentence.]
+
+## Market Size & Segments
+## Competitor Matrix
+| Competitor | Positioning | Pricing | Moat |
+|---|---|---|---|
+
+## Trends
+## Risks
+## Sources
 ## Unresolved Questions
 ```
 
