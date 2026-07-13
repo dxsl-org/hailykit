@@ -180,7 +180,12 @@ Three flag-level depths map onto the same axis every eligible skill shares:
 
 Consumers compare **ordinal rank**, never the literal string: `fast(0) < medium(1) < thinking(2) < ultra(3)`. A tier-gated behavior is phrased as "runs when tier < ultra" (rank comparison), not "runs unless tier === 'ultra'" (string comparison) — the rank form still fails safe if a fifth tier is ever added above `ultra`.
 
-**Parity hint** — when a skill's default behavior already approximates what `--deep` would add for a *high* session tier (e.g. an `ultra`-tier session doing exhaustive reasoning by default), the skill may note this as a parity hint in its own docs ("On an ultra-tier session, `--deep` adds comparatively little over the default pass") but must still honor an explicit `--deep` flag — a parity hint informs the user's choice, it never substitutes for the flag.
+**Parity hint** — advisory-only guidance connecting `HL_MODEL_TIER` to the `--quick`/`--deep` axis. Never auto-escalates, never auto-downgrades — an explicit flag always wins. Both directions emit as one advisory log line at the skill's Route stage (or its earliest equivalent stage, for skills without a stage literally named Route), and both skip silently when `HL_MODEL_TIER` is empty (non-Claude session, unresolvable tier):
+
+- **Downward** — `HL_MODEL_TIER` ranks below `ultra` and the task touches a high-risk domain (canonical list: `{skill:hc-cook}` `references/agent-invocations.md` § Domain-Risk Review): the Route stage logs one line suggesting `--deep`, then the skill proceeds at the requested depth.
+- **Upward** — `HL_MODEL_TIER` ranks `ultra` and `--deep` was requested: the skill logs one line noting `--deep` adds comparatively little over its default pass, then honors the flag and runs `--deep` in full anyway.
+
+Both directions compare `HL_MODEL_TIER` by ordinal rank (`fast(0) < medium(1) < thinking(2) < ultra(3)`), never the literal string. A skill implements whichever direction(s) apply to its own default-scrutiny profile — see each skill's own Parity hint line for which direction(s) it carries.
 
 **`haily.json` `deep.auto`** (defined once, here — do not redefine the schema elsewhere): opts a skill's `--deep` behavior on by default for the repo, following the same lowercase shape as `crossReview.auto` / `quiz.auto`:
 

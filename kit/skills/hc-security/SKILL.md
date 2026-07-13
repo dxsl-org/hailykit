@@ -94,7 +94,7 @@ Every Critical finding gets refuter votes before it can appear as blocking in th
 
 **Cross Review (egress-gated):** an audit report describes exploitable vulnerabilities, so sending it externally matters twice as much as an ordinary diff — `--deep` alone never authorizes this. Only when `--cross` is also passed, or `haily.json crossReview.auto` is true, run `hailykit cross-review --stage code` on the finished report for an external second opinion; findings merge as confidence-raising, tagged `[cross: <cli>/<model>]`. Skips silently when no eligible reviewer CLI is installed.
 
-**Parity hint:** on an `ultra`-tier session the default audit already runs at high scrutiny, but `--deep` still spawns refuter votes when explicitly requested — a parity hint informs the user's choice, it never substitutes for the flag (never-auto-escalate).
+**Parity hint (upward):** on an `ultra`-tier session, `--deep` still spawns refuter votes when requested — the tier only adds an advisory note that the marginal gain over the default audit is smaller. See `docs/engineering-standards.md` § Depth Tiers → Parity hint.
 
 ## Session Model
 

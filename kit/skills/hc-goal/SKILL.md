@@ -22,7 +22,7 @@ Give it a goal; it plans, implements, reviews, and commits each phase until done
 | Flag | Behavior |
 |------|----------|
 | *(none)* | Stage-gate — pauses at plan checkpoint and between major stage groups |
-| `--deep` | Pass-through — forwarded verbatim to the `{skill:hc-plan}` invocation at Plan and to every `{skill:hc-cook}` phase delegation at Execute. Egress and domain-risk rules are governed by those downstream skills' own `--deep` semantics — not restated here. Multiplies per-phase token cost 3–5×; pair with `--budget` to bound total spend. Never auto-activates — pass it explicitly or set `haily.json deep.auto`. |
+| `--deep` | Pass-through — forwarded verbatim to the `{skill:hc-plan}` invocation at Plan and to every `{skill:hc-cook}` phase delegation at Execute. Egress and domain-risk rules are governed by those downstream skills' own `--deep` semantics — not restated here. Cost: 3–5× baseline per phase × N phases — pair with `--budget` to bound total spend. Never auto-activates — pass it explicitly or set `haily.json deep.auto`. |
 | `--auto` | Autonomous — runs through; escalates only critical blockers |
 | `--tdd` | Pass-through to `{skill:hc-cook}` — write tests before each phase |
 | `--retry N` | Max analyze→fix attempts per failing phase before deferring (default: 3) |

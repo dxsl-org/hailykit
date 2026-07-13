@@ -6,6 +6,8 @@
 **Context Tokens**: <150 words
 
 > **Required — deviation-log:** Log every Decision / Deviation / Surprise in § Deviation Log the moment it occurs — not from memory at the end. On an edge case that diverges from this plan, choose the smallest reversible option, log four lines, and continue; escalate only irreversible or contract-breaking divergence.
+> Reversible examples: adding an optional field, extracting a helper function, renaming a local variable.
+> Irreversible examples: moving/renaming a public API, changing a wire format, deleting persisted data, altering a DB column.
 
 ## Executive Summary
 Brief description of the bug and its impact.

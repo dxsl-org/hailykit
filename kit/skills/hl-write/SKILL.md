@@ -29,6 +29,8 @@ Write any document genre — business plan, market research, report, article, es
 | `--out <dir>` | Workspace location override (default: `./<slug>/` at project root) |
 | `--auto` | Checkpoints auto-proceed; Critical severity and blocked retcons still halt |
 
+No `--deep` flag: the per-unit `haily-editor` multi-pass Review Circuit already runs at maximum scrutiny every unit — a separate depth axis would duplicate that pass, not add depth.
+
 Examples:
 ```
 {skill:hl-write} "Kế hoạch kinh doanh quán cà phê specialty tại Đà Nẵng"

@@ -34,6 +34,13 @@ tier: medium          # fast (mechanical/boilerplate) | medium (logic/integratio
 
 <Every claim this phase relies on that has not been directly verified against the codebase — a file exists, an API behaves a certain way, a dependency is available. High-confidence claims pass through Recon unchecked; the top-3 low/medium-confidence entries get spot-verified before Build (`{skill:hc-cook}` Recon pre-Build Pass → Assumption Verification). If empty, write "None — no unverified claims." so absence is a statement, not an omission.>
 
+**Fact vs assumption — only log assumptions here, facts belong in Architecture/Requirements:**
+- Fact: grepped/read directly, cited as `file:line` — e.g. "`requireAuth` exported from `src/auth/middleware.ts:42`".
+- Fact: confirmed by running a command — e.g. "`npm ls stripe` shows `stripe@14.2.0` installed".
+- Assumption: inferred from naming convention — e.g. "files under `handlers/` follow the `on<Event>` pattern seen in 3/3 sampled files".
+- Assumption: inferred from absence of counter-evidence — e.g. "no callers outside module X — verified only for `*.ts`, assumed for scripts".
+- Assumption: inferred from docs without codebase confirmation — e.g. "README states rate limit is 100 req/min; not verified against the actual middleware config".
+
 - **Claim:** <what is assumed true>
   **Confidence:** high | medium | low
   **How to verify:** <command to run, file to read, or doc to check>

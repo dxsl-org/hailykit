@@ -99,7 +99,7 @@ Stored in `context-snippets.json`: task, acceptanceCriteria, touchpoints, blastR
 
 ## Process
 
-1. **Route** — classify first arg via `references/input-detect.md`; select execution path; initialize workspace. Parity hint: when `HL_MODEL_TIER` is non-empty and ranks below `ultra` (see `docs/engineering-standards.md` § Depth Tiers) and the task touches a high-risk domain (see `references/agent-invocations.md` § Domain-Risk Review), print one line suggesting `--deep` and proceed at normal depth — never auto-escalate. Log `✓ Route: [inputType] — mode=[interactive|auto], flags=[list]`
+1. **Route** — classify first arg via `references/input-detect.md`; select execution path; initialize workspace. **Parity hint (downward):** when `HL_MODEL_TIER` ranks below `ultra` and the task touches a high-risk domain (`references/agent-invocations.md` § Domain-Risk Review), print one line suggesting `--deep` in this Route log line and proceed at the requested depth — advisory only. See `docs/engineering-standards.md` § Depth Tiers → Parity hint. Log `✓ Route: [inputType] — mode=[interactive|auto], flags=[list]`
 
 2. **Recon** — spawn `{skill:hc-scout}` or parallel Explore agents; capture 3–6 findings; mine git history for precedent commits (`git log --grep` → `git show --stat`) and flag any file in their footprint that current scope omits, each cited by commit hash; capture Scope Contract (see § Scope Contract above); spawn `haily-researcher` agents in parallel (reports ≤150 lines). Log `✓ Recon: [N] findings, Scope Contract locked`. [skip: plan-path, layout]
 

@@ -95,7 +95,7 @@ Which stages run per flag combination:
 ## Process
 
 1. **Route** — classify first arg via `references/input-routing.md`; select review mode; initialize diff context. When `--batch` is present, load `references/flow-batch.md` and follow the batch loop protocol instead of single-target processing — each target runs its own Route→Scout→Review Circuit, then results are aggregated into a Team Health Report. Log `✓ Route: [mode] — input=[type], flags=[list]`
-   - **Depth parity hint:** if `HL_MODEL_TIER` is below the `ultra` ordinal (`fast|medium|thinking`) and the diff touches a domain from the canonical risk list (`{skill:hc-cook}` → `references/agent-invocations.md` → Domain-Risk Review), suggest `--deep` in the Route log line — advisory only, never auto-escalates (`docs/engineering-standards.md` → never-auto-escalate). Skip the hint when `HL_MODEL_TIER` is empty (non-Claude session, unresolvable tier).
+   - **Parity hint (downward):** when `HL_MODEL_TIER` ranks below `ultra` and the diff touches a high-risk domain (`{skill:hc-cook}` → `references/agent-invocations.md` → Domain-Risk Review), suggest `--deep` in this Route log line and proceed at the requested depth — advisory only. See `docs/engineering-standards.md` § Depth Tiers → Parity hint.
 
 2. **Scout** — spawn `{skill:hc-scout}` with edge-case prompt: affected files, data flows, boundary conditions, blast radius. Document findings for review stages. Log `✓ Scout: [N] findings`
    - Skip: `codebase` and `codebase parallel` modes

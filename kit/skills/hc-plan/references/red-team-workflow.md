@@ -63,6 +63,11 @@ For each surviving finding, classify:
 - **Reject:** finding is based on a misread or already addressed elsewhere; document why
 - **Defer:** finding is valid but out of scope; add to Risk Notes for the relevant phase
 
+For each **Accept**, choose one response:
+- **Acknowledge + accept risk** — document in Risk Notes, plan unchanged; trigger: low-impact finding where mitigation cost exceeds the risk (e.g. "Minor: rare race condition in a dev-only script — log it, ship as-is").
+- **Mitigate in plan** — revise the affected phase's steps or success criteria; trigger: a concrete, in-scope fix exists (e.g. "Critical: new endpoint missing auth check — add a middleware step to phase 3").
+- **Escalate to user** — surface at the Checkpoint below; trigger: the fix requires a scope, budget, or product trade-off only the user can make (e.g. "Critical: fix requires breaking a public API contract — ask before revising").
+
 ### Checkpoint
 
 Present adjudicated findings to user via `AskUserQuestion`:

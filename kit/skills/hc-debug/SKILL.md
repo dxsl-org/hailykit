@@ -101,7 +101,7 @@ Stop and restart from systematic investigation if any of these thoughts occur:
 
 Spawns a capped 2–3 stream hypothesis panel instead of a single investigation stream — full protocol in `references/hypothesis-panel.md`. Convergence (≥2 streams agreeing) satisfies the existing SUSPECTED→PROBABLE bar in `references/confidence-signaling.md`; CONFIRMED keeps its existing reproduction requirement regardless of panel size. Divergent streams surface a differential to the user instead of a guess. Recommended whenever the symptom touches a high-risk domain (canonical list: `{skill:hc-cook}` `references/agent-invocations.md` → Domain-Risk Review). No cross-model leg here — all panel streams are internal `haily-debugger` subagents; `--deep` never sends anything externally. No `--quick` counterpart exists for this skill. Cost: 3–5× baseline (`docs/engineering-standards.md` → Depth Tiers), bounded by the 3-stream cap.
 
-**Parity hint:** on an `ultra`-tier session the default single-stream trace already runs at high scrutiny, but `--deep` still spawns the full panel when explicitly requested or via `haily.json` `deep.auto` — a parity hint informs the user's choice, it never substitutes for the flag (never-auto-escalate). Any tier-gated behavior compares `HL_MODEL_TIER` by ordinal rank (`fast(0) < medium(1) < thinking(2) < ultra(3)`), never the literal string.
+**Parity hint (upward):** on an `ultra`-tier session, `--deep` still spawns the full panel when requested — the tier only adds an advisory note that the marginal gain over the default single-stream trace is smaller. See `docs/engineering-standards.md` § Depth Tiers → Parity hint.
 
 ## Output
 

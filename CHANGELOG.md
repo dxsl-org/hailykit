@@ -7,6 +7,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
+- session: `haily-session.cjs` emits a one-line `standards: <list>|none detected` visibility summary reflecting only standards that actually resolve to a shipped file, so a stack-detection miss is visible instead of silent; `context.cjs` `buildLangStandardsSection` emits a one-line "no standards file shipped" note when a language is detected but unmapped
+- contextual rules: add `kit/contextual/` (`orchestration-protocol.md`, `team-coordination-rules.md`, `review-audit-self-decision.md`), previously unshipped despite being referenced by the trigger table; triggers now also match current slash-command forms (`/hc-review`, `/hc-security`, `/hc-cook`, `/hc-goal`, `/hc-plan`) alongside legacy keywords, with per-file dedup so a file injects at most once per prompt
+- docs: `docs/engineering-standards.md` § Depth Tiers defines a single canonical two-direction parity hint (upward: ultra tier + `--deep` requested — advisory that `--deep` adds little, flag still honored; downward: tier below ultra + high-risk domain — advisory suggesting `--deep`, never auto-escalates) with the Route stage as the uniform emission point; `hc-debug`, `hc-security`, `hc-fix`, `hc-review`, `hc-cook`, `hc-plan` carry the same sentence shape
 - hl-write: add academic writing playbooks — thesis/dissertation (Luận văn ThS / Luận án TS / international thesis) and literary criticism (close-reading essay / phê bình chân dung tác giả / review)
 - hl-write: add `citation-styles.md` reference — 6 styles (APA 7, MLA 9, Chicago Notes-Biblio, Chicago Author-Date, IEEE, Vancouver) with mechanically-checkable rules, check tiers, and Vietnamese/East-Asian name-order conventions
 - hl-write: IMRaD skeleton gains Abstract and Keywords sections
@@ -19,6 +22,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🐛 Fixes
 
+- haily-rules: fix a wiring bug (`buildReminderContext` called with a positional string instead of an options object) that made the `UserPromptSubmit` reminder hook write the literal string `[object Object]` to stdout on every prompt since v1.0.0 — rules, language/framework standards, contextual rules, paths, plan context, and naming injection are now real content again; wires up the previously-unused 5-minute TTL dedup helpers so the heavy block is capped per session+cwd scope while keyword/skill-triggered contextual rules still fire every matching prompt
 - hc-db: correct stale path reference
 
 ## [1.14.0] (2026-07-08)

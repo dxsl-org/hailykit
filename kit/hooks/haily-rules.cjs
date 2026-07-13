@@ -2,12 +2,18 @@
 /**
  * haily-rules.cjs — UserPromptSubmit hook that injects dev rules and session context.
  *
- * Fires on every user prompt. Delegates context building (TTL cooldown, contextual
- * rules injection, rules path resolution) entirely to context.cjs. Outputs
- * a plain-text rules block to stdout; Claude Code prepends it to the next turn context.
+ * Fires on every user prompt. Delegates context building (rules, standards,
+ * contextual rules, paths, plan context, naming) to context.cjs, which returns
+ * an options object — NOT a positional-args string API. Outputs a plain-text
+ * rules block to stdout; Claude Code prepends it to the next turn context.
  *
- * TTL: 5-minute cooldown per scope (session+CWD) — context manages this.
- * Contextual rules (keyword-matched) always inject even during cooldown.
+ * TTL: 5-minute cooldown per scope (session+CWD), enforced here via
+ * reserveInjectionScope/markRecentlyInjected/clearPendingInjection — context.cjs
+ * exposes the helpers but does not call them itself. During cooldown, the heavy
+ * builder (buildReminderContext — git subprocess, plan-context reads, standards
+ * fs detection) is skipped entirely; only buildContextualRulesSection(prompt)
+ * runs, so contextual (keyword-matched) rules still inject per the docstring
+ * contract without paying for the discarded heavy sections.
  *
  * Config key (isHookEnabled): 'dev-rules-reminder'  ← preserved as user config contract
  * Exit codes: 0 always (fail-open)
@@ -21,7 +27,14 @@ try {
   const fs = require('node:fs');
   const { isHookEnabled } = require('./haily-lib/config.cjs');
   const { createHookTimer, logHookCrash } = require('./haily-lib/logger.cjs');
-  const { buildReminderContext } = require('./haily-lib/context.cjs');
+  const {
+    buildReminderContext,
+    buildContextualRulesSection,
+    buildInjectionScopeKey,
+    reserveInjectionScope,
+    markRecentlyInjected,
+    clearPendingInjection
+  } = require('./haily-lib/context.cjs');
 
   // NOTE: config key 'dev-rules-reminder' preserved — user-facing contract
   if (!isHookEnabled('dev-rules-reminder')) process.exit(0);
@@ -34,18 +47,49 @@ try {
     const sessionId = data.session_id || process.env.HL_SESSION_ID || '';
     const prompt = data.prompt || '';
     const transcriptPath = data.transcript_path || null;
+    const baseDir = process.cwd();
 
-    // Delegate all context building + TTL logic to context
-    let content = null;
+    let scopeKey = null;
+    let reservation = { shouldInject: true, reserved: false };
+    let output = null;
+    let note = 'empty';
+
     try {
-      content = await buildReminderContext(sessionId, prompt, transcriptPath);
-    } catch { /* fail-open — if context errors, skip injection */ }
+      scopeKey = buildInjectionScopeKey({ baseDir });
+      reservation = reserveInjectionScope(sessionId, scopeKey, transcriptPath);
 
-    if (content) {
-      process.stdout.write(content + '\n');
-      timer.end({ status: 'injected', exit: 0 });
+      if (reservation.shouldInject) {
+        const result = await buildReminderContext({ sessionId, prompt, baseDir });
+        output = result?.content || null;
+        // Only burn the 5-min suppression window on a real, non-empty build —
+        // an empty result (e.g. hooks config disables every section) must not
+        // block the next turn from trying again.
+        if (output) markRecentlyInjected(sessionId, scopeKey);
+        note = output ? 'injected' : 'empty';
+      } else {
+        // Cooldown: skip buildReminderContext entirely — it runs a git
+        // subprocess, plan-context file reads, and language/framework fs
+        // detection just to have all of it discarded except contextualRules.
+        // buildContextualRulesSection(prompt) with the default configDirName
+        // ('.claude') is exactly what buildReminderContext's own
+        // sections.contextualRules used to compute internally — calling it
+        // directly keeps cooldown-turn output byte-equivalent.
+        const contextualContent = buildContextualRulesSection(prompt).join('\n').trim();
+        output = contextualContent || null;
+        note = output ? 'contextual-during-cooldown' : 'cooldown';
+      }
+    } catch {
+      // fail-open — if context errors, skip injection and release any reserved slot
+      if (reservation.reserved) clearPendingInjection(sessionId, scopeKey);
+      output = null;
+      note = 'error';
+    }
+
+    if (output) {
+      process.stdout.write(output + '\n');
+      timer.end({ status: 'injected', exit: 0, note });
     } else {
-      timer.end({ status: 'skip', exit: 0, note: 'cooldown-or-empty' });
+      timer.end({ status: 'skip', exit: 0, note });
     }
 
     process.exit(0);

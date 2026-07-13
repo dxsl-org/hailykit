@@ -97,7 +97,7 @@ Auto-routing selects the workflow reference from symptom type (see Usage). When 
 
 Replaces single-stream Diagnose with `{skill:hc-debug}`'s hypothesis panel and adds refuter votes to Verify's Critical findings (see Process steps 2 and 5) — protocols live in those skills, not duplicated here. Recommended whenever the symptom touches a high-risk domain (canonical list: `{skill:hc-cook}` `references/agent-invocations.md` → Domain-Risk Review). No cross-model leg here — refuter votes stay internal to `haily-reviewer` subagents; `--deep` never sends anything externally on its own. Orthogonal to the Simple/Moderate/Complex complexity table: `--deep` raises rigor at whichever complexity level Assess selects. `--quick` and `--deep` are mutually exclusive — `--deep` wins if both are given, with a one-line notice ("`--quick` overridden: `--deep` requested, full rigor applied"). Composes with `--auto`. Auto-on via `haily.json` `deep.auto`; an explicit `--quick` on the invocation overrides the config default.
 
-**Parity hint:** on an `ultra`-tier session the default Diagnose/Verify pass already runs at high scrutiny, but `--deep` still spawns the panel and refuter votes when explicitly requested — a parity hint informs the user's choice, it never substitutes for the flag (never-auto-escalate). Any tier-gated behavior compares `HL_MODEL_TIER` by ordinal rank (`fast(0) < medium(1) < thinking(2) < ultra(3)`), never the literal string.
+**Parity hint (upward):** on an `ultra`-tier session, `--deep` still spawns the panel and refuter votes when requested — the tier only adds an advisory note that the marginal gain over the default Diagnose/Verify pass is smaller. See `docs/engineering-standards.md` § Depth Tiers → Parity hint.
 
 ## Output
 
