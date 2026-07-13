@@ -25,7 +25,8 @@ try {
   } = require('./haily-lib/config.cjs');
   const { createHookTimer, logHookCrash } = require('./haily-lib/logger.cjs');
   const { formatModelDisplay, canonicalTier } = require('./haily-lib/model.cjs');
-  const { detectProject, buildStaticEnv, getCodingLevelStyleName } = require('./haily-lib/project.cjs');
+  const { detectProject, buildStaticEnv, getCodingLevelStyleName, detectPrimaryLanguage } = require('./haily-lib/project.cjs');
+  const { resolveStandardsPath } = require('./haily-lib/context.cjs');
   const { updateSessionState } = require('./haily-lib/session.cjs');
   const { readActivitySnapshot, writeActivitySnapshot, createEmptyActivitySnapshot } = require('./haily-lib/statusline.cjs');
   const { cleanupShadowedSkills, detectAgentTeam, formatTeamContextLine } = require('./haily-lib/cleanup.cjs');
@@ -158,10 +159,28 @@ try {
       }
     }
 
+    // ── Standards-detection visibility (weak-model lift: silent scaffolding loss) ──
+    // Reports only standards that actually resolve to a shipped file, not raw
+    // detections — a detected-but-unshipped language would otherwise mislead
+    // the model into believing scaffolding is active when it is not.
+    const language = detectPrimaryLanguage(baseDir);
+    const injectableStandards = [];
+    if (language && resolveStandardsPath(`lang-${language}.md`)) injectableStandards.push(`lang-${language}`);
+    if (detections.framework && resolveStandardsPath(`framework-${detections.framework}.md`)) {
+      injectableStandards.push(`framework-${detections.framework}`);
+    }
+    for (const extra of detections.frameworkExtras || []) {
+      if (extra && resolveStandardsPath(`framework-${extra}.md`)) injectableStandards.push(`framework-${extra}`);
+    }
+    const standardsLine = injectableStandards.length > 0
+      ? `standards: ${injectableStandards.join(', ')}`
+      : 'standards: none detected';
+
     // ── Context summary ─────────────────────────────────────────────────────
     const lines = [
       `Session startup. Project: ${detections.type || 'unknown'} | PM: ${detections.pm || 'unknown'}`,
       `Plan naming: ${namePattern} | Root: ${baseDir}`,
+      standardsLine,
     ];
     if (sessionModel) lines.unshift(`🤖 haily: ${formatModelDisplay(sessionModel)}`);
     if (teamInfo.isTeamMember) lines.push(formatTeamContextLine(teamInfo));

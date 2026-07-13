@@ -807,7 +807,9 @@ function buildNamingSection({ reportsPath, plansPath, namePattern }) {
 
 /**
  * Build language-specific standards section by injecting the matching lang rules file content.
- * Returns [] when language is null, unknown, or the file doesn't exist — silent no-op.
+ * Returns [] only when no language was detected. When a language IS detected but no
+ * standards file ships for it, emits a one-line miss-note instead of silent [] — a
+ * weak model otherwise has no signal that scaffolding it expects is simply absent.
  * @param {string|null} language - Detected language key (e.g. 'typescript', 'golang')
  * @param {string} [configDirName='.claude'] - Config directory name
  * @returns {string[]} Lines to inject, or [] if nothing to inject
@@ -816,7 +818,9 @@ function buildLangStandardsSection(language, configDirName = '.claude') {
   if (!language) return [];
   const filename = `lang-${language}.md`;
   const resolvedPath = resolveStandardsPath(filename, configDirName);
-  if (!resolvedPath) return [];
+  if (!resolvedPath) {
+    return [`## Language Standards (${language})`, `- No standards file shipped for ${language} — proceeding without language scaffolding.`, ``];
+  }
 
   try {
     const fullPath = resolvedPath.startsWith('~')
@@ -883,14 +887,33 @@ function buildFrameworkExtrasStandardsSection(extras, configDirName = '.claude')
 }
 
 /**
- * Keyword triggers for on-demand contextual rule injection.
- * Each entry maps a rule file to a regex that matches relevant user prompts.
+ * Keyword + skill-slug triggers for on-demand contextual rule injection.
+ * Each entry maps a rule file to a regex tested against the raw user prompt text.
+ *
+ * Prompts naturally carry the slash text a user types (e.g. `/hc-review`), so
+ * matching skill invocation is the same code path as keyword matching — no new
+ * hook/event is needed (see phase-03 Design Decision, Option A). Both legacy
+ * colon form (`hc:review`) and current slash form (`/hc-review`) are matched
+ * during the transition window.
+ *
+ * Slash-slug alternations use `(?<![\w./-])\/slug\b(?!\/)` instead of a plain
+ * `\/slug\b`: the plain form false-positives on path mentions like
+ * `kit/skills/hc-cook/SKILL.md` (the `\b` after "hc-cook" is satisfied by the
+ * following "/" same as it would be by a space). The lookbehind rejects a
+ * slash preceded by another path-ish char (word char, `.`, `-`, `/`); the
+ * lookahead rejects a slash immediately followed by another `/` (path
+ * continues). Together they only match the slug as a standalone command
+ * token — start of string, or after whitespace/punctuation — not as a path
+ * segment.
  */
 const CONTEXTUAL_TRIGGERS = [
   {
     file: 'orchestration-protocol.md',
-    // NOTE: matches spawn/subagent/delegate patterns — orchestration is needed
-    pattern: /\bspawn\b|\bsubagent\b|\bsub-agent\b|\bdelegate\b|\bagent.?team\b|\bTask\s+tool\b|\borchestrat/i
+    // NOTE: matches spawn/subagent/delegate patterns, plus workflow skills that
+    // spawn subagents internally (/hc-cook, /hc-goal, /hc-plan) — orchestration
+    // rules are needed the moment one of those skills is invoked, not only when
+    // the user spells out "spawn" or "delegate".
+    pattern: /\bspawn\b|\bsubagent\b|\bsub-agent\b|\bdelegate\b|\bagent.?team\b|\bTask\s+tool\b|\borchestrat|(?<![\w./-])\/hc-cook\b(?!\/)|(?<![\w./-])\/hc-goal\b(?!\/)|(?<![\w./-])\/hc-plan\b(?!\/)/i
   },
   {
     file: 'team-coordination-rules.md',
@@ -899,23 +922,30 @@ const CONTEXTUAL_TRIGGERS = [
   },
   {
     file: 'review-audit-self-decision.md',
-    // NOTE: review/audit sessions need sticky-decision and threat-model rules
-    pattern: /\breview\b|\baudit\b|\bsecurity.?review\b|\bcode.?review\b|\bred.?team\b|\bhc:review\b|\bhc:security\b/i
+    // NOTE: review/audit sessions need sticky-decision and threat-model rules.
+    // Matches both legacy colon form and current slash form of the review/security skills.
+    pattern: /\breview\b|\baudit\b|\bsecurity.?review\b|\bcode.?review\b|\bred.?team\b|\bhc:review\b|\bhc:security\b|(?<![\w./-])\/hc-review\b(?!\/)|(?<![\w./-])\/hc-security\b(?!\/)/i
   }
 ];
 
 /**
- * Build contextual rule sections injected on-demand via prompt keyword detection.
+ * Build contextual rule sections injected on-demand via prompt keyword/skill-slug detection.
  * Files live in contextual/ (not rules/) so Claude Code won't auto-load them.
  *
- * @param {string} prompt - User prompt text to scan for trigger keywords
+ * Dedup: each file injects at most once per call even if multiple triggers in
+ * CONTEXTUAL_TRIGGERS resolve to the same filename (e.g. a future entry adding
+ * a second pattern for an already-matched file).
+ *
+ * @param {string} prompt - User prompt text to scan for trigger keywords/skill slugs
  * @param {string} [configDirName='.claude'] - Config directory name
  * @returns {string[]} Lines to inject (may be empty)
  */
 function buildContextualRulesSection(prompt, configDirName = '.claude') {
   if (!prompt) return [];
   const sections = [];
+  const injectedFiles = new Set();
   for (const { file, pattern } of CONTEXTUAL_TRIGGERS) {
+    if (injectedFiles.has(file)) continue;
     if (!pattern.test(prompt)) continue;
     const resolvedPath = resolveContextualPath(file, configDirName);
     if (!resolvedPath) continue;
@@ -925,6 +955,7 @@ function buildContextualRulesSection(prompt, configDirName = '.claude') {
         : path.join(process.cwd(), resolvedPath);
       const content = fs.readFileSync(fullPath, 'utf8').trim();
       sections.push(content, ``);
+      injectedFiles.add(file);
     } catch { /* skip missing files silently */ }
   }
   return sections;
