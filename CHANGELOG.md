@@ -5,6 +5,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.14.2] (2026-07-13)
+
+### 🐛 Fixes
+
+- package-lock: sync recorded version, stale since 1.10.1
+
 ## [1.14.1] (2026-07-13)
 
 ### 🚀 Improvements
