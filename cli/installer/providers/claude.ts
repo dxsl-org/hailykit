@@ -44,7 +44,7 @@ export class ClaudeProvider implements Provider {
       console.log('    Not installed (no .hailykit-meta.json found)');
       return;
     }
-    for (const sub of ['skills', 'rules', 'agents', 'hooks', 'contextual', 'standards']) {
+    for (const sub of ['skills', 'rules', 'agents', 'hooks', 'contextual', 'standards', 'templates']) {
       const d = path.join(dir, sub);
       if (fs.existsSync(d)) {
         fs.rmSync(d, { recursive: true, force: true });
