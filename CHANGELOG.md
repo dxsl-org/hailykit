@@ -5,6 +5,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### 🚀 Improvements
+
+- hl-advisor: apex ultra/ultra consultation skill + agent — package-in, advice-out; user ad-hoc + skill --deep decision points
+
 ## [1.14.2] (2026-07-13)
 
 ### 🐛 Fixes
@@ -15,57 +19,66 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- session: `haily-session.cjs` emits a one-line `standards: <list>|none detected` visibility summary reflecting only standards that actually resolve to a shipped file, so a stack-detection miss is visible instead of silent; `context.cjs` `buildLangStandardsSection` emits a one-line "no standards file shipped" note when a language is detected but unmapped
-- contextual rules: add `kit/contextual/` (`orchestration-protocol.md`, `team-coordination-rules.md`, `review-audit-self-decision.md`), previously unshipped despite being referenced by the trigger table; triggers now also match current slash-command forms (`/hc-review`, `/hc-security`, `/hc-cook`, `/hc-goal`, `/hc-plan`) alongside legacy keywords, with per-file dedup so a file injects at most once per prompt
-- docs: `docs/engineering-standards.md` § Depth Tiers defines a single canonical two-direction parity hint (upward: ultra tier + `--deep` requested — advisory that `--deep` adds little, flag still honored; downward: tier below ultra + high-risk domain — advisory suggesting `--deep`, never auto-escalates) with the Route stage as the uniform emission point; `hc-debug`, `hc-security`, `hc-fix`, `hc-review`, `hc-cook`, `hc-plan` carry the same sentence shape
-- hl-write: add academic writing playbooks — thesis/dissertation (Luận văn ThS / Luận án TS / international thesis) and literary criticism (close-reading essay / phê bình chân dung tác giả / review)
-- hl-write: add `citation-styles.md` reference — 6 styles (APA 7, MLA 9, Chicago Notes-Biblio, Chicago Author-Date, IEEE, Vancouver) with mechanically-checkable rules, check tiers, and Vietnamese/East-Asian name-order conventions
-- hl-write: IMRaD skeleton gains Abstract and Keywords sections
-- hl-write: extended copyedit/fact-check rubrics in `review-passes.md` (citation-format validation, verbatim-quote fixed-string checking, primary-text provenance exclusion)
-- haily-editor: streamlined manifest handling for references and playbooks
-- scripts: check-skill-cross-refs now validates file paths in SKILL.md References tables
-- hl-research: add `--type academic` (scholarly/literature-review research — meta-analysis-first credibility ladder, citation-walking, replication-aware refutation) and `--type market` (market/competitive research — filings-first ladder, press-release-as-low-tier, competitor matrix output)
-- hl-write: add six genre playbooks — research proposal (đề cương/thuyết minh NCKH/PhD application/international grant), VN administrative documents (công văn/tờ trình/báo cáo/quyết định per Nghị định 30/2020), marketing copy (press release/landing page/email sequence), speech (persuasive/informative/ceremonial/toast-eulogy), career documents (resume-CV/cover letter), and educational content (textbook-tutorial/lesson-plan); adds a routing table to `hl-write/SKILL.md` disambiguating 8 genre collisions
-- review-passes.md: add a severity carve-out letting a playbook designate load-bearing sourced-claim classes (this wave: legal citations in administrative documents, testimonials in marketing copy) as Critical, not Major, when unsourced
-- hc-plan: add reversible/irreversible deviation-log examples and fact-vs-assumption exemplars to the phase template
-- hc-plan: add a three-option red-team adjudication exemplar (accept risk / mitigate in plan / escalate to user)
-- hc-goal: document the `--deep` cost model (3–5× baseline per phase, pair with `--budget`)
-- hl-write: document why no `--deep` flag exists — the per-unit editor pass already runs at maximum scrutiny
+- session: `haily-session.cjs` emits shipped-file standards visibility summary
+- session: `context.cjs` emits unmapped-language note
+- contextual rules: add kit/contextual directory and triggers match slash-command forms
+- hl-write: add educational content, career document, speech, research proposal, marketing, academic thesis, dissertation and literary criticism playbooks
+- haily-editor: streamline manifest handling for references and playbooks
+- hl-research: add --type academic for scholarly and market for competitive research
+- review-passes.md: designate load-bearing sourced claims as Critical
+- hc-plan: add deviation-log examples to phase template
+- hc-plan: add fact-vs-assumption exemplars to template
+- hc-plan: add three-option red-team adjudication exemplar
+- hc-goal: document --deep cost model
+- hl-write: explain why --deep flag does not exist
 
 ### 🐛 Fixes
 
-- haily-rules: fix a wiring bug (`buildReminderContext` called with a positional string instead of an options object) that made the `UserPromptSubmit` reminder hook write the literal string `[object Object]` to stdout on every prompt since v1.0.0 — rules, language/framework standards, contextual rules, paths, plan context, and naming injection are now real content again; wires up the previously-unused 5-minute TTL dedup helpers so the heavy block is capped per session+cwd scope while keyword/skill-triggered contextual rules still fire every matching prompt
+- haily-rules: fix UserPromptSubmit reminder hook wiring bug
+- haily-rules: inject rules as real content again
+- haily-rules: implement 5-minute TTL dedup capping
 - hc-db: correct stale path reference
-- installer: uninstall now also removes `contextual/` and `templates/` directories, previously left orphaned
-- context: guard injected plan paths from double base-dir prefixing when a path is already absolute
+- installer: remove contextual/ and templates/ directory on uninstall
+- context: guard injected plan paths from double-prefixing
 
 ## [1.14.0] (2026-07-08)
 
 ### 🚀 Improvements
 
-- depth-tier: standardize `--quick` / normal / `--deep` as the shared depth axis across eligible skills, with cost framing (cheapest / baseline / 3–5×) and a single `haily.json` `deep.auto` opt-in schema (`docs/engineering-standards.md` → Depth Tiers)
-- hc-plan: `--deep` runs a 2-lens judge panel at Solution Design plus red-team and validation
-- hc-review, hc-security: `--deep` adds refuter votes — 2–3 independent skeptics must fail to overturn a Critical finding before it can block
-- hc-debug, hc-fix: `--deep` spawns a parallel hypothesis panel (2–3 falsification streams) in place of single-stream tracing
-- hc-cook, hc-goal: `--deep` forwards judge-panel/refuter-vote rigor through Verify and phase delegation
-- hl-brainstorm: `--deep` as an alias for `--debate --edges` — no new machinery, the 9-persona debate is already the maximum-scrutiny panel
-- cross-model review (`--cross` / `crossReview.auto`) never auto-activates from `--deep` alone on any skill; when both are authorized, `--deep` upgrades cross findings from advisory to confidence-raising
-- session: add `HL_MODEL_TIER` (fast|medium|thinking|ultra), written once at session start and compared by ordinal rank everywhere it gates behavior
-- hc-cook, hc-plan, hc-review, hc-fix, hc-debug: parity hints suggest `--deep` when session tier is below `ultra` and the task touches a high-risk domain — advisory only, never auto-escalates
-- hc-cook: add Verify-by-Execution (runs prove behavior instead of assuming it) at normal and `--deep` depth
-- hc-fix: rename `--hotfix` to `--quick` for consistency with the shared depth axis
-- config: migrate `.hl.json` to `haily.json` across hooks, CLI, and skill docs
-- agents: add `haily-judge` (apex adjudication agent, `model: ultra`, read-only) — wired into `--deep` verdict points in hc-plan (judge synthesis, red-team), hc-review (refuter adjudication), and hc-debug (hypothesis convergence), with session-model fallback when unavailable
-- hc-cook: Recon pre-Build pass injects 2–3 idiomatic in-repo exemplars (`file:line`, ≤80 lines) into the implementor prompt, with a greenfield escape hatch when no precedent exists
-- subagent context: add a tier-gated `'reason'` scaffold (competing hypotheses → cited evidence → verdict + confidence) alongside the existing `'think'` directive for judgment agents below `ultra`
-- hc-review, hc-fix: append accepted findings to a local `review-history.jsonl`; a 3rd same-category+module recurrence proposes a distillation target (standards entry, guard pattern, lint rule, or memory note) — always a user-approved checkpoint, never a silent write
-- hc-plan: phase template gains an `## Assumptions` ledger (claim + confidence + verification method); hc-cook verifies the top-3 low/medium-confidence entries per phase before Build and halts (interactive) or defers (`--auto`) on a failed assumption
-- hc-cook: Build gate adds an external-API contract check for untyped/loosely-typed paths — new import with zero prior call sites must be verified via `{skill:hc-lookup}` before Finalize (typed languages already covered by typecheck)
-- haily-artifact: `execution-evidence.json` is now a conditionally-required ship-gate artifact — required iff Scope Contract recorded an `evidence: "expected"` marker on `context-snippets.json`; legacy plan dirs without the marker are unaffected
+- depth-tier: standardize --quick, normal, --deep axis
+- depth-tier: frame cost as cheapest, baseline, 3–5×
+- depth-tier: add haily.json deep.auto opt-in schema
+- hc-plan: --deep runs 2-lens judge panel at Solution, adds red-team and validation
+- hc-review: --deep adds refuter votes
+- hc-security: --deep adds refuter votes
+- hc-debug: --deep spawns parallel hypothesis panel
+- hc-fix: --deep spawns parallel hypothesis panel
+- hc-cook: --deep forwards judge-panel rigor through Verify
+- hc-goal: --deep forwards judge-panel rigor through Verify
+- hl-brainstorm: --deep aliases for --debate --edges
+- cross-model review: never auto-activates from --deep alone and upgrades findings to confidence-raising
+- session: add HL_MODEL_TIER (fast|medium|thinking|ultra) and write once at start
+- hc-cook: suggest --deep for below-ultra below-risk domains
+- hc-plan: suggest --deep for below-ultra below-risk domains
+- hc-review: suggest --deep for below-ultra below-risk domains
+- hc-fix: suggest --deep for below-ultra below-risk domains
+- hc-debug: suggest --deep for below-ultra below-risk domains
+- hc-cook: inject 2–3 idiomatic in-repo exemplars into prompt
+- hc-cook: provide greenfield escape hatch when no precedent
+- subagent context: add tier-gated reason scaffold and support existing think directive
+- hc-review: append accepted findings to review-history.jsonl
+- hc-fix: append accepted findings to review-history.jsonl
+- hc-review: propose distillation target on third recurrence
+- hc-fix: propose distillation target on third recurrence
+- hc-plan: add Assumptions ledger to phase template
+- hc-cook: verify top-3 low/medium-confidence assumptions
+- hc-cook: halt or defer on failed assumption check
+- hc-cook: add external-API contract check for untyped imports
+- haily-artifact: make execution-evidence.json conditionally required
 
 ### 🐛 Fixes
 
-- haily-artifact: fix a wiring bug (`readArtifacts()` return shape mismatch) that made the ship/push/pr/deploy artifact gate throw internally and silently fail open on every invocation — shape, policy, and secret-scan validation now actually run before ship
+- haily-artifact: fix readArtifacts return shape mismatch and enable artifact gate validation before ship
 
 ---
 
@@ -78,7 +91,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🐛 Fixes
 
-- readme: correct guard-rail hook names in security section
+- readme: correct guard-rail hook names
 
 ---
 
@@ -86,11 +99,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- cli: add cross-review command for different-provider AI review
-- hc-plan: add --cross stage after Red Team and Validation
+- cli: add cross-review command for different-provider AI
+- hc-plan: add --cross stage after Red Team
 - hc-review: add --cross advisory stage after Simplification
-- hc-cook: forward --cross to the Verify review
-- model-map: add cline and ollama provider entries
+- hc-cook: forward --cross to Verify review
+- model-map: add cline provider entry
+- model-map: add ollama provider entry
 
 ---
 
@@ -100,9 +114,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - hc-plan: add precedent mining to Codebase Analysis
 - hc-cook: add precedent mining to Recon stage
-- hc-plan: add real-time deviation log to phase template
+- hc-plan: add real-time deviation log to template
 - haily-implementor: log deviations live in phase file
-- Explore agent: pin to fast model tier
+- explore: pin to fast model tier
 
 ---
 
@@ -110,9 +124,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🐛 Fixes
 
-- haily-git-manager: add tag protocol with verified SHA sequencing
-- haily-project-manager: add evidence grounding to prevent fabricated claims
-- hc-ship: verify release commit before tagging in step 13
+- haily-git-manager: add tag protocol with SHA sequencing
+- haily-project-manager: add evidence grounding to prevent fabrication
+- hc-ship: verify release commit before tagging
 
 ---
 
@@ -120,13 +134,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- hl-write: add IMPORT mode for continuing existing manuscripts
-- hl-write: add prose-craft knowledge and style-stats script
+- hl-write: add IMPORT mode for continuing manuscripts
+- hl-write: add prose-craft knowledge and style-stats
 - skills: add WebFetch fallback guidance for blocked pages
-- cli: add prose-compression tool and overhead measurement script
-- agents: add output contracts to reduce narrative token cost
+- cli: add prose-compression tool
+- cli: add overhead measurement script
+- agents: add output contracts to reduce narrative cost
 - rules: add output economy guidance for terse responses
-- kit: compress rules and standards prose for token efficiency
+- kit: compress rules and standards prose
 
 ---
 
@@ -134,12 +149,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- skills: add hs-assess red-team recon and pentest skill
-- skills: add hs-harden blue-team CIS and STIG hardening skill
-- skills: add hs-dfir blue-team forensics and incident response skill
-- installer: upgrade Zed provider for native skills and instructions
-- hl-write: write business plans, reports, essays, stories, and books
-- agents: add haily-writer and haily-editor for writing
+- skills: add hs-assess red-team recon and pentest
+- skills: add hs-harden blue-team CIS hardening
+- skills: add hs-harden blue-team STIG hardening
+- skills: add hs-dfir blue-team forensics and incident response
+- installer: upgrade Zed provider for native skills
+- hl-write: add business plan playbook
+- hl-write: add report playbook
+- hl-write: add essay playbook
+- hl-write: add story playbook
+- hl-write: add book playbook
+- agents: add haily-writer for authoring documents
+- agents: add haily-editor for editing documents
 
 ---
 
@@ -147,8 +168,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- installer: implement Lazy Reference Loading for flat skill providers (Antigravity & Gemini CLI), reducing flat skill file sizes by ~90% (~15KB vs ~150KB) and referencing central catalog files in ~/.hailykit/kit/skills/
-- installer: automatically sync central catalog (~/.hailykit/kit) during installation and self-upgrades
+- installer: implement Lazy Reference Loading for flat providers
+- installer: reduce flat skill file sizes by 90%
+- installer: reference central catalog files in ~/.hailykit/kit
+- installer: sync central catalog during installation
+- installer: sync central catalog during self-upgrades
 
 ---
 
@@ -156,13 +180,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- hc-review: simplification scan, add ceiling + trigger markers
+- hc-review: add simplification scan ceiling and trigger
 - installer: add cline provider
-- installer: self-upgrade CLI binary when a newer release is detected
+- installer: enable CLI binary self-upgrade on detection
 
-### 🐛 Bug Fixes
+### 🐛 Fixes
 
-- installer: fix Antigravity provider global install path + skill
+- installer: fix Antigravity provider global install path
+- installer: fix Antigravity provider skill installation
 
 ---
 
@@ -170,12 +195,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- hc-git: add pr --merge review-gated batch merge workflow
+- hc-git: add pr --merge review-gated batch workflow
 - hooks: bold model name in agent trace output
-- hooks: resolve inherit to actual session model name in agent trace
-- hl-help: surface hc-git pr --merge in quick-start and skill list
+- hooks: resolve inherit to actual session model
+- hl-help: surface hc-git pr --merge in quick-start
+- hl-help: surface hc-git pr --merge in skill list
 - readme: document hc-git pr --merge in skills table
-- license: switch from PolyForm Noncommercial to GPL-3.0-only
+- license: switch to GPL-3.0-only
 
 ---
 
@@ -183,12 +209,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- model-map: rename deep tier to ultra, add Fable 5 for Anthropic
-- agents: add model_max ceiling field to cap escalation per agent
-- installer: update ModelTier type and resolvers to support ultra tier
-- skills: replace --ultra Mode section with Session Model behavior docs
-- ci: extend cross-ref validator to check model_max tier validity
-- readme: update skill count to 34 and remove hl-ultra references
+- model-map: rename deep tier to ultra
+- model-map: add Fable 5 for Anthropic
+- agents: add model_max ceiling field to agents
+- installer: update ModelTier type for ultra tier
+- skills: replace --ultra Mode with Session Model docs
+- ci: extend cross-ref validator for model_max validity
 
 ### ❌ Removed
 
@@ -200,36 +226,50 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- hailykit git-insights: churn, bus factor, velocity, change-impact
-- hailykit secrets: native secret and vulnerability scanners
-- hailykit contracts: extract exports, signatures, endpoints
-- hailykit test-detect: framework and coverage normalization
-- hailykit deps-audit: unified advisory schema across package managers
-- hailykit adr-next: ADR, license, and secret-safe pack tools
-- cli/lib: shared zero-dep git, fs-scan, spawn primitives
-- hc-spec: EARS-notation acceptance criteria with approval gate
-- hc-adr: capture or auto-discover architectural decisions
-- hc-review: batch mode and OWASP Agentic checks
-- hc-debug: SUSPECTED/PROBABLE/CONFIRMED confidence levels
-- hc-scout: cross-repo consumer tracing via --deps flag
-- hc-plan: memory-augmented planning via --resume flag
-- Codex provider: register agents in config.toml sentinel block
-- Codex provider: escape developer_instructions for TOML multiline
-- Codex hooks: bake per-hook timeout into generated wrappers
-- Codex hooks: strip additionalContext for non-accepting events
-- Codex hooks: warn when codex CLI is missing or outdated
-- Codex agents: infer sandbox_mode from agent tools list
-- Codex agents: preserve unknown model id as comment
-- Codex config.toml: atomic writes via temp-file rename
-- Codex config.toml: self-healing features.hooks flag writer
-- Codex hooks: install on Windows using node invocation
-- hc-ship: embed changelog format constraint inline in step 8
+- hailykit git-insights: add churn metrics
+- hailykit git-insights: add bus factor metrics
+- hailykit git-insights: add velocity metrics
+- hailykit git-insights: add change-impact metrics
+- hailykit secrets: add native secret scanner
+- hailykit secrets: add vulnerability scanner
+- hailykit contracts: extract exports and signatures
+- hailykit contracts: extract endpoints
+- hailykit test-detect: add framework normalization
+- hailykit test-detect: add coverage normalization
+- hailykit deps-audit: unified advisory schema
+- hailykit adr-next: pack ADR, license, and secrets
+- cli/lib: add shared zero-dep git primitives
+- cli/lib: add shared zero-dep fs-scan primitives
+- cli/lib: add shared zero-dep spawn primitives
+- hc-spec: add EARS-notation acceptance criteria
+- hc-spec: add approval gate
+- hc-adr: capture architectural decisions
+- hc-adr: auto-discover architectural decisions
+- hc-review: add batch mode
+- hc-review: add OWASP Agentic checks
+- hc-debug: add SUSPECTED confidence level
+- hc-debug: add PROBABLE confidence level
+- hc-debug: add CONFIRMED confidence level
+- hc-scout: add cross-repo consumer tracing via --deps
+- hc-plan: add memory-augmented planning via --resume
+- codex-provider: register agents in config.toml sentinel
+- codex-provider: escape developer_instructions for TOML
+- codex-hooks: bake per-hook timeout into wrappers
+- codex-hooks: strip additionalContext for non-accepting events
+- codex-hooks: warn when codex CLI is missing
+- codex-hooks: warn when codex CLI is outdated
+- codex-agents: infer sandbox_mode from tools list
+- codex-agents: preserve unknown model id as comment
+- codex-config: atomic writes via temp-file rename
+- codex-config: self-healing features.hooks flag writer
+- codex-hooks: install on Windows using node
+- hc-ship: embed changelog format constraint inline
 
 ### 🐛 Fixes
 
-- hailykit upgrade: version always read from kit/metadata.json
-- release:pack: stamp correct version into kit/metadata.json before zip
-- Codex hooks: parser matches bash -c runner command shape
+- hailykit upgrade: read version from kit/metadata.json
+- release:pack: stamp correct version before zip
+- codex-hooks: fix parser bash -c runner shape
 
 ---
 
@@ -237,15 +277,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- hailykit install: retry logic for GitHub API and downloads
-- hc-git issues: discover and triage open GitHub issues
-- hc-goal: clarify-or-assume replaces halt-on-ambiguity
-- hc-goal: no-new-failures regression gate with ledger compaction
-- hc-cook: baseline-relative no-new-failures regression gate
-- hc-cook: --strict restores full-suite-green requirement
-- hc-review: user-defined per-repo check criteria via checks/*.yaml
-- hc-debug: oracle escalation after 3 failed fix attempts
-- hc-plan: scout-report.md reused by review and debug agents
+- hailykit install: add retry logic for GitHub API
+- hailykit install: add retry logic for downloads
+- hc-git issues: discover and triage open issues
+- hc-goal: replace halt-on-ambiguity with clarify-or-assume
+- hc-goal: add no-new-failures regression gate
+- hc-goal: compact ledger
+- hc-cook: add baseline-relative regression gate
+- hc-cook: add --strict for full-suite-green requirement
+- hc-review: add user-defined check criteria via checks/
+- hc-debug: add oracle escalation after three failures
+- hc-plan: reuse scout-report.md in review and debug
 
 ---
 
@@ -253,7 +295,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- haily-statusline: live session summary in status line
+- haily-statusline: add live session summary in status
 
 ---
 
@@ -261,8 +303,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- hailykit stats: zero-dep code statistics CLI
-- hl-stats: code metrics skill
+- hailykit stats: add zero-dep code statistics CLI
+- hl-stats: add code metrics skill
 
 ---
 
@@ -270,14 +312,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- hailykit stats: Gleam language support
-- haily-tracer: model tracer and usage enabled by default
+- hailykit stats: add Gleam language support
+- haily-tracer: enable model tracer by default
+- haily-tracer: enable usage tracking by default
 
 ### 🐛 Fixes
 
-- hailykit upgrade: fix version detection and upgrade logic
-- haily-tracer: dead hook revived, output now visible
-- hailykit release: fall back to upload when create fails
+- hailykit upgrade: fix version detection logic
+- hailykit upgrade: fix upgrade logic
+- haily-tracer: revive dead hook
+- haily-tracer: make output visible
+- hailykit release: fall back to upload on failure
 
 ---
 
@@ -285,12 +330,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- hl-ultra: opt-in deep-model escalation skill
+- hl-ultra: add opt-in deep-model escalation skill
 
 ### 🐛 Fixes
 
-- Gemini, Codex, Zed: upgrade path fixes
-- converter tests: HAILYKIT_HOME guard for test isolation
+- gemini provider: fix upgrade path
+- codex provider: fix upgrade path
+- zed provider: fix upgrade path
+- converter tests: add HAILYKIT_HOME guard
 
 ---
 
@@ -298,8 +345,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- installer: block auto deep-research and dynamic workflows
-- hl-research: cost discipline and claim refutation
+- installer: block auto deep-research and workflows
+- hl-research: add cost discipline
+- hl-research: add claim refutation
 - hailykit uninstall: strip dangling hook references
 
 ---
@@ -308,13 +356,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- hailykit: add uninstall command and --help flag
-- hc-ship: auto-detect git and release automation regime
+- hailykit: add uninstall command
+- hailykit: add --help flag
+- hc-ship: auto-detect git automation regime
 
 ### 🐛 Fixes
 
-- hc-cop: reachable from domain routing files
-- CI: enforce skill cross-reference check on push
+- hc-cop: make reachable from domain routing
+- ci: enforce skill cross-reference check
 
 ---
 
@@ -322,15 +371,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- hc-ship, hc-docs, hc-new: skill upgrades
-- AGENTS.md: canonical project context file
+- hc-ship: upgrade skill
+- hc-docs: upgrade skill
+- hc-new: upgrade skill
+- AGENTS.md: add canonical project context
 - skills: add cross-links between related skills
 - providers: add multi-provider spec files
-- hc-goal: autonomous plan to cook to review loop
+- hc-goal: add autonomous plan-cook-review loop
 
 ### 🐛 Fixes
 
-- Crush: skills install as hc-name/SKILL.md path
+- crush provider: install skills as hc-name/SKILL.md
 - skills: remove non-spec user-invocable field
 
 ---
@@ -339,12 +390,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- providers: add Kimi and Crush provider support
+- providers: add Kimi provider support
+- providers: add Crush provider support
 
 ### 🐛 Fixes
 
-- providers: model stripping for user-configured providers
-- OpenCode: globalDir path on macOS and Windows
+- providers: fix model stripping for user-configured
+- opencode provider: fix globalDir path on macOS
+- opencode provider: fix globalDir path on Windows
 
 ---
 
@@ -352,14 +405,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### 🚀 Improvements
 
-- engine: zero-dep TypeScript NDJSON-over-stdio tool execution
-- CLI: list, run, and info commands
-- installer: multi-provider support for six providers
-- skills: 30 skills across hc and hl prefixes
-- installer: install, upgrade, and status commands
-- converter: per-provider SKILL.md conversion pipeline
-- settings: deny rules with union-add and atomic writes
-- hooks: secret block and opt-in PII guard
-- installer: non-destructive settings migration with deletions array
+- engine: add zero-dep TypeScript NDJSON executor
+- cli: add list command
+- cli: add run command
+- cli: add info command
+- installer: add multi-provider support
+- installer: support six providers
+- skills: add 30 skills across hc and hl prefixes
+- installer: add install command
+- installer: add upgrade command
+- installer: add status command
+- converter: add per-provider SKILL.md pipeline
+- settings: add deny rules with union-add
+- settings: enable atomic writes
+- hooks: add secret block
+- hooks: add opt-in PII guard
+- installer: add non-destructive settings migration
 
 ---

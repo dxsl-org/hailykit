@@ -176,7 +176,9 @@ Large-scale library/pattern migration   → {skill:hc-cook} migrate "description
 Port/extract a feature from another repo → {skill:hc-cop} <source> [feature]
 Sprint retrospective from git metrics   → {skill:hc-git} retro [timeframe]
 Impact analysis of recent changes       → {skill:hc-git} analyze [ref]
+Get top-tier advice on one prepared decision → /hl-advisor  (agent: Task(subagent_type="haily-advisor"))
 ```
+`/hl-advisor` = one-shot package-in, advice-out at top tier · haily-brainstormer / {skill:hl-brainstorm} = interactive multi-lens exploration at session tier · haily-judge = verdict on a candidate set, `--deep` only.
 
 ## Dependency Management
 

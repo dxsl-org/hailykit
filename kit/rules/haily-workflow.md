@@ -61,6 +61,7 @@ Flow: `assess → harden` (proactive) · `dfir → harden` (post-incident). Auth
 | "write formal spec before coding X" | `{skill:hc-spec} "X"` |
 | "design the API for X" | Delegate: `Task(subagent_type="haily-api-designer")` |
 | "what tests should we write for X?" | Delegate: `Task(subagent_type="haily-test-architect")` |
+| "get a top-tier recommendation on one prepared decision" | `/hl-advisor` (delegates to `haily-advisor`) |
 
 ## Investigation
 

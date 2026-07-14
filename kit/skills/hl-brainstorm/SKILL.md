@@ -190,3 +190,4 @@ Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-
 **Precedes:** `{skill:hl-write}` — an agreed concept feeds an authored document's Draft stage
 **Related:** `{skill:hl-reasoning}`, `{skill:hl-research}`
 **For LLM context design:** follow with `{skill:hl-context-engineering}` when the topic involves token limits, agent memory, or multi-agent coordination
+**For a single top-tier ruling:** this skill explores breadth at session tier and can be invoked by the model on its own judgment — when the caller instead needs one decisive `ultra`-tier recommendation on a single prepared decision, escalate to `{skill:hl-advisor}` with a question package; it never auto-invokes, since every call costs real money. `{skill:hl-advisor} --as <persona>` reuses the Personas table above for the vantage point — no separate persona catalog to maintain.

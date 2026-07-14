@@ -45,6 +45,7 @@ const AGENT_SECTIONS = {
   'haily-api-designer':     ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix', 'econ'],
   // ── Apex (adjudication-only, top-tier by definition — no think boost) ──────
   'haily-judge':            ['id', 'plan', 'trust', 'prefix', 'econ'],
+  'haily-advisor':          ['id', 'plan', 'trust', 'prefix', 'econ'],
 };
 
 const ALL_SECTIONS = ['id', 'plan', 'reports', 'lang', 'rules', 'venv', 'naming', 'trust', 'prefix', 'econ'];
