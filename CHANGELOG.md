@@ -5,6 +5,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.14.3] (2026-07-14)
+
 ### 🚀 Improvements
 
 - hl-advisor: apex ultra/ultra consultation skill + agent — package-in, advice-out; user ad-hoc + skill --deep decision points
