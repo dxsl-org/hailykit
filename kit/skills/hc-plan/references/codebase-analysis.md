@@ -1,6 +1,6 @@
 # Codebase Analysis
 
-**Skip when:** scout reports are already provided.
+**Skip when:** scout reports are already provided. Session-recon reuse (below) skips only the Scout sub-step — Precedent Mining, Failure & Incident Read-Back, and the Output write to `scout-report.md` always run.
 
 ## Process
 
@@ -17,15 +17,18 @@ Skip files that don't exist; continue without blocking.
 
 ### Scout the Codebase
 
-Use `{skill:hc-scout}` to locate relevant files for the task. Run scouts in parallel for different aspects:
+Reuse before spawning: if the session already holds a scout report or recon summary covering the task's modules (typical when planning follows `{skill:hl-brainstorm}` or `{skill:hc-scout}` in the same session), use it and skip only this Scout sub-step — Precedent Mining and the Output write to `scout-report.md` still run. Log `✓ Scout: reused session recon`.
+
+Otherwise run `{skill:hc-scout}` **once**, listing every aspect in a single prompt — scout partitions the repo and parallelizes internally, so one invocation covers all aspects; invoking it per-aspect runs overlapping repo-wide sweeps:
 
 ```
-{skill:hc-scout} "auth module and middleware"
-{skill:hc-scout} "database models and migrations"
-{skill:hc-scout} --graph    # for large codebases needing cross-file analysis
+{skill:hc-scout} "auth module and middleware; database models and migrations"
+{skill:hc-scout} --graph    # only for >200-file codebases needing cross-file dependency chains
 ```
 
-Wait for all scouts to report before proceeding to analysis.
+Narrow follow-up lookups after the first report use `{skill:hc-scout} --quick` — never a second full scout.
+
+Wait for the scout report before proceeding to analysis.
 
 ### Precedent Mining
 

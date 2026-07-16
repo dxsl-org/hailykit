@@ -47,7 +47,7 @@ Default: analyze problem → auto-select persona + edge dimensions → targeted 
 
 ## Constraints
 
-> **Required — recon-first (full mode only):** When no persona flag and problem requires codebase context, scan with `{skill:hc-scout}` first. Report 3–6 bullets, then proceed.
+> **Required — recon-first, reuse-first (full mode only):** When no persona flag and problem requires codebase context, obtain recon before proposing — but never re-derive what already exists. Resolve in order: session context already holds a scout report or recon summary covering the topic's modules → reuse it; else glob `.agents/*/scout-report.md` and reuse the most recently modified one that covers the topic's modules; else scan with `{skill:hc-scout} --quick` (a 3–6 bullet orientation never needs a full repo partition). Report 3–6 bullets, then proceed.
 
 > **Required — no implementation:** Do not write code or invoke implementation skills until the user has approved a design.
 
@@ -75,7 +75,7 @@ Apply the selected lenses immediately. Output: persona analysis → relevant edg
 
 ```mermaid
 flowchart TD
-    A[Scout codebase] --> A2[Summarize findings — 3–6 bullets]
+    A[Recon: reuse session/plan scout, else hc-scout --quick] --> A2[Summarize findings — 3–6 bullets]
     A2 --> B[Discovery: AskUserQuestion — 5 mandatory items]
     B --> B2{All 5 items concrete?}
     B2 -->|No| B
