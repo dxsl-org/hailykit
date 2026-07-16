@@ -5,7 +5,7 @@ description: Stage 4 Simplification Scan — Haily marker harvest and YAGNI taxo
 
 # Simplification Scan (Stage 4)
 
-Runs after Stage 3 (Stress Probe). Informational pass — findings are advisory; no fail-gate. Developer decides: fix now / defer / accept.
+Informational pass — findings are advisory; no fail-gate. Developer decides: fix now / defer / accept. Pass 1 runs in the main loop; Pass 2 rides inside the Stage 2 (Quality) reviewer prompt, so this stage spawns no subagent of its own. Report the section after Stage 2/3 findings are adjudicated.
 
 Skip entirely when `--quick`.
 
@@ -33,7 +33,7 @@ Skip Pass 1 if no `haily:` markers are found.
 
 ## Pass 2 — YAGNI Taxonomy
 
-Spawn `haily-reviewer` subagent on the diff with the following 5-tag taxonomy. The reviewer identifies over-engineering patterns and tags each finding:
+No separate subagent — append the following 5-tag taxonomy block to the Stage 2 (Quality) `haily-reviewer` prompt (omit when `--quick`), and extract the tagged findings from the Stage 2 report. The reviewer identifies over-engineering patterns and tags each finding:
 
 | Tag | Pattern to detect |
 |-----|-------------------|

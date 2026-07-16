@@ -45,7 +45,7 @@ HailyKit skills are known by different names in other skill catalogs. If you're 
 
 | Community name | HailyKit skill | What it does |
 |---|---|---|
-| `code-reviewer`, `pr-reviewer`, `review-assistant` | `{skill:hc-review}` | Adversarial 3-stage review: spec → quality (red-team) → stress probe |
+| `code-reviewer`, `pr-reviewer`, `review-assistant` | `{skill:hc-review}` | Adversarial review: spec gate, then quality ∥ stress probe (red-team) in parallel |
 | `commit-writer`, `git-commit-writer`, `smart-commit` | `{skill:hc-git}` | Staged diff → conventional commit message → push |
 | `changelog-generator`, `release-notes-writer` | `{skill:hc-ship}` | Full release pipeline: version bump → changelog → PR. No standalone changelog tool — changelog is one step of the full release pipeline. |
 | `debugger`, `error-fixer`, `bug-investigator` | `{skill:hc-debug}` + `{skill:hc-fix}` | Root cause first, then fix |

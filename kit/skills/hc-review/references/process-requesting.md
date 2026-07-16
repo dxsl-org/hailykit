@@ -7,7 +7,7 @@ description: Use when completing tasks, implementing major features, or before m
 
 Dispatch haily-reviewer subagent to catch issues before they cascade.
 
-**Core principle:** Scout first, review often.
+**Core principle:** Reuse recon first, review often.
 
 ## When to Request Review
 
@@ -23,15 +23,14 @@ Dispatch haily-reviewer subagent to catch issues before they cascade.
 
 ## How to Request
 
-**0. Scout edge cases first (NEW):**
+**0. Reuse the pipeline's Scout findings:**
 ```
-Before dispatching haily-reviewer, invoke {skill:hc-scout} to find:
-- Files affected by changes (not just modified files)
-- Data flow paths that could break
-- Edge cases and boundary conditions
-- Potential side effects
+The review pipeline already resolved blast-radius context (SKILL.md Process step 2 —
+Scout ladder). Pass those findings into the reviewer prompt. Do NOT re-scout here;
+a second scout duplicates work the pipeline already did.
 
-See: references/process-edge-cases.md
+Only when dispatching haily-reviewer OUTSIDE the hc-review pipeline (ad-hoc review
+with no prior recon) run the ladder from references/process-edge-cases.md first.
 ```
 
 **1. Get git SHAs:**

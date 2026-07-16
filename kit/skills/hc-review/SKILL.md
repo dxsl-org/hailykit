@@ -1,6 +1,6 @@
 ---
 name: hc-review
-description: "Adversarial code review pipeline: Spec compliance → Quality (haily-reviewer) → Stress Probe → Simplification Scan. Supports PR, commit, pending, codebase, and UI/UX targets. Post findings inline with --comment, apply to working tree with --fix."
+description: "Adversarial code review pipeline: Spec gate → Quality (haily-reviewer) ∥ Stress Probe in parallel → Simplification Scan (rides the Quality pass). Supports PR, commit, pending, codebase, and UI/UX targets. Post findings inline with --comment, apply to working tree with --fix."
 when_to_use: "Invoke when reviewing code changes, a PR, a commit, or the full codebase."
 user-invocable: true
 argument-hint: "[#PR | COMMIT | --pending | codebase] [--quick] [--deep] [--comment] [--fix] [--ui [pattern]] [--batch <\"#N,#M,...\">] [--agentic] [--cross] [--quiz]"
@@ -11,7 +11,7 @@ metadata:
 
 # Review — Adversarial Code Review Pipeline
 
-4-stage Review Circuit: Spec compliance → Quality (haily-reviewer) → Stress Probe (adversarial) → Simplification Scan (advisory). Accepts PR numbers, commit hashes, pending changes, and full codebase scans.
+4-stage Review Circuit: Spec compliance gates in the main loop, then Quality (haily-reviewer) and Stress Probe (adversarial) run in parallel; the Simplification Scan (advisory) rides inside the Quality pass. Accepts PR numbers, commit hashes, pending changes, and full codebase scans.
 
 ## Usage
 
@@ -23,7 +23,7 @@ metadata:
 | Flag | Behavior |
 |------|----------|
 | *(none)* | Interactive — present findings; user decides next action |
-| `--quick` | Quality checklist only — skip Stage 1 (Spec) and Stage 3 (Adversarial). Use for docs, config, simple style changes. |
+| `--quick` | Quality checklist only — skip Scout, Stage 1 (Spec), Stage 3 (Adversarial), and Stage 4 (Simplification). Use for docs, config, simple style changes. |
 | `--deep` | Full circuit (Stages 1–4) plus refuter votes: every Critical finding, and every Medium the adjudicator marks Accept, must survive 2–3 independent `haily-reviewer` skeptics before it can block (`references/review-adversarial.md` → `## --deep: Refuter Votes`). This raises the evidence bar to block, so `--deep` can block LESS than normal mode by design — it trades block-rate for precision, never the reverse. Cross findings escalate to confidence-raising only when `--cross`/`crossReview.auto` separately authorizes egress (`references/flow-cross.md` → `## --deep Mode`) — `--deep` alone never sends the diff externally. Mutually exclusive with `--quick` — `--deep` wins if both are given. Auto-on via `haily.json deep.auto`; an explicit `--quick` overrides it. |
 | `--comment` | Post accepted findings as inline PR comments (PR input only) |
 | `--fix` | Apply accepted findings to working tree after review |
@@ -56,21 +56,23 @@ Flags compose freely: `--quick --fix`, `--quick --comment`, `--fix --comment`, `
 
 Which stages run per flag combination:
 
-| Mode | Stage 1 Spec | Stage 2 Quality | Stage 3 Adversarial | Stage 4 Simplification | Act |
-|------|-------------|----------------|--------------------|-----------------------|----|
-| *(none)* | ✅ | ✅ | ✅ (scope-gated) | ✅ (advisory) | Interactive |
-| `--quick` | **skip** | ✅ | **skip** | **skip** | Interactive |
-| `--deep` | ✅ | ✅ | ✅ + refuter votes (scope-gated) | ✅ (advisory) | Interactive |
-| `--fix` | ✅ | ✅ | ✅ | ✅ (advisory) | Apply to tree |
-| `--quick --fix` | **skip** | ✅ | **skip** | **skip** | Apply to tree |
-| `--comment` | ✅ | ✅ | ✅ | ✅ (advisory) | Post PR comments |
-| `--quick --comment` | **skip** | ✅ | **skip** | **skip** | Post PR comments |
-| `--ui` | skip | UI/UX checklist | skip | skip | Interactive |
-| `codebase` | skip | Parallel research+review | skip | ✅ (advisory) | Report |
-| `--batch` | ✅ (per target) | ✅ (per target) | ✅ scope-gated (per target) | ✅ (advisory, per target) | Per-target findings + Team Health Report |
-| `--batch --quick` | **skip** | ✅ (per target) | **skip** | **skip** | Per-target findings + Team Health Report |
-| `--cross` | (per base mode) | (per base mode) | (per base mode) | (per base mode) | Base mode + Cross-Model Review (advisory) |
-| `--quiz` | (per base mode) | (per base mode) | (per base mode) | (per base mode) | Base mode + Comprehension Quiz (human gate) |
+| Mode | Scout | Stage 1 Spec | Stage 2 Quality | Stage 3 Adversarial | Stage 4 Simplification | Act |
+|------|-------|-------------|----------------|--------------------|-----------------------|----|
+| *(none)* | ✅ ladder | ✅ | ✅ | ✅ (scope-gated) | ✅ (advisory) | Interactive |
+| `--quick` | **skip** | **skip** | ✅ | **skip** | **skip** | Interactive |
+| `--deep` | ✅ ladder | ✅ | ✅ | ✅ + refuter votes (scope-gated) | ✅ (advisory) | Interactive |
+| `--fix` | ✅ ladder | ✅ | ✅ | ✅ | ✅ (advisory) | Apply to tree |
+| `--quick --fix` | **skip** | **skip** | ✅ | **skip** | **skip** | Apply to tree |
+| `--comment` | ✅ ladder | ✅ | ✅ | ✅ | ✅ (advisory) | Post PR comments |
+| `--quick --comment` | **skip** | **skip** | ✅ | **skip** | **skip** | Post PR comments |
+| `--ui` | skip | skip | UI/UX checklist | skip | skip | Interactive |
+| `codebase` | internal | skip | Parallel research+review | skip | ✅ (advisory) | Report |
+| `--batch` | ✅ ladder, reused across targets | ✅ (per target) | ✅ (per target) | ✅ scope-gated (per target) | ✅ (advisory, per target) | Per-target findings + Team Health Report |
+| `--batch --quick` | **skip** | **skip** | ✅ (per target) | **skip** | **skip** | Per-target findings + Team Health Report |
+| `--cross` | (per base mode) | (per base mode) | (per base mode) | (per base mode) | (per base mode) | Base mode + Cross-Model Review (advisory) |
+| `--quiz` | (per base mode) | (per base mode) | (per base mode) | (per base mode) | (per base mode) | Base mode + Comprehension Quiz (human gate) |
+
+Stages 2 and 3 spawn in parallel (one message) once Stage 1 passes; Stage 4's YAGNI pass rides inside the Stage 2 prompt. "✅ ladder" = Scout resolves reuse-first (Process step 2) — a subagent spawns only when no existing recon covers the diff.
 
 **Input Detection** (priority order; full routing logic in `references/input-routing.md`):
 
@@ -88,7 +90,7 @@ Which stages run per flag combination:
 
 ## Constraints
 
-> **Required — recon-first:** Before reviewing, spawn `{skill:hc-scout}` to identify affected files beyond the diff, data flow paths, and blast radius. Skip for codebase and codebase-parallel modes (scout runs internally in those flows).
+> **Required — recon-first, reuse-first:** Before reviewing, obtain blast-radius context (affected files beyond the diff, data flow paths) — but never re-derive what already exists. Resolve via the Scout ladder (Process step 2): session context → plan artifact → inline trace → `{skill:hc-scout} --quick`. Full-mode `{skill:hc-scout}` is never spawned for diff reviews; codebase and codebase-parallel modes run scout internally.
 
 > **Required — evidence-before-claims:** Run the verification command and read full output before declaring any finding fixed or the review complete.
 
@@ -97,22 +99,26 @@ Which stages run per flag combination:
 1. **Route** — classify first arg via `references/input-routing.md`; select review mode; initialize diff context. When `--batch` is present, load `references/flow-batch.md` and follow the batch loop protocol instead of single-target processing — each target runs its own Route→Scout→Review Circuit, then results are aggregated into a Team Health Report. Log `✓ Route: [mode] — input=[type], flags=[list]`
    - **Parity hint (downward):** when `HL_MODEL_TIER` ranks below `ultra` and the diff touches a high-risk domain (`{skill:hc-cook}` → `references/agent-invocations.md` → Domain-Risk Review), suggest `--deep` in this Route log line and proceed at the requested depth — advisory only. See `docs/engineering-standards.md` § Depth Tiers → Parity hint.
 
-2. **Scout** — spawn `{skill:hc-scout}` with edge-case prompt: affected files, data flows, boundary conditions, blast radius. Document findings for review stages. Log `✓ Scout: [N] findings`
-   - Skip: `codebase` and `codebase parallel` modes
-   - Skip: `--ui` mode (pattern-matched files are the scope)
+2. **Scout** — obtain blast-radius context for the diff. Resolve down the ladder; first hit wins, later rungs never run:
+   1. **Session context** — the conversation already holds a scout report or recon summary covering the changed modules (typical when review follows `{skill:hc-cook}` or `{skill:hc-plan}` in the same session). Reuse it. Log `✓ Scout: reused session recon`
+   2. **Plan artifact** — glob `.agents/*/scout-report.md`; if the most recently modified one covers the changed modules, use it. Log `✓ Scout: used scout-report.md from [path]`
+   3. **Inline trace** — the Stage 3 scope gate would skip (all its conditions hold, including no new dependencies and none of its never-skip overrides — `references/review-adversarial.md` § Scope Gate): grep importers of the changed files in the main loop; no subagent. Log `✓ Scout: inline trace ([N] consumers)`
+   4. **Spawn** — `{skill:hc-scout} --quick` with the edge-case prompt (`references/process-edge-cases.md`), scoped to the changed files: consumers, data flows, boundary conditions, blast radius. Log `✓ Scout: [N] findings`
 
-   **Scout shortcut:** Before spawning `{skill:hc-scout}`, glob for `.agents/*/scout-report.md`. If any exist, read the most recently modified one — if it covers the task's relevant modules, use it as scout findings and skip spawning. Log `✓ Scout: used scout-report.md from [path]`.
+   Never spawn full-mode `{skill:hc-scout}` here — repo-wide partition scouting belongs to codebase modes, which run it internally.
+   - Skip entirely: `codebase` / `codebase parallel` modes (scout runs internally); `--ui` mode (pattern-matched files are the scope); `--quick` mode (quality checklist needs no blast radius)
 
-3. **Review Circuit** — 3 stages in sequence:
-   - **Stage 1 — Spec** (`references/review-spec.md`): verify implementation matches plan/spec; absent plan, check for unjustified scope additions. Must pass before Stage 2. Skip if `--quick`.
-   - **Stage 2 — Quality**: auto-discover `.agents/checks/*.yaml`; filter by scope glob vs diff files; log `✓ Checks: [N] discovered, [M] matched`; inject matching checks into `haily-reviewer` prompt (see `references/checks.md`). **Agentic check injection:** scan diff for agentic patterns (LLM SDK imports — `from anthropic`, `from langchain`, `import openai`; `@tool` decorator; MCP tool schema keys — `"tools": [{`, `inputSchema`; agent invocation — `.invoke(`, `.run(` on agent objects). If patterns found (≥1 LLM SDK import, OR ≥2 other signals) OR `--agentic` flag is set, load `references/checklists/agentic.md` and append to reviewer prompt; log `ℹ Agentic code detected — injecting OWASP Agentic Top 10 checks`. If not detected and no `--agentic`, log `ℹ No agentic patterns — skipping agentic checks`. Delegate `haily-reviewer` subagent with diff + scout findings + repo-specific checks + injected agentic checks. Standards, security, performance, edge cases.
-   - **Stage 3 — Stress Probe** (`references/review-adversarial.md`): adversarial pass — skip if `--quick`; also scope-gated: skip if ≤2 files AND ≤30 lines AND no auth/crypto/schema/env/migration files touched. Under `--deep`, after adjudication run refuter votes on every Critical and every accepted Medium (`references/review-adversarial.md` → `## --deep: Refuter Votes`) before a finding can block.
+3. **Review Circuit** — Stage 1 gates in the main loop; Stages 2 and 3 spawn in parallel:
+   - **Stage 1 — Spec** (`references/review-spec.md`): verify implementation matches plan/spec; absent plan, check for unjustified scope additions. Main-loop check — must pass before any reviewer spawns (fail-fast: never spend reviewer runs on non-compliant code). Skip if `--quick`.
+   - **Stage 2 — Quality**: auto-discover `.agents/checks/*.yaml`; filter by scope glob vs diff files; log `✓ Checks: [N] discovered, [M] matched`; inject matching checks into `haily-reviewer` prompt (see `references/checks.md`). **Agentic check injection:** scan diff for agentic patterns (LLM SDK imports — `from anthropic`, `from langchain`, `import openai`; `@tool` decorator; MCP tool schema keys — `"tools": [{`, `inputSchema`; agent invocation — `.invoke(`, `.run(` on agent objects). If patterns found (≥1 LLM SDK import, OR ≥2 other signals) OR `--agentic` flag is set, load `references/checklists/agentic.md` and append to reviewer prompt; log `ℹ Agentic code detected — injecting OWASP Agentic Top 10 checks`. If not detected and no `--agentic`, log `ℹ No agentic patterns — skipping agentic checks`. Delegate `haily-reviewer` subagent with diff + scout findings + repo-specific checks + injected agentic checks + the Stage 4 YAGNI taxonomy block (`references/flow-simplification.md` § Pass 2; omit when `--quick`). Standards, security, performance, edge cases.
+   - **Stage 3 — Stress Probe** (`references/review-adversarial.md`): adversarial pass — skip if `--quick`; also scope-gated (evaluate before spawning): skip if ≤2 files AND ≤30 lines AND no auth/crypto/schema/env/migration files touched. Under `--deep`, after adjudication run refuter votes on every Critical and every accepted Medium (`references/review-adversarial.md` → `## --deep: Refuter Votes`) before a finding can block.
+   - **Parallel spawn:** the Stage 2 and Stage 3 reviewers take the same inputs (diff + scout findings) and neither consumes the other's output — once Stage 1 passes and the scope gate is evaluated, spawn both in one message. Adjudicate all findings together after both return; dedupe overlapping findings by `file:line` + category, keeping the higher severity.
    - For 3+ changed files: use task-managed pipeline (`references/process-task-pipeline.md`)
    - Log `✓ Review: [N] findings — [X critical, Y medium, Z low]`
 
 4. **Simplification Scan** (`references/flow-simplification.md`) — informational pass; does not block review completion. Skip if `--quick`.
-   - **Pass 1 — Haily markers:** grep diff files for `// haily:` comments; report each with its ceiling and upgrade trigger
-   - **Pass 2 — YAGNI taxonomy:** spawn `haily-reviewer` with 5-tag taxonomy (`delete:`, `stdlib:`, `native:`, `yagni:`, `shrink:`); output `net: -N lines possible` summary
+   - **Pass 1 — Haily markers:** grep diff files for `// haily:` comments in the main loop; report each with its ceiling and upgrade trigger
+   - **Pass 2 — YAGNI taxonomy:** rides in the Stage 2 reviewer prompt (5-tag taxonomy: `delete:`, `stdlib:`, `native:`, `yagni:`, `shrink:`) — no separate spawn; extract tagged findings from the Stage 2 report and output the `net: -N lines possible` summary
    - Findings are advisory — present to developer; fix now / defer / accept
    - Log `✓ Simplification: [N markers, M findings] — net: -N lines possible`
 
@@ -190,7 +196,7 @@ Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-
 | `references/checklists/web-app.md` | Web app overlay (XSS, CSRF, N+1, frontend perf, accessibility) |
 | `references/checklists/database.md` | Database / migration overlay (locking, backfill safety, N+1, SQL injection, cascade) |
 | `references/checklists/observability.md` | Observability overlay (logging PII, metrics cardinality, tracing, error capture, health checks) |
-| `references/flow-simplification.md` | Stage 4 Simplification Scan: Haily marker harvest + YAGNI taxonomy (5 tags), advisory output |
+| `references/flow-simplification.md` | Stage 4 Simplification Scan: main-loop Haily marker harvest + YAGNI taxonomy (5 tags) injected into the Stage 2 prompt, advisory output |
 | `references/flow-cross.md` | `--cross` mode: secret-safe diff capture, `hailykit cross-review` invocation, size guard, findings merge + blind-spot tagging, privacy, `--deep` confidence-raising |
 | `references/flywheel-distillation.md` | Findings-to-rules flywheel: history line shape, recurrence detection, distillation targets (standards/guard/lint/memory), dedup + citation protocol, per-developer scope note |
 | `references/flow-quiz.md` | `--quiz` mode: artifact-ranked question generation, key-first protocol, grading loop (comprehension gap vs alignment finding), 100%-pass semantics, report format |

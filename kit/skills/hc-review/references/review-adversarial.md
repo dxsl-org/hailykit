@@ -5,7 +5,7 @@ description: Stage 3 Stress Probe that actively tries to break code — finds se
 
 # Adversarial Review (Stage 3 — Stress Probe)
 
-Runs after every Stage 2 (Quality) pass. Subject to the scope gate below.
+Spawns in parallel with the Stage 2 (Quality) reviewer once Stage 1 (Spec) passes — same inputs (diff + scout findings), neither consumes the other's output. Subject to the scope gate below, evaluated before spawning. Adjudication runs after both reviewers return.
 
 ## Scope Gate
 
@@ -226,11 +226,11 @@ Survivors log `refutation-resistant`; demotions log the refuter count and a one-
 ```
 Stage 1 (Spec) → PASS
   ↓
-Stage 2 (Quality) → PASS
-  ↓
-Scope gate → below threshold? → skip (emit note)
+Scope gate → below threshold? → Stage 2 only (emit skip note)
   ↓ (above threshold)
-Stage 3 (Stress Probe) → findings adjudicated
+Stage 2 (Quality) ∥ Stage 3 (Stress Probe)   ← spawned together, one message
+  ↓ (both returned)
+Findings merged (dedupe by file:line + category, keep higher severity) → adjudicated
   ├─ 0 Accepted → PASS → proceed
   ├─ Accepted Critical → BLOCK → fix → re-run Stage 3 (fix diff only)
   └─ Accepted Medium/Low only → fix or defer → proceed

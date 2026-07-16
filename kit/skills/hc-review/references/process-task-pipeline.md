@@ -16,14 +16,14 @@ Track review pipeline execution via Claude Native Tasks (TaskCreate, TaskUpdate,
 ## Review Pipeline as Tasks
 
 ```
-TaskCreate: "Scout edge cases"         → pending
+TaskCreate: "Scout edge cases"         → pending          (omit when the Scout ladder resolved without a spawn)
 TaskCreate: "Review implementation"    → pending, blockedBy: [scout]
-TaskCreate: "Adversarial review"       → pending, blockedBy: [review]
-TaskCreate: "Fix critical issues"      → pending, blockedBy: [adversarial]
+TaskCreate: "Adversarial review"       → pending, blockedBy: [scout]   (NOT blocked by review — runs in parallel)
+TaskCreate: "Fix critical issues"      → pending, blockedBy: [review, adversarial]
 TaskCreate: "Verify fixes pass"        → pending, blockedBy: [fix]
 ```
 
-Dependency chain auto-unblocks: scout → review → adversarial → fix → verify.
+Dependency shape: scout → (review ∥ adversarial) → fix → verify. Review and adversarial spawn together in one message; fix unblocks only when both complete. When the scout task is omitted (ladder resolved without a spawn), drop `scout` from the review/adversarial `blockedBy` — both start unblocked.
 
 ## Task Schemas
 
@@ -63,7 +63,7 @@ TaskCreate(
   description: "Spawn adversarial reviewer to break the code. See references/review-adversarial.md",
   metadata: { reviewStage: "adversarial", feature: "{feature}",
               priority: "P1", effort: "10m" },
-  addBlockedBy: ["{review-task-id}"]
+  addBlockedBy: ["{scout-task-id}"]
 )
 ```
 
@@ -76,7 +76,7 @@ TaskCreate(
   description: "Address: {issue_list}",
   metadata: { reviewStage: "fix", severity: "critical",
               issueCount: 3, priority: "P1", effort: "15m" },
-  addBlockedBy: ["{review-task-id}"]
+  addBlockedBy: ["{review-task-id}", "{adversarial-task-id}"]
 )
 ```
 
@@ -140,7 +140,7 @@ Review tasks are **separate from** cook/planning phase tasks.
 
 **When cook spawns review:**
 1. Cook completes implementation phase → creates review pipeline tasks
-2. Review pipeline executes (scout → review → adversarial → fix → verify)
+2. Review pipeline executes (scout → review ∥ adversarial → fix → verify)
 3. All review tasks complete → cook marks phase as reviewed
 4. Cook proceeds to next phase
 
@@ -148,7 +148,7 @@ Review tasks reference the phase but don't block it directly — the orchestrato
 
 ## Quality Check
 
-After pipeline registration: `Registered [N] review tasks (scout → review → adversarial → fix → verify chain)`
+After pipeline registration: `Registered [N] review tasks (scout → review ∥ adversarial → fix → verify)`
 
 ## Error Handling
 

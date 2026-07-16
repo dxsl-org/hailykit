@@ -5,6 +5,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### 🚀 Improvements
+
+- hc-review: cut wall-clock and duplicate work — Scout resolves reuse-first (session recon → scout-report.md → inline trace for small diffs → `hc-scout --quick`; full-mode scout no longer spawned for diff reviews), Quality and Stress Probe reviewers spawn in parallel after the Spec gate, YAGNI taxonomy rides the Quality prompt instead of a third reviewer spawn, `--quick` skips Scout, batch mode reuses scout findings across targets, and the duplicate pre-dispatch scout instruction in process-requesting.md is removed
+
 ## [1.14.3] (2026-07-14)
 
 ### 🚀 Improvements

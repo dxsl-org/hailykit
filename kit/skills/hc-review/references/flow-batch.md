@@ -20,7 +20,8 @@ Execute sequentially. For each target `[i/N]`:
 
 1. Log `▶ Batch [i/N]: reviewing <target>…`
 2. Run the full Route → Scout → Review Circuit process for this target (same as single-target mode).
-   - Compose with `--quick` if passed: skip Stage 1 + Stage 3 on all targets.
+   - **Scout reuse across targets:** before running the Scout ladder, check whether an earlier target's scout findings already cover this target's changed modules. If so, reuse them — log `✓ Scout: reused from target [j]`. Scout spawns at most once per distinct module cluster in the batch, not once per target.
+   - Compose with `--quick` if passed: skip Scout + Stage 1 + Stage 3 on all targets.
    - Compose with `--comment` if passed: post inline comments for this target after its Act step.
 3. Collect result object:
    ```

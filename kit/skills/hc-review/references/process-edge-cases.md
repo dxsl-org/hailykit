@@ -22,14 +22,21 @@ Code reviews catch obvious issues but miss subtle side effects. Scout detects:
 
 ## Process
 
+### 0. Reuse Before Spawning
+
+Check the Scout ladder first (SKILL.md Process step 2): session recon → `.agents/*/scout-report.md` → inline importer trace for small diffs. Only fall through to step 2 below when no existing recon covers the changed modules.
+
 ### 1. Identify Changed Files
 ```bash
 git diff --name-only HEAD~1
 ```
 
-### 2. Invoke Scout
+### 2. Invoke Scout (--quick)
+
+Always `--quick` — a single Explore agent scoped to the changed files. Full-mode `{skill:hc-scout}` partitions the whole repo and is never warranted for a diff review.
+
 ```
-{skill:hc-scout} edge cases for recent changes.
+{skill:hc-scout} --quick edge cases for recent changes.
 
 Changed: {files from git diff}
 
@@ -116,4 +123,4 @@ Find: importers, behavior diffs, removed functionality
 
 ## Bottom Line
 
-Scout before review. Don't trust "simple changes" - scout them anyway.
+Recon before review — reuse-first. Don't trust "simple changes": they still get the inline importer trace, just not a subagent.
