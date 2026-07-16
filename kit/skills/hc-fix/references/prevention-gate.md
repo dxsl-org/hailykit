@@ -22,7 +22,7 @@ If no test framework exists:
 
 ### 2. Defense-in-Depth Validation (When applicable)
 
-Apply layered validation from `hc:debug` defense-in-depth technique:
+Apply layered validation from `{skill:hc-debug}` defense-in-depth technique:
 
 | Layer | Apply When | Example |
 |-------|-----------|---------|

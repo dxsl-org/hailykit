@@ -1,6 +1,6 @@
 # Error Handling
 
-Error conditions, fallback actions, and user-facing messages for `hl:visualize`.
+Error conditions, fallback actions, and user-facing messages for `{skill:hl-visualize}`.
 
 | Error | Action |
 |-------|--------|

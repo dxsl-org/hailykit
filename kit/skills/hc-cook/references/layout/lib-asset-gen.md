@@ -1,6 +1,6 @@
 # Asset Generation Workflow
 
-Complete workflow for generating design-aligned visual assets using `hl:design` skill (and the native Read tool for analysis).
+Complete workflow for generating design-aligned visual assets using `{skill:hl-design}` skill (and the native Read tool for analysis).
 
 ## Generation Workflow
 
@@ -40,18 +40,18 @@ surfaces, geometric shapes, monumental scale, inspired by
 
 ### Step 3: Generate with Appropriate Model
 
-Use `hl:design` skill (run from its dir):
+Use `{skill:hl-design}` skill (run from its dir):
 
 ```bash
 # Standard quality via OpenRouter (Gemini/Imagen routing)
-python scripts/openrouter_generate.py \
+python openrouter_generate.py \
   --model google/imagen-4.0-generate-001 \
   --prompt "[your design-driven prompt]" \
   --output docs/assets/hero-image.png \
   --aspect-ratio 16:9
 
 # Ultra quality (production hero images, marketing)
-python scripts/openrouter_generate.py \
+python openrouter_generate.py \
   --model google/imagen-4.0-ultra-generate-001 \
   --prompt "[your design-driven prompt]" \
   --output docs/assets/hero-ultra.png
@@ -92,7 +92,7 @@ Read `docs/assets/hero-image.png` directly to evaluate the generated asset:
 1. Identify specific issues (color, composition, mood, technical)
 2. Refine prompt with improvements
 3. Regenerate with adjusted parameters
-4. Consider using `hd:media-processing` skill for post-generation adjustments
+4. Consider using `imagemagick` / `ffmpeg` CLI for post-generation adjustments
 
 **If meets standards**:
 1. Optimize for web (compress, format conversion)
@@ -244,13 +244,13 @@ Assets aren't standalone—consider how they work with:
 ### Variant Generation
 ```bash
 # Desktop (16:9)
-python scripts/openrouter_generate.py --model google/imagen-4.0-generate-001 -p "[prompt]" --output docs/assets/hero-desktop --aspect-ratio 16:9  # (run from hd-ai-generation/)
+python openrouter_generate.py --model google/imagen-4.0-generate-001 -p "[prompt]" --output docs/assets/hero-desktop --aspect-ratio 16:9  # (run from hl-design/scripts/media/)
 
 # Mobile (9:16)
-python scripts/openrouter_generate.py --model google/imagen-4.0-generate-001 -p "[same prompt]" --output docs/assets/hero-mobile --aspect-ratio 9:16  # (run from hd-ai-generation/)
+python openrouter_generate.py --model google/imagen-4.0-generate-001 -p "[same prompt]" --output docs/assets/hero-mobile --aspect-ratio 9:16  # (run from hl-design/scripts/media/)
 
 # Square (1:1)
-python scripts/openrouter_generate.py --model google/imagen-4.0-generate-001 -p "[same prompt]" --output docs/assets/hero-square --aspect-ratio 1:1  # (run from hd-ai-generation/)
+python openrouter_generate.py --model google/imagen-4.0-generate-001 -p "[same prompt]" --output docs/assets/hero-square --aspect-ratio 1:1  # (run from hl-design/scripts/media/)
 ```
 
 ## Model Cost Optimization
@@ -270,17 +270,17 @@ python scripts/openrouter_generate.py --model google/imagen-4.0-generate-001 -p 
 
 ```bash
 # 1. Fast exploration (3 variations)
-python scripts/openrouter_generate.py --model google/imagen-4.0-fast-generate-001 -p "Minimalist mountain landscape, muted blue-gray tones,
-  fog layers, serene morning atmosphere, clean for text overlay, 16:9" --output docs/assets/concept-1 --aspect-ratio 16:9  # (run from hd-ai-generation/)
+python openrouter_generate.py --model google/imagen-4.0-fast-generate-001 -p "Minimalist mountain landscape, muted blue-gray tones,
+  fog layers, serene morning atmosphere, clean for text overlay, 16:9" --output docs/assets/concept-1 --aspect-ratio 16:9  # (run from hl-design/scripts/media/)
 
 # 2. Analyze best variation
 Read docs/assets/concept-1.png directly and rate 1-10 for aesthetic quality, color harmony, and text overlay suitability.
 
 # 3. If score ≥ 7/10, generate production version
-python scripts/openrouter_generate.py --model google/imagen-4.0-generate-001 -p "[refined prompt based on analysis]" --output docs/assets/hero-final --aspect-ratio 16:9  # (run from hd-ai-generation/)
+python openrouter_generate.py --model google/imagen-4.0-generate-001 -p "[refined prompt based on analysis]" --output docs/assets/hero-final --aspect-ratio 16:9  # (run from hl-design/scripts/media/)
 
 # 4. Generate mobile variant
-python scripts/openrouter_generate.py --model google/imagen-4.0-generate-001 -p "[same refined prompt]" --output docs/assets/hero-mobile --aspect-ratio 9:16  # (run from hd-ai-generation/)
+python openrouter_generate.py --model google/imagen-4.0-generate-001 -p "[same refined prompt]" --output docs/assets/hero-mobile --aspect-ratio 9:16  # (run from hl-design/scripts/media/)
 ```
 
 ## Next Steps

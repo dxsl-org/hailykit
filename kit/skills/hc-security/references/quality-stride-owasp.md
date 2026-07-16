@@ -1,6 +1,6 @@
 # STRIDE + OWASP Security Checklist
 
-Reference checklist for `hc:security` audits. Used during STRIDE scanning and OWASP mapping stages.
+Reference checklist for `{skill:hc-security}` audits. Used during STRIDE scanning and OWASP mapping stages.
 
 ---
 

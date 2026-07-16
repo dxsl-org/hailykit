@@ -49,9 +49,10 @@ gh run view <run-id> --log > /tmp/ci-logs.txt
 
 **For codebase understanding:**
 - Read `docs/codebase-summary.md` if exists and up-to-date (<2 days old)
+- Check `.agents/*/scout-report.md` — one from the active plan replaces re-scouting (same rule as the skill's Recon)
 - Otherwise use `{skill:hc-scout} --pack` to generate fresh codebase summary
-- Use `{skill:hc-scout}` or `{skill:hc-scout} ext` to find relevant files
-- Use `hc:lookup` skill for package/plugin documentation
+- Use `{skill:hc-scout} --quick` for targeted file lookup; full `{skill:hc-scout}` (or `ext`) only when the failure spans unknown modules
+- Use `{skill:hc-lookup}` skill for package/plugin documentation
 
 ## Step 3: Analysis Process
 

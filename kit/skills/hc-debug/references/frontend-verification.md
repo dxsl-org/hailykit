@@ -13,7 +13,7 @@ If none match, skip this technique.
 
 ## Step 1: Detect Chrome MCP Availability
 
-Check if Chrome MCP server is available via `hc:mcp-builder` skill or `ListMcpResourcesTool`:
+Check if Chrome MCP server is available via `{skill:hc-mcp-builder}` skill or `ListMcpResourcesTool`:
 
 ```
 Use ListMcpResourcesTool to check for Chrome MCP tools.

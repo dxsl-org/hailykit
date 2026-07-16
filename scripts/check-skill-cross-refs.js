@@ -172,6 +172,38 @@ function collectCkReferences() {
   return refs;
 }
 
+// Malformed skill refs: a colon inside the name ({skill:hd:ai-generation}) comes from the
+// pre-2026-06 colon convention. HL_REF_RE requires a hyphen after the prefix, so these
+// would otherwise pass the registry check silently as dead pointers.
+const MALFORMED_SKILL_REF_RE = /\{skill:[a-z]+:[a-z0-9-]+\}/g;
+
+/**
+ * Scans all .md files under kit/ for malformed {skill:...} refs (colon-form names).
+ * Returns Array<{ ref, file, line }>.
+ */
+function collectMalformedSkillRefs() {
+  const mdFiles = findFiles(claudeDir, (entry) => entry.endsWith('.md'));
+  const malformed = [];
+
+  for (const filePath of mdFiles) {
+    let content;
+    try {
+      content = readFileSync(filePath, 'utf8');
+    } catch {
+      continue;
+    }
+    content.split('\n').forEach((line, idx) => {
+      MALFORMED_SKILL_REF_RE.lastIndex = 0;
+      let match;
+      while ((match = MALFORMED_SKILL_REF_RE.exec(line)) !== null) {
+        malformed.push({ ref: match[0], file: path.relative(repoRoot, filePath), line: idx + 1 });
+      }
+    });
+  }
+
+  return malformed;
+}
+
 // Valid provider-neutral model tiers for kit/agents/*.md frontmatter (model: and model_max:).
 // A typo here passes silently through the installer (the resolve regex only
 // matches valid tiers), so the bad value would ship verbatim to user machines.
@@ -388,6 +420,16 @@ function main() {
     }
     console.error('');
     console.error('Registered skills:', [...registry].sort().join(', ') || '(none)');
+  }
+
+  const malformedRefs = collectMalformedSkillRefs();
+  if (malformedRefs.length > 0) {
+    hasErrors = true;
+    console.error('[X] Malformed skill reference(s) — colon-form names are dead pointers; use {skill:prefix-name}:');
+    for (const { ref, file, line } of malformedRefs) {
+      console.error(`  - ${ref}  at ${file}:${line}`);
+    }
+    console.error('');
   }
 
   const tierProblems = checkAgentModelTiers();

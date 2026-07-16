@@ -36,9 +36,9 @@ Read `docs/assets/option-1.png` and `docs/assets/option-2.png` directly and appl
 **Extract color palette:**
 Read `docs/assets/final-asset.png` directly and extract 5-8 dominant colors with hex codes; classify as primary/accent/neutral and suggest CSS variable names.
 
-**Generate asset** (run from `hd-ai-generation/`):
+**Generate asset** (run from `hl-design/scripts/media/`):
 ```bash
-python scripts/openrouter_generate.py --model google/imagen-4.0-generate-001 \
+python openrouter_generate.py --model google/imagen-4.0-generate-001 \
   -p "[design-driven prompt]" --output docs/assets/[name] --aspect-ratio 16:9
 ```
 
@@ -47,7 +47,7 @@ python scripts/openrouter_generate.py --model google/imagen-4.0-generate-001 \
 | Score | Decision | Actions |
 |---|---|---|
 | ≥ 8/10 | Proceed to integration | Optimize for web, create responsive variants, extract CSS palette |
-| 6–7/10 | Minor refinements | Use `{skill:hd:media-processing}` for brightness/contrast; proceed with caution |
+| 6–7/10 | Minor refinements | Use `imagemagick`/`ffmpeg` for brightness/contrast; proceed with caution |
 | < 6/10 | Major iteration | Analyze failure points, refine prompt, regenerate |
 
 ## Models

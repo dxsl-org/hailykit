@@ -1,6 +1,6 @@
 # Summarize Workflow
 
-Activate `hc:scout` skill to analyze the codebase and update `docs/codebase-summary.md` and respond with a summary report.
+Update `docs/codebase-summary.md` and respond with a summary report. Activate `{skill:hc-scout}` only when `<should_scan_codebase>` is `true` — otherwise work from `docs/`, the focused topics, and targeted grep; never full-scan by default.
 
 ## Arguments
 $1: Focused topics (default: all)

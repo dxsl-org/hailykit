@@ -6,9 +6,9 @@ When to activate each skill and tool during fixing workflows.
 
 | Skill/Tool | Step | Reason |
 |------------|------|--------|
-| `hc:scout` OR parallel `Explore` | Step 1 | Understand codebase context before diagnosing |
-| `hc:debug` | Step 2 | Systematic root cause investigation |
-| `hl:reasoning` | Step 2 | Structured hypothesis formation — NO guessing |
+| Reuse-first recon, else `{skill:hc-scout} --quick` OR parallel `Explore` | Step 1 | Understand codebase context before diagnosing (SKILL Process step 1 ladder) |
+| `{skill:hc-debug}` | Step 2 | Systematic root cause investigation |
+| `{skill:hl-reasoning}` | Step 2 | Structured hypothesis formation — NO guessing |
 
 ## Task Orchestration (Moderate+ Only)
 
@@ -25,17 +25,17 @@ Skip Tasks for Quick workflow (< 3 steps). See `references/task-orchestration.md
 
 | Skill | Auto-Trigger Condition |
 |-------|------------------------|
-| `hl:brainstorm` | 2+ hypotheses REFUTED in Step 2 diagnosis |
-| `hl:reasoning` | Always in Step 2 (mandatory for hypothesis formation) |
+| `{skill:hl-brainstorm}` | 2+ hypotheses REFUTED in Step 2 diagnosis |
+| `{skill:hl-reasoning}` | Always in Step 2 (mandatory for hypothesis formation) |
 
 ## Conditional Activation
 
 | Skill | Activate When |
 |-------|---------------|
-| `hl:brainstorm` | Multiple valid fix approaches, architecture decision (Deep only) |
-| `hl:context-engineering` | Fixing AI/LLM/agent code, context window issues |
+| `{skill:hl-brainstorm}` | Multiple valid fix approaches, architecture decision (Deep only) |
+| `{skill:hl-context-engineering}` | Fixing AI/LLM/agent code, context window issues |
 | Native Read tool | UI issues, screenshots provided, visual bugs (Read the screenshot file directly to analyze it) |
-| `hl:log` | Moderate+ workflows — task hydration, sync-back, progress tracking |
+| `{skill:hl-log}` | Moderate+ workflows — task hydration, sync-back, progress tracking |
 
 ## Subagent Usage
 
@@ -47,7 +47,7 @@ Skip Tasks for Quick workflow (< 3 steps). See `references/task-orchestration.md
 | `haily-researcher` | External docs needed, latest best practices (Deep only) |
 | `haily-planner` | Complex fix needs breakdown, multiple phases (Deep only) |
 | `haily-tester` | After implementation, verify fix works (Step 5) |
-| `hc:review` | After fix, verify quality and security (Step 5) |
+| `{skill:hc-review}` | After fix, verify quality and security (Step 5) |
 | `haily-git-manager` | After approval, commit changes (Step 6) |
 | `haily-docs-writer` | API/behavior changes need doc updates (Step 6) |
 | `haily-project-manager` | Major fix impacts roadmap/plan status (Step 6) |
@@ -69,18 +69,18 @@ See `references/parallel-exploration.md` for detailed patterns.
 
 | Workflow | Skills Activated |
 |----------|------------------|
-| Quick | `hc:scout` (minimal), `hc:debug`, `hl:reasoning`, `hc:review`, parallel `Bash` verification |
-| Standard | Above + Tasks, `hl:brainstorm` (auto), `hl:log`, `haily-tester`, parallel `Explore` |
-| Deep | All above + `hl:brainstorm`, `hl:context-engineering`, `haily-researcher`, `haily-planner` |
-| Parallel | Per-issue Task trees + `hl:log` + `haily-implementor` agents + coordination via `TaskList` |
+| Quick | `{skill:hc-scout}` (minimal), `{skill:hc-debug}`, `{skill:hl-reasoning}`, `{skill:hc-review}`, parallel `Bash` verification |
+| Standard | Above + Tasks, `{skill:hl-brainstorm}` (auto), `{skill:hl-log}`, `haily-tester`, parallel `Explore` |
+| Deep | All above + `{skill:hl-brainstorm}`, `{skill:hl-context-engineering}`, `haily-researcher`, `haily-planner` |
+| Parallel | Per-issue Task trees + `{skill:hl-log}` + `haily-implementor` agents + coordination via `TaskList` |
 
 ## Step → Skills Chain (Mandatory Order)
 
 | Step | Mandatory Chain |
 |------|----------------|
 | Step 0: Mode | `AskUserQuestion` (unless auto/quick detected) |
-| Step 1: Scout | `hc:scout` OR 2-3 parallel `Explore` → map files, deps, tests |
-| Step 2: Diagnose | Capture pre-fix state → `hc:debug` → `hl:reasoning` → parallel `Explore` hypotheses → (`hl:brainstorm` if 2+ fail) |
+| Step 1: Scout | `{skill:hc-scout}` OR 2-3 parallel `Explore` → map files, deps, tests |
+| Step 2: Diagnose | Capture pre-fix state → `{skill:hc-debug}` → `{skill:hl-reasoning}` → parallel `Explore` hypotheses → (`{skill:hl-brainstorm}` if 2+ fail) |
 | Step 3: Assess | Classify complexity → create Tasks (moderate+) |
 | Step 4: Fix | Implement per workflow → follow root cause |
 | Step 5: Verify+Prevent | Iron-law verify → regression test → defense-in-depth → parallel `Bash` verify |
@@ -90,9 +90,9 @@ See `references/parallel-exploration.md` for detailed patterns.
 
 | Keyword/Pattern | Skill to Consider |
 |-----------------|-------------------|
-| "AI", "LLM", "agent", "context" | `hl:context-engineering` |
-| "stuck", "tried everything" | `hl:brainstorm` |
-| "complex", "multi-step" | `hl:reasoning` |
-| "which approach", "options" | `hl:brainstorm` |
+| "AI", "LLM", "agent", "context" | `{skill:hl-context-engineering}` |
+| "stuck", "tried everything" | `{skill:hl-brainstorm}` |
+| "complex", "multi-step" | `{skill:hl-reasoning}` |
+| "which approach", "options" | `{skill:hl-brainstorm}` |
 | "latest docs", "best practice" | `haily-researcher` subagent |
 | Screenshot attached | Native Read tool |

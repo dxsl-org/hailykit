@@ -3,16 +3,16 @@
 Create immersive interactive 3D designs with Three.js.
 
 ## Prerequisites
-- Activate `hd:ui-ux` skill first
-- Activate `hd:threejs` skill for 3D and WebGL expertise
+- Activate `{skill:hl-design}` skill first
+- Use `{skill:hc-lookup}` for three.js / WebGL documentation
 - Use the native Read tool for visual analysis of generated assets
 
 ## Initial Research
-Run `hd:ui-ux` searches:
+Run `{skill:hl-design}` searches:
 ```bash
-python3 .claude/skills/hd-ui-ux/scripts/search.py "<product-type>" --domain product
-python3 .claude/skills/hd-ui-ux/scripts/search.py "immersive 3d" --domain style
-python3 .claude/skills/hd-ui-ux/scripts/search.py "animation" --domain ux
+python3 .claude/skills/hl-design/scripts/ui-ux/search.py "<product-type>" --domain product
+python3 .claude/skills/hl-design/scripts/ui-ux/search.py "immersive 3d" --domain style
+python3 .claude/skills/hl-design/scripts/ui-ux/search.py "animation" --domain ux
 ```
 
 ## Workflow Steps
@@ -34,13 +34,13 @@ Use `haily-designer` subagent to build:
 - Interactive elements
 
 ### 3. Generate 3D Assets
-Use `hl:design` skill for:
+Use `{skill:hl-design}` skill for:
 - Textures and materials
 - Skyboxes and environment maps
 - Particle sprites
 - Video backgrounds
 
-Use `hd:media-processing` skill for:
+Use `imagemagick` / `ffmpeg` CLI for:
 - Texture optimization for WebGL
 - Normal/height map generation
 - Sprite sheet creation

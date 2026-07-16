@@ -29,7 +29,7 @@ Spin up several researchers in parallel when the task spans unrelated domains:
 {agent:scout}
 
 Locate modules, patterns, and contracts related to the feature.
-Prefer `{skill:hc-scout} ext`; fall back to `{skill:hc-scout}` in constrained contexts.
+Default `{skill:hc-scout}`; escalate to `{skill:hc-scout} ext` only for 500+ file codebases needing broad coverage. Reuse session recon or `.agents/*/scout-report.md` instead of spawning when it already covers the feature's modules.
 
 {agent-result:scout}
 

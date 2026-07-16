@@ -21,7 +21,7 @@ T6 = TaskCreate(subject="Finalize",               activeForm="Finalizing",      
 `TaskUpdate(T1, status="in_progress")`
 
 **Mandatory skill chain:**
-1. Activate `hc:scout` skill OR launch 2-3 parallel `Explore` subagents.
+1. Reuse-first (SKILL.md Process step 1 ladder — session recon, then `.agents/*/scout-report.md`); otherwise activate `{skill:hc-scout} --quick` OR launch 2-3 parallel `Explore` subagents scoped to the symptom.
 2. Map: affected files, module boundaries, dependencies, related tests, recent git changes.
 
 **Pattern:** In SINGLE message, launch 2-3 Explore agents:
@@ -41,10 +41,10 @@ See `references/parallel-exploration.md` for patterns.
 
 **Mandatory skill chain:**
 1. **Capture pre-fix state:** Record exact error messages, failing test output, stack traces.
-2. Activate `hc:debug` skill. Use `haily-debugger` subagent if needed.
-3. Activate `hl:reasoning` — form hypotheses through structured reasoning.
+2. Activate `{skill:hc-debug}` skill. Use `haily-debugger` subagent if needed.
+3. Activate `{skill:hl-reasoning}` — form hypotheses through structured reasoning.
 4. Spawn parallel `Explore` subagents to test hypotheses against codebase evidence.
-5. If 2+ hypotheses fail → auto-activate `hl:brainstorm`.
+5. If 2+ hypotheses fail → auto-activate `{skill:hl-brainstorm}`.
 6. Trace backward to root cause (not just symptom location).
 
 See `references/diagnosis-protocol.md` for full methodology.
@@ -57,8 +57,8 @@ See `references/diagnosis-protocol.md` for full methodology.
 
 Fix the ROOT CAUSE per diagnosis findings. Not symptoms.
 
-- Apply `hl:brainstorm` skill if stuck
-- Use `hl:reasoning` for complex logic
+- Apply `{skill:hl-brainstorm}` skill if stuck
+- Use `{skill:hl-reasoning}` for complex logic
 - Minimal changes. Follow existing patterns.
 
 `TaskUpdate(T3, status="completed")`
@@ -96,7 +96,7 @@ See `references/review-cycle.md` for mode-specific handling.
 ### Step 6: Finalize
 `TaskUpdate(T6, status="in_progress")`
 - Report summary: root cause, changes, prevention measures, confidence score
-- Activate `hl:log` for task sync-back and plan status updates
+- Activate `{skill:hl-log}` for task sync-back and plan status updates
 - Update docs if needed via `haily-docs-writer`
 - Ask to commit via `haily-git-manager` subagent
 - Run `{skill:hl-log}`
@@ -108,13 +108,13 @@ See `references/review-cycle.md` for mode-specific handling.
 
 | Step | Skills/Subagents |
 |------|------------------|
-| 1 | `hc:scout` OR parallel `Explore` subagents |
-| 2 | `hc:debug`, `hl:reasoning`, `haily-debugger` subagent, parallel `Explore`, (`hl:brainstorm` auto) |
-| 3 | `hl:brainstorm` (if stuck), `hl:reasoning` (complex logic) |
+| 1 | `{skill:hc-scout}` OR parallel `Explore` subagents |
+| 2 | `{skill:hc-debug}`, `{skill:hl-reasoning}`, `haily-debugger` subagent, parallel `Explore`, (`{skill:hl-brainstorm}` auto) |
+| 3 | `{skill:hl-brainstorm}` (if stuck), `{skill:hl-reasoning}` (complex logic) |
 | 4 | `haily-tester` subagent, parallel `Bash` verification |
 | 5 | `haily-reviewer` subagent |
-| 6 | `hl:log`, `haily-git-manager`, `haily-docs-writer` subagents |
+| 6 | `{skill:hl-log}`, `haily-git-manager`, `haily-docs-writer` subagents |
 
 **Rules:** Don't skip steps. Validate before proceeding. One phase at a time.
-**Frontend:** Use `chrome`, `hc:debug` or any relevant skills/tools to verify.
-**Visual Assets:** Use `hl:design` for asset generation; `gemini` CLI for analysis and verification.
+**Frontend:** Use `chrome`, `{skill:hc-debug}` or any relevant skills/tools to verify.
+**Visual Assets:** Use `{skill:hl-design}` for asset generation; `gemini` CLI for analysis and verification.

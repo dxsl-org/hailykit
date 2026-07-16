@@ -30,7 +30,7 @@
 
 ## Step 2: Link Issues
 
-Find or create related GitHub issues for traceability.
+Find related GitHub issues for traceability.
 
 1. Search for related open issues by keywords from branch name and commit messages:
    ```bash
@@ -49,41 +49,9 @@ Find or create related GitHub issues for traceability.
 
 3. **If related issues found:** Note issue numbers for PR linking.
 
-4. **If NO related issues found:** Create a new issue with structured format:
-   ```bash
-   gh issue create --title "<type>: <summary from commits>" --body "$(cat <<'EOF'
-   ## Problem Statement
-   <infer from diff and commit messages>
+4. **If NO related issues found:** skip silently — do not auto-create issues (SKILL contract, § Process step 2).
 
-   ## Proposal
-   <summarize the implementation approach>
-
-   ## How It Works
-   <describe key changes with bullet points>
-
-   ### Architecture
-   ```
-   <ASCII diagram of component interactions>
-   ```
-
-   ## Challenges
-   - <potential edge cases or risks>
-
-   ## Plan & Phases
-   - [x] Implementation complete
-   - [x] Tests passing
-   - [ ] Code review approved
-   - [ ] Merged to <target>
-
-   ## Human Review Tasks
-   - [ ] Verify business logic correctness
-   - [ ] Check for edge cases not covered by tests
-   - [ ] Validate UX/API contract changes (if any)
-   EOF
-   )"
-   ```
-
-5. Store issue numbers for Step 12 (PR creation).
+5. Store found issue numbers for Step 12 (PR creation).
 
 ## Step 3: Merge target branch
 

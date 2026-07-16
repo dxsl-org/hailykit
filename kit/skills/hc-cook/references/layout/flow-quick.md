@@ -3,15 +3,15 @@
 Rapid design creation with minimal planning overhead.
 
 ## Prerequisites
-- Activate `hd:ui-ux` skill first
+- Activate `{skill:hl-design}` skill first
 
 ## Initial Research
-Run `hd:ui-ux` searches:
+Run `{skill:hl-design}` searches:
 ```bash
-python3 .claude/skills/hd-ui-ux/scripts/search.py "<product-type>" --domain product
-python3 .claude/skills/hd-ui-ux/scripts/search.py "<style-keywords>" --domain style
-python3 .claude/skills/hd-ui-ux/scripts/search.py "<mood>" --domain typography
-python3 .claude/skills/hd-ui-ux/scripts/search.py "<industry>" --domain color
+python3 .claude/skills/hl-design/scripts/ui-ux/search.py "<product-type>" --domain product
+python3 .claude/skills/hl-design/scripts/ui-ux/search.py "<style-keywords>" --domain style
+python3 .claude/skills/hl-design/scripts/ui-ux/search.py "<mood>" --domain typography
+python3 .claude/skills/hl-design/scripts/ui-ux/search.py "<industry>" --domain color
 ```
 
 ## Workflow Steps
@@ -28,9 +28,9 @@ Use `haily-designer` subagent directly:
 - Maintain quality despite speed
 
 ### 3. Generate Assets
-- Generate required visuals using `{skill:hd:ai-generation}`
+- Generate required visuals using `{skill:hl-design}`
 - Read generated files directly to verify quality
-- Use `hd:media-processing` for adjustments
+- Use `imagemagick`/`ffmpeg` for adjustments
 
 ### 4. Report & Approve
 - Summarize changes briefly

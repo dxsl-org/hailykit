@@ -33,7 +33,7 @@ Some HailyKit skills have names that look similar to Claude Code built-in comman
 | `/security-review` — review pending changes for security | `{skill:hc-security}` — STRIDE/OWASP audit with optional auto-fix loop, secret/dep scan | `{skill:hc-security}` covers broader surface and can fix findings |
 | `/run` — launch this project's app to verify a change | `{skill:hc-test}` — execute test suites (unit/integration/e2e, optionally `--web` for Playwright/k6/a11y) | `/run` is manual verification; `{skill:hc-test}` is automated test execution |
 | `/loop` — recurring task on an interval | `{skill:hc-optimize}` — autonomous metric-driven optimization loop (coverage, perf, bundle size) with auto-keep/discard | `/loop` schedules; `{skill:hc-optimize}` experiments toward a metric |
-| `/mcp` — manage MCP servers (list, add, remove) | `{skill:hc-mcp-builder}` — build a new MCP server from scratch or agentize code | `/mcp` is client-side management; `hc:mcp-builder` creates the server code |
+| `/mcp` — manage MCP servers (list, add, remove) | `{skill:hc-mcp-builder}` — build a new MCP server from scratch or agentize code | `/mcp` is client-side management; `{skill:hc-mcp-builder}` creates the server code |
 | `/schedule` — cron-scheduled remote agents | (no equivalent HailyKit skill) | Use the built-in directly |
 | `/verify` — manually verify a code change works | `{skill:hc-test}` for automated checks, or built-in `/run` for hands-on verification | `/verify` is observation-based, not test-based |
 

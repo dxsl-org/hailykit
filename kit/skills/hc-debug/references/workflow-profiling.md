@@ -1,6 +1,6 @@
 # Performance Profiling Workflow
 
-Read and interpret profiling artifacts (heap dumps, flame graphs, CPU profiles, memory traces) to identify the exact bottleneck. Distinct from `hc:optimize` (metric-driven iteration) — profiling starts with an artifact, not a target metric.
+Read and interpret profiling artifacts (heap dumps, flame graphs, CPU profiles, memory traces) to identify the exact bottleneck. Distinct from `{skill:hc-optimize}` (metric-driven iteration) — profiling starts with an artifact, not a target metric.
 
 **Activation:** `{skill:hc-debug} --profile [artifact-path-or-description]`
 

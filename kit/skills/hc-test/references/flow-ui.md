@@ -59,7 +59,7 @@ npx playwright codegen --save-storage=auth.json https://example.com
 
 ## Workflow
 
-1. **Discover** — spawn `{skill:hc-scout}` or `{skill:hc-browser}` to identify all pages, routes, and components in scope
+1. **Discover** — spawn `{skill:hc-scout} --quick` (route/page inventory is a targeted lookup, not a repo-wide partition) or `{skill:hc-browser}` to identify all pages, routes, and components in scope
 2. **Plan** — create test plan: pages, forms, navigation flows, responsive breakpoints, accessibility, performance
 3. **Execute** — run parallel `haily-tester` subagents per concern area (pages, forms, navigation, a11y, responsive, performance)
 4. **Analyze** — read collected screenshots with the native Read tool to describe UI issues

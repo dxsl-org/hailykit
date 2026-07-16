@@ -26,7 +26,7 @@ If required fields are missing, they are captured via a batched `AskUserQuestion
 
 ## Constraints
 
-> **Required — mechanical metric:** The `Measure` command must output a single number to stdout in under 30 seconds. Subjective or aesthetic goals are out of scope — use `{skill:hc-cook}` instead.
+> **Required — mechanical metric:** The `Measure` command must output a single number to stdout in under 30 seconds. Validate before iterating: dry-run `Measure` once after config capture — if stdout is not a single number, stop and re-ask for a corrected command instead of entering the loop. Subjective or aesthetic goals are out of scope — use `{skill:hc-cook}` instead.
 
 > **Required — git clean working tree:** A git repository with a clean working tree is required before starting. The skill commits before each verify to preserve history.
 

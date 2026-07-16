@@ -13,9 +13,9 @@ Quick reference for AI multimodal integration technical considerations.
 
 ## Quick Commands
 
-**Generate** (run from `hd-ai-generation/`):
+**Generate** (run from `hl-design/scripts/media/`):
 ```bash
-python scripts/openrouter_generate.py \
+python openrouter_generate.py \
   --model google/imagen-4.0-generate-001 \
   --prompt "[design-driven prompt]" \
   --output docs/assets/[name].png \

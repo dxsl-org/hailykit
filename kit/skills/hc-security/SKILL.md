@@ -48,7 +48,7 @@ Structured security audit on a given scope. Produces a severity-ranked findings 
 1. **Scope** — expand `<scope>` glob or `full` into file list; read all in-scope files. Emit: `✓ Scope: N files`
 2. **STRIDE scan** — check each dimension against `references/quality-stride-owasp.md`: Spoofing, Tampering, Repudiation, Information Disclosure, DoS, Elevation of Privilege
 3. **OWASP mapping** — map each finding to A01–A10; check full checklist in `references/quality-stride-owasp.md`
-4. **Dependency audit** — run `npm audit` / `pip-audit` / `govulncheck` / `cargo audit` per detected stack
+4. **Dependency audit** — run `npm audit` / `pip-audit` / `govulncheck` / `cargo audit` per detected stack. Independent of step 5 — issue both in the same batch, not sequentially
 5. **Secret detection** — grep in-scope files with patterns from `references/tech-secret-patterns.md`; redact actual values in report
 6. **Categorize** — rank findings Critical → High → Medium → Low → Info; assign `file:line` citations. **Under `--deep`:** run refuter votes on every Critical finding before it can appear as blocking (see `--deep Mode`).
 7. **Report** — produce findings table; save to `.agents/reports/security-YYMMDD-HHMM-{slug}.md`. **Under `--deep` with `--cross`/`crossReview.auto`:** run the Cross Review pass on the finished report (see `--deep Mode`) before finalizing.

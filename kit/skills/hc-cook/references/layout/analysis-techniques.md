@@ -9,7 +9,7 @@ Analyze multiple generations simultaneously:
 ```bash
 # Generate 3 variations with fast model
 for i in {1..3}; do
-  python scripts/openrouter_generate.py --model google/imagen-4.0-fast-generate-001 -p "[prompt with variation-$i twist]" --output docs/assets/var-$i --aspect-ratio 16:9  # (run from hd-ai-generation/)
+  python openrouter_generate.py --model google/imagen-4.0-fast-generate-001 -p "[prompt with variation-$i twist]" --output docs/assets/var-$i --aspect-ratio 16:9  # (run from hl-design/scripts/media/)
 done
 
 # Batch analyze all variations
@@ -65,7 +65,7 @@ Example:
 # First attempt scores 5/10 - "colors too muted, composition unbalanced"
 
 # Refine prompt addressing specific issues
-python scripts/openrouter_generate.py --model google/imagen-4.0-fast-generate-001 -p "[original prompt] + vibrant saturated colors, dynamic diagonal composition" --output docs/assets/hero-v2  # (run from hd-ai-generation/)
+python openrouter_generate.py --model google/imagen-4.0-fast-generate-001 -p "[original prompt] + vibrant saturated colors, dynamic diagonal composition" --output docs/assets/hero-v2  # (run from hl-design/scripts/media/)
 
 # Re-analyze
 Read docs/assets/hero-v2.png directly and apply the same evaluation criteria.

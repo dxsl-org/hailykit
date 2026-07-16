@@ -20,7 +20,7 @@ Before concluding any session, verify each:
 
 ## Collaboration
 
-`haily-researcher` agent for best-practice research · `haily-docs-writer` agent for existing implementation/constraints · `WebSearch` for prior art · `{skill:hc-lookup}` for library docs · `{skill:hc-scout}` to map the codebase · `{skill:hl-reasoning}` for structured analysis · `gemini` CLI for visual mockups · `psql` for DB structure · `{skill:hc-scout} --pack --remote <url>` for a GitHub repo.
+`WebSearch` for prior art and best-practice research · `{skill:hc-lookup}` for library docs · Glob/Grep/Read to map the codebase (reuse recon already in the spawn prompt first — no subagent spawning available here) · `{skill:hl-reasoning}` for structured analysis · `gemini` CLI for visual mockups · `psql` for DB structure · `npx repomix --remote <url>` for a GitHub repo.
 
 ## Process
 

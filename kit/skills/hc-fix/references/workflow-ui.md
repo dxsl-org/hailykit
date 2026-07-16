@@ -3,15 +3,15 @@
 For fixing visual/UI issues. Requires design skills. Uses native Claude Tasks for phase tracking.
 
 ## Required Skills (activate in order)
-1. `hd:ui-ux` - Design database (ALWAYS FIRST)
-2. `hd:ui-ux` - Design principles
-3. `hd:frontend-design` - Implementation patterns
+1. `{skill:hl-design}` - Design database (ALWAYS FIRST)
+2. `{skill:hl-design}` - Design principles
+3. Framework standards (auto-injected by session init) - Implementation patterns
 
 ## Pre-fix Research
 ```bash
-python3 .claude/skills/hd-ui-ux/scripts/search.py "<product-type>" --domain product
-python3 .claude/skills/hd-ui-ux/scripts/search.py "<style>" --domain style
-python3 .claude/skills/hd-ui-ux/scripts/search.py "accessibility" --domain ux
+python3 .claude/skills/hl-design/scripts/ui-ux/search.py "<product-type>" --domain product
+python3 .claude/skills/hl-design/scripts/ui-ux/search.py "<style>" --domain style
+python3 .claude/skills/hl-design/scripts/ui-ux/search.py "accessibility" --domain ux
 ```
 
 ## Task Setup (Before Starting)
@@ -54,7 +54,7 @@ Screenshot + `gemini` CLI analysis.
 
 ### Step 4: DevTools Check
 `TaskUpdate(T4, status="in_progress")`
-Use `hc:debug` skill.
+Use `{skill:hc-debug}` skill.
 
 `TaskUpdate(T4, status="completed")`
 
@@ -71,5 +71,5 @@ Update `./docs/design-guidelines.md` if needed.
 `TaskUpdate(T6, status="completed")`
 
 ## Tips
-- Use `hl:design` for generating visual assets
+- Use `{skill:hl-design}` for generating visual assets
 - Use `ImageMagick` for image editing

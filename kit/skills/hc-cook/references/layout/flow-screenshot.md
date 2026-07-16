@@ -3,7 +3,7 @@
 Replicate a design exactly from a provided screenshot.
 
 ## Prerequisites
-- Activate `hd:ui-ux` skill first for design intelligence
+- Activate `{skill:hl-design}` skill first for design intelligence
 
 ## Workflow Steps
 
@@ -37,10 +37,10 @@ Use `haily-designer` subagent:
 - Match screenshot precisely
 
 ### 4. Generate Assets
-Use `hl:design` for image/icon/background generation. After generation, read the generated file directly to verify it matches the design intent.
-- Generate images, icons, backgrounds via `hl:design`
+Use `{skill:hl-design}` for image/icon/background generation. After generation, read the generated file directly to verify it matches the design intent.
+- Generate images, icons, backgrounds via `{skill:hl-design}`
 - Read generated assets directly to verify they match the design
-- Remove backgrounds if needed with `hd:media-processing`
+- Remove backgrounds if needed with `imagemagick`/`ffmpeg`
 
 ### 5. Verify & Report
 - Compare implementation to screenshot

@@ -41,7 +41,7 @@ Drafts a formal specification from a task or plan, presents it for approval, and
 
 ## Process
 
-1. **Recon** — spawn a quick Explore agent on the relevant modules; identify adjacent contracts, existing error-handling patterns, and prior decisions in `.agents/` or `docs/decisions/`. Log `✓ Recon: [N] findings`.
+1. **Recon** — reuse session recon or `.agents/*/scout-report.md` when it covers the relevant modules (typical when invoked via `{skill:hc-cook} --spec`); otherwise spawn a quick Explore agent. Identify adjacent contracts, existing error-handling patterns, and prior decisions in `.agents/` or `docs/decisions/`. Log `✓ Recon: [N] findings | reused [source]`.
 
 2. **Draft** — write a spec doc (see § Output) covering: functional requirements in EARS notation, edge cases, out-of-scope items, testable acceptance criteria, and open questions.
 

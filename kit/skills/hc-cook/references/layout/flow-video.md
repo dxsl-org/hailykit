@@ -3,7 +3,7 @@
 Replicate a design including animations/interactions from a provided video.
 
 ## Prerequisites
-- Activate `hd:ui-ux` skill first
+- Activate `{skill:hl-design}` skill first
 
 ## Workflow Steps
 
@@ -46,9 +46,9 @@ Focus on:
 Use `lib-animejs.md` reference for animation patterns.
 
 ### 5. Generate Assets
-Use `hl:design` for static asset generation + `hd:media-processing` for animated sprites/sequences.
-- Generate static assets via `hl:design`
-- Create animated sprites if needed (`hd:media-processing` + `hd:remotion`)
+Use `{skill:hl-design}` for static asset generation + `imagemagick`/`ffmpeg` for animated sprites/sequences.
+- Generate static assets via `{skill:hl-design}`
+- Create animated sprites if needed (`imagemagick`/`ffmpeg` + Remotion)
 - Read generated files directly to verify quality matches the source video
 
 ### 6. Verify & Report

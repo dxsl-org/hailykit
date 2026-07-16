@@ -23,7 +23,7 @@ T9 = TaskCreate(subject="Finalize & docs",               activeForm="Finalizing"
 ### Step 1: Scout Codebase (parallel with Steps 2+3)
 `TaskUpdate(T1, status="in_progress")`
 
-**Mandatory:** Activate `hc:scout` skill or launch 2-3 `Explore` subagents in parallel:
+**Mandatory (reuse-first — SKILL.md Process step 1 ladder):** reuse session recon or `.agents/*/scout-report.md` when it covers the failure's modules; otherwise activate `{skill:hc-scout}` or launch 2-3 `Explore` subagents in parallel:
 ```
 Task("Explore", "Find error origin and affected components", "Trace error")
 Task("Explore", "Find module boundaries and dependencies", "Map deps")
@@ -42,10 +42,10 @@ See `references/parallel-exploration.md` for patterns.
 
 **Mandatory skill chain:**
 1. **Capture pre-fix state:** Record ALL error messages, failing tests, stack traces, logs.
-2. Activate `hc:debug` skill (systematic-debugging + root-cause-tracing).
-3. Activate `hl:reasoning` — structured hypothesis formation.
+2. Activate `{skill:hc-debug}` skill (systematic-debugging + root-cause-tracing).
+3. Activate `{skill:hl-reasoning}` — structured hypothesis formation.
 4. Spawn parallel `Explore` subagents to test each hypothesis.
-5. If 2+ hypotheses fail → auto-activate `hl:brainstorm`.
+5. If 2+ hypotheses fail → auto-activate `{skill:hl-brainstorm}`.
 6. Trace backward through call chain to ROOT CAUSE origin.
 
 See `references/diagnosis-protocol.md` for full methodology.
@@ -66,7 +66,7 @@ Use `haily-researcher` subagent for external knowledge.
 
 ### Step 4: Brainstorm
 `TaskUpdate(T4, status="in_progress")` — auto-unblocks when T1 + T2 + T3 complete.
-Activate `hl:brainstorm` skill.
+Activate `{skill:hl-brainstorm}` skill.
 
 - Evaluate multiple approaches using scout + diagnosis + research findings
 - Consider trade-offs
@@ -89,7 +89,7 @@ Use `haily-planner` subagent to create implementation plan.
 
 ### Step 6: Implement
 `TaskUpdate(T6, status="in_progress")`
-Implement per plan. Use `hl:context-engineering`, `hl:reasoning`, `hl:brainstorm`.
+Implement per plan. Use `{skill:hl-context-engineering}`, `{skill:hl-reasoning}`, `{skill:hl-brainstorm}`.
 
 - Fix ROOT CAUSE per diagnosis — not symptoms
 - Follow plan phases
@@ -127,7 +127,7 @@ See `references/review-cycle.md` for mode-specific handling.
 ### Step 9: Finalize
 `TaskUpdate(T9, status="in_progress")`
 - Report summary: root cause, evidence chain, changes, prevention measures, confidence score
-- Activate `hl:log` for task sync-back, plan status updates, and progress tracking
+- Activate `{skill:hl-log}` for task sync-back, plan status updates, and progress tracking
 - Use `haily-docs-writer` subagent for documentation
 - Use `haily-git-manager` subagent for commit
 - Run `{skill:hl-log}`
@@ -139,16 +139,16 @@ See `references/review-cycle.md` for mode-specific handling.
 
 | Step | Skills/Subagents |
 |------|------------------|
-| 1 | `hc:scout` OR parallel `Explore` subagents |
-| 2 | `hc:debug`, `hl:reasoning`, parallel `Explore`, (`hl:brainstorm` auto) |
+| 1 | `{skill:hc-scout}` OR parallel `Explore` subagents |
+| 2 | `{skill:hc-debug}`, `{skill:hl-reasoning}`, parallel `Explore`, (`{skill:hl-brainstorm}` auto) |
 | 3 | `haily-researcher` (runs parallel with steps 1+2) |
-| 4 | `hl:brainstorm` |
+| 4 | `{skill:hl-brainstorm}` |
 | 5 | `haily-planner` |
-| 6 | `hl:brainstorm`, `hl:reasoning`, `hl:context-engineering` |
+| 6 | `{skill:hl-brainstorm}`, `{skill:hl-reasoning}`, `{skill:hl-context-engineering}` |
 | 7 | `haily-tester`, parallel `Bash` verification |
 | 8 | `haily-reviewer` |
-| 9 | `hl:log`, `haily-docs-writer`, `haily-git-manager` |
+| 9 | `{skill:hl-log}`, `haily-docs-writer`, `haily-git-manager` |
 
 **Rules:** Don't skip steps. Validate before proceeding. One phase at a time.
-**Frontend:** Use `chrome`, `hc:debug` or any relevant skills/tools to verify.
-**Visual Assets:** Use `hl:design` for asset generation; `gemini` CLI for analysis and verification.
+**Frontend:** Use `chrome`, `{skill:hc-debug}` or any relevant skills/tools to verify.
+**Visual Assets:** Use `{skill:hl-design}` for asset generation; `gemini` CLI for analysis and verification.

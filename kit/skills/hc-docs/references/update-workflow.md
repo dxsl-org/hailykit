@@ -4,26 +4,20 @@
 
 1. Scan the codebase and calculate the number of files with LOC in each directory (skip `.claude`, `.opencode`, `.git`, `tests`, `node_modules`, `__pycache__`, `secrets`, etc.)
 2. Target directories **that actually exist** - adapt to project structure
-3. Activate `hc:scout` skill to explore the code base and return detailed summary reports
+3. Reuse-first: if the session already holds a scout report or recon covering the changed modules, or `.agents/*/scout-report.md` from an active plan does, use it. Otherwise activate `{skill:hc-scout}` to explore the codebase and return summary reports
 4. Merge scout reports into context summary
 
-## Phase 1.5: Parallel Documentation Reading
+## Phase 1.5: Documentation Inventory
 
-**You (main agent) must spawn readers** - subagents cannot spawn subagents.
+No reader agents — `haily-docs-writer` reads every doc it edits anyway, so a pre-reading fan-out duplicates those reads. Build the inventory only:
 
 1. Count docs: `ls docs/*.md 2>/dev/null | wc -l`
 2. Get LOC: `wc -l docs/*.md 2>/dev/null | sort -rn`
-3. Strategy:
-   - 1-3 files: Skip parallel reading, haily-docs-writer reads directly
-   - 4-6 files: Spawn 2-3 `Explore` agents
-   - 7+ files: Spawn 4-5 `Explore` agents (max 5)
-4. Distribute files by LOC (larger files get dedicated agent)
-5. Each agent prompt: "Read these docs, extract: purpose, key sections, areas needing update. Files: {list}"
-6. Merge results into context for haily-docs-writer
+3. Pass the inventory (paths + LOC, largest first) to haily-docs-writer so it prioritizes its own reading
 
 ## Phase 2: Documentation Update (haily-docs-writer Agent)
 
-**CRITICAL:** You MUST spawn `haily-docs-writer` agent via Task tool with merged reports and doc readings.
+**CRITICAL:** You MUST spawn `haily-docs-writer` agent via Task tool with merged scout reports and the doc inventory.
 
 Pass the gathered context to haily-docs-writer agent to update documentation:
 - `README.md`: Update README (keep it under 300 lines)

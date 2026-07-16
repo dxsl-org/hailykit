@@ -3,15 +3,15 @@
 Create award-quality designs with storytelling, 3D experiences, and micro-interactions.
 
 ## Prerequisites
-- Activate `hd:ui-ux` skill first
+- Activate `{skill:hl-design}` skill first
 
 ## Initial Research
-Run `hd:ui-ux` searches:
+Run `{skill:hl-design}` searches:
 ```bash
-python3 .claude/skills/hd-ui-ux/scripts/search.py "<product-type>" --domain product
-python3 .claude/skills/hd-ui-ux/scripts/search.py "<style-keywords>" --domain style
-python3 .claude/skills/hd-ui-ux/scripts/search.py "<mood>" --domain typography
-python3 .claude/skills/hd-ui-ux/scripts/search.py "<industry>" --domain color
+python3 .claude/skills/hl-design/scripts/ui-ux/search.py "<product-type>" --domain product
+python3 .claude/skills/hl-design/scripts/ui-ux/search.py "<style-keywords>" --domain style
+python3 .claude/skills/hl-design/scripts/ui-ux/search.py "<mood>" --domain typography
+python3 .claude/skills/hl-design/scripts/ui-ux/search.py "<industry>" --domain color
 ```
 
 ## Workflow Steps
@@ -54,9 +54,9 @@ Add polish:
 - Scroll responses
 
 ### 6. Asset Generation
-- Generate high-quality visuals using `{skill:hd:ai-generation}`
+- Generate high-quality visuals using `{skill:hl-design}`
 - Read generated files directly to verify asset quality
-- Remove backgrounds as needed with `{skill:hd:media-processing}`
+- Remove backgrounds as needed with `imagemagick`/`ffmpeg`
 
 ### 7. Verify & Report
 - Review against inspiration

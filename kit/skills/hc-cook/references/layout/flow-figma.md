@@ -3,7 +3,7 @@
 Create detailed design documentation from screenshot/video for developer implementation.
 
 ## Prerequisites
-- Activate `hd:ui-ux` skill first
+- Activate `{skill:hl-design}` skill first
 
 ## Workflow Steps
 

@@ -1,6 +1,6 @@
 # Workflow Review Artifacts
 
-`hc:fix` and `hc:cook` use these JSON artifacts to make Verify-stage Checkpoints deterministic. Scores are advisory. Approval comes from structured proof plus the validator.
+`{skill:hc-fix}` and `{skill:hc-cook}` use these JSON artifacts to make Verify-stage Checkpoints deterministic. Scores are advisory. Approval comes from structured proof plus the validator.
 
 ## Artifact Directory
 

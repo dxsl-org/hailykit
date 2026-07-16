@@ -6,10 +6,10 @@ End-to-end pipeline examples for asset generation and analysis.
 
 ```bash
 # 1. Generate hero image with design context
-python scripts/openrouter_generate.py --model google/imagen-4.0-generate-001 -p "Minimalist desert landscape, warm beige sand dunes,
+python openrouter_generate.py --model google/imagen-4.0-generate-001 -p "Minimalist desert landscape, warm beige sand dunes,
   soft morning light, serene and spacious, muted earth tones
   (tan, cream, soft ochre), clean composition for text overlay,
-  sophisticated travel aesthetic, 16:9 cinematic" --output docs/assets/hero-desert --aspect-ratio 16:9  # (run from hd-ai-generation/)
+  sophisticated travel aesthetic, 16:9 cinematic" --output docs/assets/hero-desert --aspect-ratio 16:9  # (run from hl-design/scripts/media/)
 
 # 2. Evaluate aesthetic quality
 Read docs/assets/hero-desert.png directly and rate 1-10 for: visual appeal, color harmony,
@@ -23,10 +23,10 @@ python scripts/media_optimizer.py \
   --quality 85
 
 # 4. Generate mobile variant (9:16)
-python scripts/openrouter_generate.py --model google/imagen-4.0-generate-001 -p "Minimalist desert landscape, warm beige sand dunes,
+python openrouter_generate.py --model google/imagen-4.0-generate-001 -p "Minimalist desert landscape, warm beige sand dunes,
   soft morning light, serene and spacious, muted earth tones
   (tan, cream, soft ochre), clean composition for text overlay,
-  sophisticated travel aesthetic, 9:16 portrait" --output docs/assets/hero-mobile --aspect-ratio 9:16  # (run from hd-ai-generation/)
+  sophisticated travel aesthetic, 9:16 portrait" --output docs/assets/hero-mobile --aspect-ratio 9:16  # (run from hl-design/scripts/media/)
 
 # 5. Optimize mobile variant
 python scripts/media_optimizer.py \
@@ -43,7 +43,7 @@ Read docs/inspiration/competitor-hero.png directly and apply the extraction prom
 
 # 2. Generate asset based on extracted guidelines
 # (Review competitor-analysis.md for color palette, aesthetic)
-python scripts/openrouter_generate.py --model google/imagen-4.0-generate-001 -p "[craft prompt using extracted aesthetic and colors]" --output docs/assets/our-hero --aspect-ratio 16:9  # (run from hd-ai-generation/)
+python openrouter_generate.py --model google/imagen-4.0-generate-001 -p "[craft prompt using extracted aesthetic and colors]" --output docs/assets/our-hero --aspect-ratio 16:9  # (run from hl-design/scripts/media/)
 
 # 3. Analyze our generated asset
 Read docs/assets/our-hero.png directly and compare to the competitor design. Rate differentiation (1-10):
@@ -57,9 +57,9 @@ Read docs/assets/our-hero.png directly and apply the color extraction prompt fro
 
 ```bash
 # Generate 2 design directions
-python scripts/openrouter_generate.py --model google/imagen-4.0-fast-generate-001 -p "Minimalist approach: [prompt]" --output docs/assets/variant-a --aspect-ratio 16:9  # (run from hd-ai-generation/)
+python openrouter_generate.py --model google/imagen-4.0-fast-generate-001 -p "Minimalist approach: [prompt]" --output docs/assets/variant-a --aspect-ratio 16:9  # (run from hl-design/scripts/media/)
 
-python scripts/openrouter_generate.py --model google/imagen-4.0-fast-generate-001 -p "Bold approach: [prompt]" --output docs/assets/variant-b --aspect-ratio 16:9  # (run from hd-ai-generation/)
+python openrouter_generate.py --model google/imagen-4.0-fast-generate-001 -p "Bold approach: [prompt]" --output docs/assets/variant-b --aspect-ratio 16:9  # (run from hl-design/scripts/media/)
 
 # Compare variants
 Read docs/assets/variant-a.png and docs/assets/variant-b.png directly and perform an A/B comparison for [target audience]:
@@ -69,7 +69,7 @@ Read docs/assets/variant-a.png and docs/assets/variant-b.png directly and perfor
   Recommend which to test.
 
 # Generate production version of winner
-python scripts/openrouter_generate.py --model google/imagen-4.0-generate-001 -p "[winning approach prompt]" --output docs/assets/final-hero --aspect-ratio 16:9  # (run from hd-ai-generation/)
+python openrouter_generate.py --model google/imagen-4.0-generate-001 -p "[winning approach prompt]" --output docs/assets/final-hero --aspect-ratio 16:9  # (run from hl-design/scripts/media/)
 ```
 
 ## Batch Analysis for Rapid Iteration
@@ -77,7 +77,7 @@ python scripts/openrouter_generate.py --model google/imagen-4.0-generate-001 -p 
 ```bash
 # Generate 3 variations with fast model
 for i in {1..3}; do
-  python scripts/openrouter_generate.py --model google/imagen-4.0-fast-generate-001 -p "[prompt with variation-$i twist]" --output docs/assets/var-$i --aspect-ratio 16:9  # (run from hd-ai-generation/)
+  python openrouter_generate.py --model google/imagen-4.0-fast-generate-001 -p "[prompt with variation-$i twist]" --output docs/assets/var-$i --aspect-ratio 16:9  # (run from hl-design/scripts/media/)
 done
 
 # Batch analyze all variations

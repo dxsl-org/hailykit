@@ -32,7 +32,7 @@ Steps are shared across all input types. Skip conditions vary by input type and 
 **Skip if:** `plan-path`, `layout-*`, or `--quick` flag.
 
 - Spawn `haily-researcher` agents in parallel
-- Use `{skill:hc-scout}` for codebase context
+- Use `{skill:hc-scout}` for codebase context — reuse session recon or `.agents/*/scout-report.md` when it already covers the task's modules instead of re-scouting
 - Keep reports ≤150 lines
 
 **Output:** `✓ Step 1: Research complete - [N] reports gathered`
@@ -84,7 +84,7 @@ Before touching any file in a phase, walk the phase file and repo once — cover
 
 #### Exemplar Pull
 
-Locate 2–3 idiomatic in-repo exemplars matching the phase's work type (same layer — route handler / service / migration / test). Selection heuristic: prefer files touched recently (`git log -n 5 --stat -- <dir>`) that passed a prior `haily-reviewer` pass; use `{skill:hc-scout}` or `hailykit contracts` for candidate discovery.
+Locate 2–3 idiomatic in-repo exemplars matching the phase's work type (same layer — route handler / service / migration / test). Selection heuristic: prefer files touched recently (`git log -n 5 --stat -- <dir>`) that passed a prior `haily-reviewer` pass. Candidate discovery reuses what the run already has — Step 1 recon findings, the phase's `## Related Code Files` list, `git log --stat`, or `hailykit contracts`; never re-spawn scout per phase (a follow-up `{skill:hc-scout} --quick` is the ceiling when a phase touches modules no prior recon covered).
 
 - **Cap:** ≤80 lines of excerpt total across all exemplars combined — inject `file:line` ranges, never full files.
 - **Quality guard:** exemplars must come from the project's own tree only — exclude vendored dependencies, generated code, `.gitignore`'d paths, and `node_modules`-style paths.
