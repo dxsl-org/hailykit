@@ -6,7 +6,7 @@
 A **zero-dependency** TypeScript framework for AI coding agents — a tool-execution **engine** and a multi-provider skill **installer**.
 
 - **Engine** (`cli/`) — register, route, and execute tools: native TypeScript (in-process) or polyglot executables (Python/Rust/Go/…) over NDJSON stdio.
-- **Installer** (`kit/`) — distribute 35 curated skills into any AI agent runtime (Claude Code, Cursor, Gemini CLI, Windsurf, OpenCode, Codex, Antigravity, Zed, Crush, Kimi Code).
+- **Installer** (`kit/`) — distribute 39 curated skills into any AI agent runtime (Claude Code, Cursor, Gemini CLI, Windsurf, OpenCode, Codex, Antigravity, Zed, Crush, Kimi Code).
 
 > No npm account required. Zero runtime dependencies. Distributed via GitHub release — never `npm publish`.
 
@@ -112,11 +112,31 @@ Open Claude Code after installing — skills are ready immediately.
 /hc-new "project description"
 ```
 
+### Spec-driven & test-driven development (tiered)
+
+SDD and TDD are opt-in rigor tiers on top of the default pipeline — pick per task, not globally. The default `/hc-cook` already verifies acceptance criteria from the plan by executing the real flow (verify-by-execution).
+
+```bash
+# SDD — formal spec with approval gate
+/hc-spec "feature"               # full EARS spec, AC-N criterion IDs, approval gate before Build
+/hc-spec --quick "small task"    # lightweight tier — skip the full template for small tasks
+/hc-cook --spec "feature"        # same gate inline, between Draft and Build
+
+# TDD — red-green for new behavior, snapshot for refactors
+/hc-cook <plan> --tdd            # failing test + red proof → test-only commit → implement to green
+/hc-cook --spec --tdd "feature"  # full traceability: AC-N → given-when-then test → evidence → ship conformance
+/hc-test --mutation              # deep tier: mutation testing on critical modules (Stryker/mutmut/cargo-mutants)
+```
+
+- `--spec` adds AC-N traceability anchors, two-way drift detection at review (missing and un-speced behavior), and a ship-time conformance check — every criterion covered or the deviation logged.
+- `--tdd` enforces the red proof (the new test must be *run and observed failing* — a claim doesn't count) and test immutability: tests are committed before implementation, and edits to committed test files block the review.
+- Skip `--tdd` for exploratory UI work where "correct" isn't known yet — use screenshot-diff verification instead, retrofit tests once the shape stabilizes.
+
 ---
 
 ## Skills
 
-38 skills across three domain prefixes, installed together and activated on demand.
+39 skills across three domain prefixes, installed together and activated on demand.
 
 ### Coding — `hc-*`
 
@@ -124,14 +144,14 @@ Open Claude Code after installing — skills are ready immediately.
 |---|---|
 | `/hc-goal` | Autonomous development loop: goal → plan → cook → review → commit until done. Only stops on genuine blockers |
 | `/hc-plan` | Turn a task into a phased plan via research + codebase analysis + adversarial review |
-| `/hc-spec` | Draft EARS-notation acceptance criteria before coding. Approval gate before Build stage. Use standalone or via `hc-cook --spec` |
-| `/hc-cook` | Implement from a plan: Recon → Draft → Build → Verify → Ship |
+| `/hc-spec` | Draft EARS-notation acceptance criteria (AC-N IDs) before coding. Approval gate before Build. `--quick` for a lightweight tier; use standalone or via `hc-cook --spec` |
+| `/hc-cook` | Implement from a plan: Recon → Draft → Build → Verify → Ship. `--tdd` for red-green test-first with test immutability |
 | `/hc-new` | Bootstrap a project end-to-end: research → stack → design → plan → implement → ship |
 | `/hc-fix` | Root-cause-first bug fix: runtime errors, test failures, type errors, CI failures |
 | `/hc-debug` | Root-cause analysis before fixing — 10 specialist techniques |
 | `/hc-adr` | Capture architectural decisions as ADRs. `scan` mode auto-discovers undocumented decisions from codebase patterns and git history |
 | `/hc-review` | Adversarial review: spec compliance → quality → stress probe. `--comment` posts inline |
-| `/hc-test` | Tests + coverage: JS/TS, Python, Go, Rust, Flutter. `--web` adds Playwright/k6/a11y |
+| `/hc-test` | Tests + coverage: JS/TS, Python, Go, Rust, Flutter. `--web` adds Playwright/k6/a11y; `--mutation` runs mutation testing on critical modules |
 | `/hc-ship` | Full release: tests → review → version bump → changelog → push → PR → merge |
 | `/hc-scout` | Parallel codebase discovery — segments repo, spawns concurrent Explore agents |
 | `/hc-security` | STRIDE + OWASP audit. `--quick` for fast secret/dep scan; `--fix` applies remediations |
@@ -153,7 +173,10 @@ Open Claude Code after installing — skills are ready immediately.
 |---|---|
 | `/hl-help` | Discover all skills: `--list`, `--search <keyword>`, `--combos` |
 | `/hl-brainstorm` | Trade-off analysis with personas. `--debate` for adversarial review |
-| `/hl-research` | Deep technical research. `--quick` (5 min), `--deep` (20 min) + typed output templates |
+| `/hl-advisor` | Consult the top-tier advisor on one prepared decision — recommendation with rationale, risks, rejected alternatives. Explicit invocation only (runs on the top model tier) |
+| `/hl-research` | Deep technical, academic, and market research. `--quick` (5 min), `--deep` (20 min), `--type academic\|market` |
+| `/hl-write` | Write any authored document — business plan, report, essay, academic paper, story, novel, or book. Persistent Story Bible for long-form fiction |
+| `/hl-stats` | Code metrics — nLOC, complexity hotspots, token estimate, COCOMO cost, churn × complexity risk, bus factor |
 | `/hl-reasoning` | Sequential structured analysis with hypothesis revision and branching |
 | `/hl-visualize` | Generate diagrams, slides, HTML pages, Excel reports, PDFs |
 | `/hl-design` | Brand identity, logos, CIP mockups, AI images/video/TTS/music, slides |
@@ -294,7 +317,7 @@ Bundled examples in [`cli/tools/`](cli/tools/). Full protocol spec in [`docs/tec
 ```bash
 npm run build      # tsc → dist/ + copy cli/tools/ → dist/tools/
 npm run typecheck  # tsc --noEmit
-npm test           # compile → .test-build/ then run node:test (226 tests)
+npm test           # compile → .test-build/ then run node:test (382 tests)
 ```
 
 Before committing any skill cross-reference (`/hc-*`, `/hl-*`) in markdown:

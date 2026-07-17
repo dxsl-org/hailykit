@@ -81,8 +81,8 @@ BUILD
   {skill:hc-goal}         Autonomous loop: goal → plan → cook → review → commit until done [--auto]
   {skill:hc-new}          Bootstrap new project end-to-end
   {skill:hc-plan}         Plan a feature or architecture
-  {skill:hc-spec}         Write EARS-notation spec before coding (or hc-cook --spec)
-  {skill:hc-cook}         Implement from a plan
+  {skill:hc-spec}         EARS spec with AC-N ids before coding [--quick: lightweight tier] (or hc-cook --spec)
+  {skill:hc-cook}         Implement from a plan [--tdd: red-green test-first] [--spec --tdd: full traceability]
   {skill:hc-adr}          Capture or discover architectural decisions [scan]
   {skill:hc-cop}          Port a feature from another repo
 
@@ -101,7 +101,7 @@ FIX & DEBUG
 SHIP & REVIEW
   {skill:hc-review}       Adversarial code review (red-team)
   {skill:hc-security}     STRIDE/OWASP audit + secret scan [--quick] [--deep]
-  {skill:hc-test}         Run tests + coverage [--web for Playwright/a11y]
+  {skill:hc-test}         Run tests + coverage [--web for Playwright/a11y] [--mutation for mutation testing]
   {skill:hc-ship}         Full release pipeline (test→review→version→PR)
 
 SECURITY OPS (running systems — authorized-use only)
@@ -121,7 +121,8 @@ UNDERSTAND & EXPLORE
 THINK & DECIDE
   {skill:hl-brainstorm}   Explore options + trade-offs [--persona] [--debate: all personas + edge analysis] [--deep: alias for --debate --edges]
   {skill:hl-reasoning}    Step-by-step structured analysis
-  {skill:hl-research}     Deep technical research with sources
+  {skill:hl-research}     Deep technical, academic, or market research [--type academic|market]
+  {skill:hl-advisor}      Top-tier recommendation on one prepared decision (explicit invocation only — runs on the top model tier)
   {skill:hl-mindmap}      Build and navigate knowledge graphs from topics, URLs, or documents
 GIT & ENVIRONMENT
   {skill:hc-git}                        Commit, push, PR, merge, impact analysis, sprint retro
@@ -155,7 +156,7 @@ SPECIALIZED
 Canonical chain: brainstorm → plan → cook → test → review → ship → log
 
   {skill:hl-help} --combos          All workflow chains
-  {skill:hl-help} --list            All 38 skills by category
+  {skill:hl-help} --list            All 39 skills by category
   {skill:hl-help} --search <kw>     Find by topic
 
 **MODEL TIERS** — `fast` < `medium` < `thinking` < `ultra`
@@ -182,9 +183,10 @@ Read `.claude/scripts/skills_data.yaml`, group by `category`, print with prefix:
   {skill:hc-worktree}      Parallel branches in isolated folders — no stash/switch. Supports standalone, monorepo (turbo/pnpm/nx), and submodule repos
   {skill:hl-write}         Write any document — business plan, report, essay, story, novel, or book
 
-## Thinking & Analysis (5)
+## Thinking & Analysis (6)
   {skill:hl-brainstorm}          Trade-off analysis, 2–3 approaches, expert personas, edge analysis via --debate, --deep (alias for --debate --edges)
-  {skill:hl-research}            Deep technical research with sources
+  {skill:hl-advisor}             Top-tier advisor for one prepared decision — explicit invocation only
+  {skill:hl-research}            Deep technical, academic, or market research (--type academic|market)
   {skill:hl-reasoning}           Step-by-step structured analysis + problem-solving
   {skill:hl-mindmap}             Build and navigate knowledge graphs from topics, URLs, or documents
   {skill:hl-context-engineering} Optimize context and agent architecture
@@ -488,17 +490,38 @@ One command: merge main → test → review → version → commit → push → 
 {skill:hl-visualize} --slides "topic"
 ```
 
-### Spec-First Development (formal acceptance criteria)
+### Spec-Driven Development (SDD — formal acceptance criteria)
 
 ```
 {skill:hc-plan} "feature"
-  → {skill:hc-spec} .agents/<plan-dir>/plan.md   (EARS spec + approval gate)
-  → {skill:hc-cook} <plan-path>
-  → {skill:hc-review}
+  → {skill:hc-spec} .agents/<plan-dir>/plan.md   (EARS spec, AC-N ids → approval gate)
+  → {skill:hc-cook} <plan-path>                  (AC-N ids flow into execution evidence)
+  → {skill:hc-review}                            (two-way drift check: missing + un-speced behavior)
 
-# or in one command:
+# lightweight tier for small tasks (skip the full template):
+{skill:hc-spec} --quick "small task"
+
+# or in one command (Ship gates on spec conformance — every AC-N covered or deviation logged):
 {skill:hc-cook} --spec "Add payment webhook"
 ```
+
+### Test-Driven Development (TDD — red-green + snapshot)
+
+```
+# New behavior — Red-Green: failing test + red proof → test-only commit → implement to green.
+# Committed tests are immutable; edits to them block the review.
+{skill:hc-cook} <plan-path> --tdd
+
+# Refactor/legacy — the same flag auto-selects Snapshot: lock current behavior, transform, verify.
+
+# Full traceability spine (spec + TDD): AC-N → given-when-then test → evidence → ship conformance
+{skill:hc-cook} --spec --tdd "feature"
+
+# Deep test-quality tier: mutation score on critical modules (nightly, never inner-loop)
+{skill:hc-test} --mutation
+```
+
+Skip `--tdd` for exploratory UI work — use screenshot-diff verification, retrofit tests once the shape stabilizes.
 
 ### Edge-Case Coverage Before Implementation
 

@@ -198,7 +198,7 @@ Still user-controlled: it lives in a config file the user commits, not inferred 
 Unlike `crossReview.auto` (read by a deterministic CLI reader with a sanitizer, `cli/lib/cross-review/config.ts`), `deep.auto` is read by the LLM directly from `haily.json` at Route/Scope Check — there is no CLI-side validation, so a typo'd key (`Deep.auto`, `deep.Auto`) silently no-ops instead of erroring. The single canonical schema defined above is the mitigation; a validated reader is deliberate future work if misreads show up in practice.
 
 **Documented non-adoption** — these skills deliberately have NO `--quick`/`--deep` flags; do not add them speculatively:
-- `{skill:hc-spec}` — a blocking approval checkpoint, not a depth axis.
+- `{skill:hc-spec}` — has `--quick` (lightweight spec tier) but deliberately NO `--deep`: the approval checkpoint is blocking either way, and depth beyond the full template is the documented over-specification failure mode.
 - `{skill:hl-reasoning}` — a methodology skill with no stages to skip or deepen.
 - `{skill:hc-optimize}` — a metric-driven loop, not a research/review pipeline. N-best candidate sampling (N parallel candidates per iteration, keep the best by measure) was scoped as a possible `--deep` mechanism and rejected for now (YAGNI) — it needs worktree isolation per candidate, which does not exist yet. Revisit as its own plan if the single-candidate loop proves insufficient.
 

@@ -5,6 +5,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### ✨ Features
+
+- hc-spec: add --quick lightweight spec tier for small tasks
+- hc-spec: number acceptance criteria (AC-N) with test traceability anchors
+- hc-spec: add spec versioning, change log, and mid-Build re-approval rule for --update
+- hc-cook: split --tdd into Red-Green cycle (new behavior, red proof required) and Snapshot cycle (refactor/legacy)
+- hc-cook: gate test immutability via test-only commit before implementation
+- hc-cook: separate test-writer and implementor contexts under --tdd
+- hc-cook: add ship-time spec-conformance check (every AC-id covered or deviation logged)
+- hc-test: add --mutation deep tier (Stryker/mutmut/cargo-mutants, critical-path + nightly framing)
+- hc-review: key spec-compliance pass by AC-id with two-way MISSING/EXTRA drift detection
+- agents: haily-tester verifies red proof and flags TDD violations; haily-test-architect owns EARS → given-when-then translation
+
+### 📝 Docs
+
+- readme, hl-help: add tiered SDD/TDD workflow guidance (spec tiers, red-green vs snapshot, mutation tier)
+- readme, hl-help: sync skill catalog — list hl-advisor, hl-write, hl-stats; correct skill count to 39
+
 ## [1.14.4] (2026-07-16)
 
 ### 🚀 Improvements
