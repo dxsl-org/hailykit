@@ -122,7 +122,8 @@ function validateAdversarial(value) {
 }
 
 /**
- * Shape: { phase, criteria: [{ criterion, command|source, evidenceRef, pass }], noRuntimeSurface? }
+ * Shape: { phase, criteria: [{ criterion, criterionId?, command|source, evidenceRef, pass }], noRuntimeSurface? }
+ * `criterionId` (optional AC-N tag) is shape-checked as part of the object but not required or validated.
  * `noRuntimeSurface` present and non-empty satisfies the gate on its own — the
  * validator judges shape and non-emptiness only, never the truthfulness of content.
  */
