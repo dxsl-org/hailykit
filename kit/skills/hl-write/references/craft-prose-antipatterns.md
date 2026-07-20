@@ -64,8 +64,21 @@ Patterns that read especially artificial in Vietnamese reflective / tản văn /
 |---|---|
 | Reflex paragraph-openers: "Thế nhưng," / "Và có lẽ," / "Ấy thế mà," / "Bạn biết không," starting most paragraphs | Vary the entry; start some paragraphs inside the image or action, not on a connective |
 | The rhetorical-question → self-answer → moral-summary loop repeated every unit | Use it at most once across the whole piece; let some observations stand without the tidy resolution |
-| Sáo ngữ inventory — "bánh xe thời gian", "giông bão cuộc đời", "chân trời góc bể", "hành trình tìm lại chính mình", "chốn bình yên", "trạm sạc năng lượng", "nỗi buồn/nỗi nhớ không tên", "yêu thương vô bờ bến / vô điều kiện", "lớp mặt nạ (mạnh mẽ / của người trưởng thành)", "sức mạnh chữa lành" | Replace the cliché with one concrete particular of *this* piece; a worn metaphor signals no specific observation underneath |
+| Sáo ngữ — any instance of a banned metaphor class (table below) | Replace the cliché with one concrete particular of *this* piece; a worn metaphor signals no specific observation underneath |
 | Emotional escalation via adverb-stacking: "vô cùng", "biết bao", "xiết bao", "đến nhường nào" | One exact detail carries more weight than three intensifiers |
+
+**Sáo ngữ — banned metaphor classes.** The ban targets the metaphor *class*, not the exact string — a model avoids a listed phrase and reproduces the same worn image by paraphrase ("trạm sạc năng lượng" → "trạm tiếp nhiên liệu" is the same violation). The instances column exists for recognition, never as an exhaustive list.
+
+| Class | Recognizable instances |
+|---|---|
+| Machine/fuel metaphors for family care | trạm sạc năng lượng, trạm tiếp nhiên liệu, nạp lại năng lượng |
+| Nautical/navigation metaphors for home | mỏ neo (vô hình), bến đỗ bình yên, la bàn chỉ về nhà, hải đăng, chốn bình yên để quay về |
+| Personified time / life-as-journey | bánh xe thời gian, chuyến tàu thời gian/trưởng thành, dòng đời vô định, hành trình tìm lại chính mình |
+| Life-as-storm / far-horizon | giông bão / sóng gió cuộc đời, chân trời góc bể, biển đời mênh mông |
+| Unnamed-emotion | nỗi buồn không tên, niềm thương nhớ không tên |
+| Boundless/unconditional love as intensifier | (tình yêu thương) vô bờ bến, vô điều kiện, không toan tính |
+| Mask-of-adulthood | lớp mặt nạ (mạnh mẽ / của người trưởng thành) |
+| Healing-as-power | (sức mạnh) chữa lành (mọi vết thương / tâm hồn) |
 
 ### Pacing and closure
 
@@ -86,7 +99,7 @@ Rhetorical devices are floors *and* ceilings. A device required "at least once" 
 | "không phải X, mà (là) Y" contrastive | ≤1 per unit |
 | Elevation ending (unit closes on an abstract life-lesson) | ≤1 across the whole work — the rest end on a concrete image or action |
 | Any single seeded "flavour" word | ≤2 occurrences across the whole work |
-| Stock/sáo-ngữ phrases inside a unit's emotional peak (climax passage or final two paragraphs) | 0 — the peak is carried by the unit's most concrete particular |
+| Stock/sáo-ngữ phrases — any banned-class instance, paraphrases included — inside a unit's emotional peak (climax passage or final two paragraphs) | 0 — the peak is carried by the unit's most concrete particular |
 
 ## Show-don't-tell substitutions
 
