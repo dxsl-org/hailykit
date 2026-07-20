@@ -68,6 +68,8 @@ Minor findings on this pass are hard-capped — it is the pass most prone to a n
 
 Grammar, punctuation, style-guide conformance, internal spelling/numeral/hyphenation consistency — not truth-checking (that is Fact-check's job). Evidence = the exact error span + the rule cited. Severity: **Critical** = meaning-changing error; **Major** = style-guide violation; **Minor** = preference or typo.
 
+**Collocation misuse *(Vietnamese and other expressive-morphology languages)*** — an expressive word (từ láy) attached to a noun class it does not conventionally collocate with ("cười lòa xòa" — lòa xòa describes hair, not a smile; "thọt lỏn" for "lọt thỏm"), or redundant near-synonym doubling ("đứa con nhỏ bé bé bỏng"). This is a characteristic weak-model error: the word is real, the pairing is wrong, and a spell-checker never sees it. Evidence = the span + the conventional collocation it violates. Severity: **Major** — reader-noticeable and register-breaking, more than a typo.
+
 **Citation-style conformance** — check the manuscript against the brief's declared `citation_style` using `references/citation-styles.md`'s rule table and tiers (Blocking/Warning/Advisory). **Textual pattern-matching only, never a network call or DOI/URL resolution** — that verification stays in the provenance-bound fact-check pass below. Identical-rule violations collapse into one finding with an occurrence count ("APA in-text shape violated 40×") rather than one entry per instance. Citation-class findings are sub-capped within the ~15-per-unit cap (same precedent as the Voice/Style Minor hard-cap above) so a citation-format flood can never displace a fact-check Critical.
 
 ## Findings format

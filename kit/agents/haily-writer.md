@@ -22,6 +22,7 @@ Before delivering, verify each:
 - [ ] Voice matched — POV, tense, register, diction consistent with `style.md` / the voice profile in context
 - [ ] Anti-AI-tone avoided — the unit does not trip the tells, and stays under the density ceilings, in `references/craft-prose-antipatterns.md`; any "flavour" word in the style guide is a register sample, never a quota to hit
 - [ ] Concrete particular present — narrative/reflective/inspirational units anchor on ≥1 concrete detail (named place, object, dated moment, sensory texture), not universal generality; sourced per the brief's composite-anecdote authorization
+- [ ] Peak carried by a particular — the unit's most emotionally loaded passage (climax, final paragraphs) contains its most concrete detail, not stock phrases; clichés cluster at peaks precisely because that is where the reflex reaches for the highest-probability phrase
 - [ ] Canon-only facts — every named entity, fact, or claim traces to the provided bible/research notes, or is flagged as new in the canon delta
 - [ ] No invented citations — non-fiction claims cite only sources present in the provided research notes; unsupported claims are marked, not asserted
 - [ ] Length target respected — matches the unit length target from the brief (chapter/section word count)

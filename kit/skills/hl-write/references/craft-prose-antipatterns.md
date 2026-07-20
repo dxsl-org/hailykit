@@ -64,7 +64,7 @@ Patterns that read especially artificial in Vietnamese reflective / tản văn /
 |---|---|
 | Reflex paragraph-openers: "Thế nhưng," / "Và có lẽ," / "Ấy thế mà," / "Bạn biết không," starting most paragraphs | Vary the entry; start some paragraphs inside the image or action, not on a connective |
 | The rhetorical-question → self-answer → moral-summary loop repeated every unit | Use it at most once across the whole piece; let some observations stand without the tidy resolution |
-| Sáo ngữ inventory — "bánh xe thời gian", "giông bão cuộc đời", "chân trời góc bể", "hành trình tìm lại chính mình", "chốn bình yên", "trạm sạc năng lượng" | Replace the cliché with one concrete particular of *this* piece; a worn metaphor signals no specific observation underneath |
+| Sáo ngữ inventory — "bánh xe thời gian", "giông bão cuộc đời", "chân trời góc bể", "hành trình tìm lại chính mình", "chốn bình yên", "trạm sạc năng lượng", "nỗi buồn/nỗi nhớ không tên", "yêu thương vô bờ bến / vô điều kiện", "lớp mặt nạ (mạnh mẽ / của người trưởng thành)", "sức mạnh chữa lành" | Replace the cliché with one concrete particular of *this* piece; a worn metaphor signals no specific observation underneath |
 | Emotional escalation via adverb-stacking: "vô cùng", "biết bao", "xiết bao", "đến nhường nào" | One exact detail carries more weight than three intensifiers |
 
 ### Pacing and closure
@@ -73,6 +73,7 @@ Patterns that read especially artificial in Vietnamese reflective / tản văn /
 |---|---|
 | Every causal link explained — nothing left for the reader to assemble | Cut the connective tissue; readers enjoy inferring |
 | Endings forced upward into thematic "elevation" — every unit closing on a summarizing life-lesson | See density ceiling below — end on a concrete image, action, or choice; the theme is the reader's to name |
+| Clichés clustering at emotional peaks — a piece clean elsewhere reverts to stock phrases exactly at the climax and close, where the model reaches for its highest-probability tokens at the moment of highest emotion | Invert the instinct: the emotional peak gets the unit's *most concrete* particular, never its most abstract phrase — see density ceiling below |
 
 ## Density ceilings
 
@@ -85,6 +86,7 @@ Rhetorical devices are floors *and* ceilings. A device required "at least once" 
 | "không phải X, mà (là) Y" contrastive | ≤1 per unit |
 | Elevation ending (unit closes on an abstract life-lesson) | ≤1 across the whole work — the rest end on a concrete image or action |
 | Any single seeded "flavour" word | ≤2 occurrences across the whole work |
+| Stock/sáo-ngữ phrases inside a unit's emotional peak (climax passage or final two paragraphs) | 0 — the peak is carried by the unit's most concrete particular |
 
 ## Show-don't-tell substitutions
 
