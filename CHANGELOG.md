@@ -5,6 +5,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.14.10] (2026-07-21)
+
+### 🚀 Improvements
+
+- hl-write: ban cliché metaphor classes over exact strings
+- hl-write: cover paraphrased class instances at emotional peaks
+
 ## [1.14.9] (2026-07-20)
 
 ### 🚀 Improvements
