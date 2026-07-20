@@ -56,6 +56,8 @@ Speech output uses script markers, not prose formatting — convergent telepromp
   from spoken text — never narrative prose.
 - Short lines, 15–20 words, generous spacing — matches how a speaker's eye tracks a page or prompter.
 
+**Rhetorical devices are floor *and* ceiling.** Spoken register wants repetition devices, but the review criteria's "≥1 device" is a minimum, not a target. Stay under the density ceilings in `references/craft-prose-antipatterns.md` (tricolon ≤1 per ~300 words and never in consecutive paragraphs; anaphora ≤1 sustained run per unit; "không phải X, mà Y" ≤1 per unit; elevation endings ≤1 across the whole speech). Wall-to-wall tricolons and a life-lesson at the close of every section is the exact pattern that reads as generated inspirational filler — the single most common tell in AI-written tản văn/motivational speech.
+
 ## Variant: Persuasive
 
 **Skeleton:** Monroe's Motivated Sequence — Attention (hook, breaks the audience's ambient attention) → Need
@@ -74,8 +76,9 @@ quote borrowed for the Attention hook — Einstein/Twain/Lincoln/Churchill are t
 2. Need step's stakes are specific to this audience, not generic
 3. Call to Action is one concrete, doable action, not vague inspiration
 4. Word count within ±10% of the outline-recorded budget (W8)
-5. ≥1 rhetorical repetition device present (anaphora or tricolon)
+5. Rhetorical repetition present but within budget: ≥1 device (anaphora or tricolon), and none of the `craft-prose-antipatterns.md` density ceilings breached
 6. Spoken register holds: short sentences, contractions, dense signposting — not written prose pasted in
+7. Concrete particulars, not universal generality: the speech grounds its claims in specific, named detail (per the Specificity requirement) — not nobody-in-particular abstraction
 
 **Length:** per Word–Duration Table, by the brief's stated duration.
 
@@ -99,7 +102,7 @@ followed consistently, not switched mid-speech.
 2. Opening preview matches the sections that actually follow
 3. Signposting density matches spoken register throughout
 4. Word count within ±10% of the outline-recorded budget (W8)
-5. ≥1 rhetorical repetition device present
+5. Rhetorical repetition present but within budget: ≥1 device, and none of the `craft-prose-antipatterns.md` density ceilings breached
 6. Closing recap matches delivered sections, not a generic summary
 
 **Length:** per Word–Duration Table.

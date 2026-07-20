@@ -20,6 +20,7 @@ const MIN_SENTENCE_LEN = 40;   // chars — below this, repeats are idiom, not s
 const SHORT_ENDING_LEN = 60;   // chars — threshold for the "short punchy last line" cadence
 const MIN_UNITS = 5;           // below this, stats are noise
 const OPENING_CUES = /^(the (sun|dawn|morning|night)|dawn|morning|at (dawn|dusk|night)|(he|she|they) (woke|awoke)|sáng (hôm sau|sớm)|bình minh|hoàng hôn|màn đêm|đêm (đó|ấy|nay)|(tỉnh|thức) (dậy|giấc))/i;
+const MARKER_LINE = /^(\[[^\]]+\]|\([^)]*\))$/;   // script markers: [PAUSE], [SLIDE 1], (gesture)
 
 function stripMarkdown(text) {
   return text
@@ -118,6 +119,41 @@ function openingCueRate(units) {
   return { rate: +(hits.length / (units.length || 1)).toFixed(2), units: hits.map(u => u.name) };
 }
 
+// Coefficient of variation (stddev/mean) — scale-free spread. A low CV means
+// near-uniform lengths, the machine-even rhythm human readers register as AI.
+function dispersion(nums) {
+  const n = nums.length;
+  if (!n) return { n: 0, mean: 0, cv: 0 };
+  const mean = nums.reduce((a, b) => a + b, 0) / n;
+  if (mean === 0) return { n, mean: 0, cv: 0 };
+  const variance = nums.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
+  return { n, mean: +mean.toFixed(1), cv: +(Math.sqrt(variance) / mean).toFixed(2) };
+}
+
+function paragraphs(text) {
+  return text.split(/\n\s*\n/)
+    .map(block => block.split("\n").filter(l => !MARKER_LINE.test(l.trim())).join(" ").trim())
+    .filter(Boolean);
+}
+
+// Sentence- and paragraph-length spread across the whole manuscript. Script
+// markers ([PAUSE], (gesture)) are excluded — they are not prose rhythm.
+function burstiness(units) {
+  const sentenceLens = [], paragraphLens = [];
+  for (const { text } of units) {
+    for (const s of sentences(text)) {
+      if (MARKER_LINE.test(s.trim())) continue;
+      const wc = words(s).length;
+      if (wc > 0) sentenceLens.push(wc);
+    }
+    for (const p of paragraphs(text)) {
+      const wc = words(p).length;
+      if (wc >= 3) paragraphLens.push(wc);
+    }
+  }
+  return { sentence: dispersion(sentenceLens), paragraph: dispersion(paragraphLens) };
+}
+
 function main() {
   const args = process.argv.slice(2);
   const asJson = args.includes("--json");
@@ -146,6 +182,7 @@ function main() {
     repeated_sentences: findRepeatedSentences(units),
     ending_shape: endingShape(units),
     opening_time_cue: openingCueRate(units),
+    burstiness: burstiness(units),
   };
 
   if (asJson) {
@@ -164,6 +201,9 @@ function main() {
   console.log(`- short-ending ratio (≤${SHORT_ENDING_LEN} chars): ${r.ending_shape.short_ratio} · median last-line length: ${r.ending_shape.median_ending_length}`);
   console.log(`\n## Opening time/waking cue`);
   console.log(`- rate: ${r.opening_time_cue.rate}${r.opening_time_cue.units.length ? " (" + r.opening_time_cue.units.join(", ") + ")" : ""}`);
+  console.log(`\n## Burstiness — length variance (low CV = uniform, machine-even rhythm)`);
+  console.log(`- sentence-length CV: ${r.burstiness.sentence.cv} (mean ${r.burstiness.sentence.mean}w over ${r.burstiness.sentence.n} sentences)`);
+  console.log(`- paragraph-length CV: ${r.burstiness.paragraph.cv} (mean ${r.burstiness.paragraph.mean}w over ${r.burstiness.paragraph.n} paragraphs)`);
 }
 
 main();

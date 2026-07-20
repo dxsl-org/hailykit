@@ -2,7 +2,7 @@
 
 Same craft criteria across both variants — arc, POV, pacing, consistency — they differ only in scale: a single Freytag arc for short fiction versus a multi-chapter three-act/beat-sheet structure for novel-length work.
 
-Prose-level craft (anti-AI-tone patterns, show-don't-tell, hook archetypes, differentiation, expansion) lives in `references/craft-fiction-prose.md`. At Draft, seed `bible/style.md` with its Prose guardrails digest; at concept development, run its Differentiation checklist before the outline Checkpoint.
+Prose-level craft is split across two files: genre-neutral tells — anti-AI-tone patterns, density ceilings, show-don't-tell, specificity — in `references/craft-prose-antipatterns.md`, and fiction-only craft — hook archetypes, differentiation, expansion — in `references/craft-fiction-prose.md`. At Draft, seed `bible/style.md` with the Prose guardrails digest (from the anti-patterns file); at concept development, run the Differentiation checklist (from the fiction-craft file) before the outline Checkpoint.
 
 ## Track
 

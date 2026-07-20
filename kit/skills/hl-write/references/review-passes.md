@@ -60,7 +60,7 @@ Evidence = quote the claim + the matching or contradicting research-note excerpt
 
 ## Rubric — Voice/Style
 
-Compare the unit against the voice profile in `bible/style.md` (long-form) or root `style.md` (short-form): POV, tense, register, diction, sentence-length pattern. For fiction, also check against the anti-AI-tone tables in `references/craft-fiction-prose.md` — cite the specific pattern matched ("mood label instead of sensory detail"), not a general impression. Evidence = quote the drifting passage + name the specific attribute that shifted. Severity: **Critical** = POV/tense break; **Major** = tone/register inconsistency; **Minor** = word-choice preference.
+Compare the unit against the voice profile in `bible/style.md` (long-form) or root `style.md` (short-form): POV, tense, register, diction, sentence-length pattern. For **every** prose genre — not fiction alone — also check against the anti-AI-tone tables, density ceilings, and specificity requirement in `references/craft-prose-antipatterns.md`, citing the specific pattern matched ("mood label instead of sensory detail", "tricolon density over ceiling", "no concrete particular"), never a general impression. Fiction additionally uses `references/craft-fiction-prose.md`'s hook craft, checked in the structural pass. Evidence = quote the drifting passage + name the specific attribute that shifted. Severity: **Critical** = POV/tense break; **Major** = tone/register inconsistency, a density-ceiling breach, a unit built entirely from universal generality with no concrete particular, or a single seeded "flavour" word used past its ≤2-per-work ceiling; **Minor** = word-choice preference.
 
 Minor findings on this pass are hard-capped — it is the pass most prone to a nitpick flood. **Cold start:** unit 1 has no prior units to compare against; baseline against `style.md` alone for that unit, not "established voice."
 
@@ -103,13 +103,13 @@ The editor returns these as proposals in its final message (findings-only — it
 
 ## Whole-work Verify sweep
 
-At Verify, `haily-editor` runs once against the full assembled manuscript instead of per-unit. For long-form work the orchestrator first runs the style-stats script and passes its output into the sweep context:
+At Verify, `haily-editor` runs once against the full assembled manuscript instead of per-unit. For any multi-unit work (≥5 units, short-form or long-form) the orchestrator first runs the style-stats script and passes its output into the sweep context:
 
 ```
 node <skill-dir>/scripts/style-stats.mjs <workspace>/manuscript/
 ```
 
-The script computes whole-manuscript facts no per-unit window can see — recurring phrase tics, verbatim sentences repeated across units, ending-cadence homogeneity, opening time-cue rate. The numbers are **facts, not verdicts**: the editor cites them as Voice/Style evidence ("the phrase 'một nỗi buồn không tên' appears 12× across 6 units") and judges whether each is a problem — a deliberate refrain is not a finding.
+The script computes whole-manuscript facts no per-unit window can see — recurring phrase tics, verbatim sentences repeated across units, ending-cadence homogeneity, opening time-cue rate, and sentence/paragraph-length burstiness (a low coefficient of variation means uniform, machine-even rhythm). The numbers are **facts, not verdicts**: the editor cites them as Voice/Style evidence ("the phrase 'một nỗi buồn không tên' appears 12× across 6 units"; "sentence-length CV 0.18 — near-uniform") and judges whether each is a problem — a deliberate refrain is not a finding.
 
 - **Cross-unit continuity** — the same 5-category rubric, scoped across every unit, with the same extra scrutiny at the 40–60% narrative position
 - **Structure vs. outline** — every planned beat present across the whole work, in the correct order
@@ -117,6 +117,6 @@ The script computes whole-manuscript facts no per-unit window can see — recurr
 - **Foreshadowing payoff audit** — every `bible/plot.md` foreshadowing entry has a payoff unit, or is flagged unresolved
 - **Provenance-bound citation verification** — re-verify every citation against `research/` sources, same rule as the per-unit fact-check pass
 - **Final copyedit** — a full-manuscript pass for consistency issues that only surface across unit boundaries (naming, numerals, hyphenation)
-- **Style-stats evidence** *(long-form)* — every script-reported phrase tic, repeated sentence, or cadence ratio is either raised as a Voice/Style finding or explicitly waived as intentional
+- **Style-stats evidence** *(≥5-unit work, either track)* — every script-reported phrase tic, repeated sentence, cadence ratio, or low burstiness figure is either raised as a Voice/Style finding or explicitly waived as intentional
 
 The same Review Circuit (max 3 rounds, early-stop, stall→`ESCALATE`) applies at whole-work scope; an `ESCALATE` here blocks the manuscript-acceptance Checkpoint rather than a single ledger row.
