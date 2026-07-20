@@ -16,6 +16,7 @@ import {
   getModelMap,
   loadModelMapOverrides,
   MODEL_MAP,
+  bundleFlatSkill,
 } from '../installer/converter';
 
 // ---------------------------------------------------------------------------
@@ -380,4 +381,55 @@ test('toGeminiToml escapes the description and wraps the body', () => {
 
 test('toCursorMd appends a trailing newline', () => {
   assert.equal(toCursorMd('hello'), 'hello\n');
+});
+
+// ---------------------------------------------------------------------------
+// bundleFlatSkill — flat_inline frontmatter
+// ---------------------------------------------------------------------------
+
+/** Builds a temp skill dir with SKILL.md + two references; returns its path. */
+function makeFlatSkillFixture(frontmatterExtra: string) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hk-flat-'));
+  fs.mkdirSync(path.join(dir, 'references'));
+  fs.writeFileSync(
+    path.join(dir, 'SKILL.md'),
+    `---\nname: hl-fixture\ndescription: "x"\n${frontmatterExtra}---\n\nSkill body.\n`,
+    'utf8',
+  );
+  fs.writeFileSync(path.join(dir, 'references', 'inline-me.md'), 'FULL RUBRIC CONTENT\n', 'utf8');
+  fs.writeFileSync(path.join(dir, 'references', 'stub-me.md'), 'STUB TARGET CONTENT\n', 'utf8');
+  return dir;
+}
+
+test('bundleFlatSkill inlines flat_inline references in full and stubs the rest', () => {
+  const dir = makeFlatSkillFixture('flat_inline: [references/inline-me.md]\n');
+  try {
+    const bundled = bundleFlatSkill(dir, (raw) => raw);
+    assert.match(bundled, /# Reference: references\/inline-me\.md\n\nFULL RUBRIC CONTENT/);
+    assert.match(bundled, /# Reference: references\/stub-me\.md\n> \[!IMPORTANT\]/);
+    assert.doesNotMatch(bundled, /STUB TARGET CONTENT/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('bundleFlatSkill without flat_inline stubs every reference (prior behaviour)', () => {
+  const dir = makeFlatSkillFixture('');
+  try {
+    const bundled = bundleFlatSkill(dir, (raw) => raw);
+    assert.doesNotMatch(bundled, /FULL RUBRIC CONTENT/);
+    assert.match(bundled, /# Reference: references\/inline-me\.md\n> \[!IMPORTANT\]/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('bundleFlatSkill runs resolveContent on inlined reference content', () => {
+  const dir = makeFlatSkillFixture('flat_inline: [references/inline-me.md]\n');
+  try {
+    const bundled = bundleFlatSkill(dir, (raw) => raw.replace(/RUBRIC/g, 'RESOLVED'));
+    assert.match(bundled, /FULL RESOLVED CONTENT/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

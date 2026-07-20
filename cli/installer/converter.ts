@@ -429,16 +429,41 @@ export function toClineMd(name: string, description: string, body: string): stri
 }
 
 /**
+ * Parse the `flat_inline:` frontmatter list of a SKILL.md — reference paths
+ * (relative to the skill dir, forward slashes) whose FULL content is inlined
+ * into the flat bundle instead of a read-tool stub. Load-bearing rubrics
+ * declare themselves here because flat providers observably never follow the
+ * stub's read_file instruction mid-generation, so a stub-only reference is
+ * effectively invisible to them.
+ */
+function parseFlatInline(rawSkillMd: string): Set<string> {
+  const value = parseFrontmatter(rawSkillMd).frontmatter['flat_inline'];
+  if (!value) return new Set();
+  return new Set(
+    value
+      .replace(/^\[|\]$/g, '')
+      .split(',')
+      .map((s) => s.trim().replace(/^["']|["']$/g, '').replace(/\\/g, '/'))
+      .filter(Boolean),
+  );
+}
+
+/**
  * Convert a directory-based skill (SKILL.md plus supporting markdown files in subdirectories
  * such as references/) into a single flat markdown file suitable for providers that only
  * support flat markdown files (e.g., Gemini CLI, Antigravity).
+ *
+ * Reference files listed in SKILL.md's `flat_inline:` frontmatter are embedded in full;
+ * all others become read-tool stubs pointing at the central kit store.
  *
  * @param srcSkillDir    - Absolute path to the source skill directory containing SKILL.md.
  * @param resolveContent - Callback to resolve provider-specific syntax (refs, models) on each markdown file.
  */
 export function bundleFlatSkill(srcSkillDir: string, resolveContent: (raw: string) => string): string {
   const skillMd = path.join(srcSkillDir, 'SKILL.md');
-  const baseContent = resolveContent(fs.readFileSync(skillMd, 'utf8'));
+  const rawSkillMd = fs.readFileSync(skillMd, 'utf8');
+  const baseContent = resolveContent(rawSkillMd);
+  const inlinePaths = parseFlatInline(rawSkillMd);
 
   const mdFiles: { relPath: string; absPath: string }[] = [];
   const collect = (dir: string, relPrefix = '') => {
@@ -463,9 +488,14 @@ export function bundleFlatSkill(srcSkillDir: string, resolveContent: (raw: strin
 
   let bundled = baseContent.replace(/\s+$/, '');
   mdFiles.sort((a, b) => a.relPath.localeCompare(b.relPath));
-  for (const { relPath } of mdFiles) {
-    const centralRefPath = path.join(hailyHome, 'kit', 'skills', skillName, relPath);
-    bundled += `\n\n---\n\n# Reference: ${relPath}\n> [!IMPORTANT]\n> To view detailed instructions for this section, run the \`view_file\` (or \`read_file\`) tool on:\n> \`${centralRefPath}\``;
+  for (const { relPath, absPath } of mdFiles) {
+    if (inlinePaths.has(relPath)) {
+      const refContent = resolveContent(fs.readFileSync(absPath, 'utf8')).replace(/\s+$/, '');
+      bundled += `\n\n---\n\n# Reference: ${relPath}\n\n${refContent}`;
+    } else {
+      const centralRefPath = path.join(hailyHome, 'kit', 'skills', skillName, relPath);
+      bundled += `\n\n---\n\n# Reference: ${relPath}\n> [!IMPORTANT]\n> To view detailed instructions for this section, run the \`view_file\` (or \`read_file\`) tool on:\n> \`${centralRefPath}\``;
+    }
   }
 
   return bundled + '\n';

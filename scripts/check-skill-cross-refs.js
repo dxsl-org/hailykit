@@ -399,6 +399,19 @@ function checkReferencesTablePaths() {
         problems.push({ file: rel, problem: `References table path does not resolve: ${refPath}` });
       }
     }
+
+    // `flat_inline:` frontmatter paths must also resolve — a typo silently
+    // degrades the flat bundle back to a stub the model never follows.
+    const flatInline = content.match(/^flat_inline:\s*\[([^\]]*)\]/m);
+    if (flatInline) {
+      for (const entry of flatInline[1].split(',')) {
+        const inlinePath = entry.trim().replace(/^["']|["']$/g, '');
+        if (!inlinePath) continue;
+        if (!existsSync(path.join(skillDir, inlinePath))) {
+          problems.push({ file: rel, problem: `flat_inline path does not resolve: ${inlinePath}` });
+        }
+      }
+    }
   }
 
   return problems;

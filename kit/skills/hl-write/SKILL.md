@@ -6,6 +6,7 @@ user-invocable: true
 category: workflow
 keywords: [writing, author, novel, book, fiction, essay, business-plan, manuscript, story, thesis, criticism, citation, proposal, marketing, resume, speech, tutorial, report]
 argument-hint: "\"<work description>\" [reference-files...] [--out <dir>] [--style <file|dir>] [--auto]"
+flat_inline: [references/craft-prose-antipatterns.md]
 ---
 
 # hl-write — Universal Writing Pipeline
