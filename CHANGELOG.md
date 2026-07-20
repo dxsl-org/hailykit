@@ -5,6 +5,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.14.6] (2026-07-20)
+
+### 🚀 Improvements
+
+- hl-write: extract anti-AI-tone rubric into shared reference
+- hl-write: apply anti-AI-tone checks to every prose genre
+- hl-write: add Vietnamese-specific prose tells
+- hl-write: cap rhetorical device density in speech
+- hl-write: run style-stats for any multi-unit work
+- style-stats: add sentence and paragraph burstiness metrics
+- hl-write: forbid vocabulary word-lists in style seeding
+- hl-write: require concrete particulars in narrative units
+
 ## [1.14.5] (2026-07-17)
 
 ### 🚀 Improvements
