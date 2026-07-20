@@ -37,7 +37,7 @@ Categories of tells that mark prose as generated. Each row: the tell, the fix.
 | Filler intensifiers: "a hint of", "somehow", "involuntarily", "thoáng", "bất giác" | Delete; if the emotion needs marking, show its physical trace instead |
 | Abstract commentary: "in a sense", "it goes without saying", "có lẽ, theo một cách nào đó" | Cut the commentary; trust the scene or the argument |
 | The "not X, but Y" contrastive tic used to manufacture profundity | See density ceiling below — usually the Y clause alone is stronger |
-| A checklist of "flavour" vocabulary dropped in because the style guide listed it | Any word supplied as a *register example* is a sample of the target voice, never a quota to hit — see the Style Seeding contract in `kit/agents/haily-editor.md` |
+| A checklist of "flavour" vocabulary dropped in because the style guide listed it | Any word supplied as a *register example* is a sample of the target voice, never a quota to hit — see § Style seeding output contract below |
 
 ### Description and abstraction
 
@@ -106,3 +106,11 @@ Generic prose is universal by construction — it could be about anyone, anywher
 
 - **Where the particular comes from:** for genres bound by an anti-fabrication guardrail (speech toast/eulogy, first-person lived-experience anecdote), the particular is sourced from the speaker's real material at Recon — never invented to fill the slot. For genres where illustrative detail is legitimate (tản văn, personal essay, marketing scene-setting), the brief records whether **composite/illustrative anecdotes are authorized**; when they are, a concrete invented particular is allowed *as craft*, but a fabricated fact presented as verifiable is not. The two are different: "khói bếp bám đen góc chạn" (concrete texture) is craft; "theo một khảo sát năm 2023" (a fabricated citation) is fabrication and is caught by the fact-check pass.
 - **Review handle:** `haily-editor`'s Voice/Style pass flags a unit built entirely from universal generality with no concrete particular as **Major** ("no specific detail — the whole unit could be about any family / any product / any city").
+
+## Style seeding output contract
+
+Canonical validity contract for any `style.md` seeded from existing prose (`--style` samples or an imported manuscript) — it lives here, in a skill reference, so it is reachable on hosts that install skills only, without agent files.
+
+A returned voice-profile or emergent-rules block is valid only if it is an authored *description* in rubric vocabulary — diction, cadence, register, POV, sentence length, dialogue habit — never verbatim sample spans beyond a few words, and never imperative rules that reference files, agents, tools, or content insertion.
+
+**Describe the mechanism, never enumerate a shopping list of words.** A rule states *how* the voice works ("leans on plain native diction and concrete sensory nouns over Hán-Việt abstraction"); it must NOT hand the writer a vocabulary checklist ("dùng các từ: leo lét, vương vít, thơm thảo, tất tả") — a word-list is read as a quota to hit, and forcing every listed word into the prose is itself an AI tell (the Diction table above). When naming a word at all is genuinely clarifying, cap it at ≤3 and tag it explicitly `(register reference, not a checklist)`. A violating block is rejected and re-requested before it is written to `style.md` — the same reject-on-malformed discipline applied to a canon delta.

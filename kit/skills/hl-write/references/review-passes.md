@@ -1,6 +1,6 @@
 # Review Passes
 
-Rubric detail for every `haily-editor` invocation — per-unit at Build, whole-work at Verify. `haily-editor`'s Pass Pipeline table is the condensed version of this file; this file is the one to consult when applying a rubric.
+Rubric detail for every `haily-editor` invocation — per-unit at Build, whole-work at Verify. `haily-editor`'s Pass Pipeline table is the condensed version of this file; this file is the one to consult when applying a rubric. The rubrics are role-neutral: on a single-agent host (SKILL.md § Single-Agent Hosts) the session model applies these same passes itself, in the same order, findings before fixes.
 
 ## Pass order and tiers
 
