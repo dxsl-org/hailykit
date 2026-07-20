@@ -5,6 +5,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.14.7] (2026-07-20)
+
+### 🚀 Improvements
+
+- hl-write: extend Vietnamese cliché inventory from field findings
+- hl-write: ban stock phrases inside emotional peak passages
+- hl-write: add collocation misuse class to copyedit rubric
+- agents: haily-writer anchors emotional peaks on concrete details
+
 ## [1.14.6] (2026-07-20)
 
 ### 🚀 Improvements
