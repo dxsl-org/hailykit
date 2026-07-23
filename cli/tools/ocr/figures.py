@@ -23,6 +23,7 @@ from typing import Any, Callable
 
 import gemini_client
 import prompts
+import provider
 import sanitize
 
 _FIGURE_CAPTION_MAX_LENGTH = 160
@@ -135,23 +136,28 @@ def save_figure_png(image: Any, doc_dir: str, page_no: int, figure_index: int) -
 def caption_figure(
     image: Any,
     *,
-    model: str,
     api_key: str,
     job_config: dict[str, Any],
     generate_fn: Callable[..., dict[str, Any]] = gemini_client.generate,
 ) -> str:
-    """Caption a cropped figure via `model` (flash-lite tier), sanitized
-    before return — VLM output never reaches the caller unsanitized.
-    `generate_fn` is injectable so tests substitute a fake client. `job_config`
-    is the job's config dict — threaded through so this call's rpm/retry/
-    timeout tuning matches every other Gemini call site (see
-    `gemini_client.config_from_job`).
+    """Caption a cropped figure via the flash tier's resolved provider
+    (native Gemini by default, or whatever `tier_provider["flash"]` names —
+    see provider.py), sanitized before return: VLM output never reaches the
+    caller unsanitized. `generate_fn` is injectable so tests substitute a
+    fake client — a non-default override (identity-checked against
+    `gemini_client.generate`) is called in place of the resolved adapter, but
+    the resolved model/config are still used (same contract as
+    `vlm_tier._attempt_tier`). `job_config` is the job's config dict —
+    threaded through so this call's rpm/retry/timeout tuning matches every
+    other VLM call site.
     """
+    binding = provider.resolve("flash", job_config, api_key)
+    fn = binding.generate_fn if generate_fn is gemini_client.generate else generate_fn
     parts = [
         {"text": prompts.FIGURE_CAPTION_PROMPT},
         {"inlineData": {"mimeType": "image/png", "data": image_to_base64_png(image)}},
     ]
-    result = generate_fn(model, parts, config=gemini_client.config_from_job(job_config, api_key))
+    result = fn(binding.model, parts, config=binding.config)
     if not result.get("ok"):
         return ""
     return sanitize.sanitize_caption(result.get("text", ""), max_length=_FIGURE_CAPTION_MAX_LENGTH)
@@ -184,7 +190,7 @@ def build_figures(
         cropped = crop_bbox(page_image, fractional)
         rel_path = save_figure_png(cropped, doc_dir, page_no, index)
         caption = caption_figure(
-            cropped, model=job_config["models"]["flash"], api_key=api_key, job_config=job_config, generate_fn=generate_fn,
+            cropped, api_key=api_key, job_config=job_config, generate_fn=generate_fn,
         )
         figure_paths.append(rel_path)
         embed_lines.append(f"![{caption or 'figure'}]({rel_path})")

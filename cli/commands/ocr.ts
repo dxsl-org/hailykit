@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { checkReportLines, missingPythonMessage, runSummaryLines } from '../lib/ocr/check-report';
+import { checkReportLines, missingPythonMessage, providerCheckLines, providerCheckSummary, runSummaryLines } from '../lib/ocr/check-report';
 import { emit, fail, ok } from '../lib/json-output';
-import { loadOcrConfig } from '../lib/ocr/config';
+import { loadOcrConfig, type OcrConfig } from '../lib/ocr/config';
 import { runEngine as realRunEngine } from '../lib/ocr/engine-runner';
 import { resolvePython, type ResolvedPython } from '../lib/ocr/python-resolve';
 import { formatProgressLine } from '../lib/ocr/render';
@@ -31,6 +31,9 @@ export interface OcrCmdOptions {
   /** Poll/collect outstanding batch jobs for this input/output instead of
    *  running the local+escalation pipeline. */
   collect?: boolean;
+  /** Highest-precedence config layer — a standalone ocr-config file (or a
+   *  full haily.json with an `ocr` block), overriding global/local haily.json. */
+  configPath?: string;
   /** Test seam: real engine script path + runner are the defaults. */
   scriptPath?: string;
   runEngineFn?: typeof realRunEngine;
@@ -49,12 +52,12 @@ function defaultScriptPath(): string {
 
 export async function cmdOcr(opts: OcrCmdOptions): Promise<number> {
   const cwd = opts.cwd ?? process.cwd();
-  const config = loadOcrConfig(cwd);
+  const config = loadOcrConfig(cwd, opts.configPath);
   const scriptPath = opts.scriptPath ?? defaultScriptPath();
   const runEngine = opts.runEngineFn ?? realRunEngine;
   const resolved = resolvePython({ flag: opts.python, configPython: config.python });
 
-  if (opts.check) return runCheck(resolved, scriptPath, runEngine, opts.json);
+  if (opts.check) return runCheck(resolved, scriptPath, runEngine, opts.json, config);
 
   if (!opts.input) { console.error('Usage: hailykit ocr <input> --out <dir>'); return 1; }
   if (!opts.out) { console.error('ocr: --out <dir> is required'); return 1; }
@@ -89,6 +92,7 @@ export async function cmdOcr(opts: OcrCmdOptions): Promise<number> {
       scriptPath,
       job,
       cwd,
+      keyEnvNames: providerKeyEnvNames(config),
       signal: abortController.signal,
       onProgress: (rawLine, evt) => {
         if (isTty) console.log(formatProgressLine(rawLine, evt));
@@ -110,6 +114,18 @@ export async function cmdOcr(opts: OcrCmdOptions): Promise<number> {
   return 0;
 }
 
+/** Env-var NAMES referenced by configured providers' `api_key_env`, so the
+ *  runner forwards exactly those (plus the built-in Gemini keys) to the engine
+ *  — a config-derived allowlist, never a blanket env passthrough. Values are
+ *  never read here, only names. */
+function providerKeyEnvNames(config: ReturnType<typeof loadOcrConfig>): string[] {
+  const names = new Set<string>();
+  for (const entry of Object.values(config.providers ?? {})) {
+    if (entry.api_key_env) names.add(entry.api_key_env);
+  }
+  return [...names];
+}
+
 function buildJobConfig(opts: OcrCmdOptions, config: ReturnType<typeof loadOcrConfig>): OcrJob['config'] {
   const langs = (opts.lang ?? '').split(',').map((s) => s.trim()).filter(Boolean);
   const maxTier = opts.maxTier ?? config.max_tier;
@@ -123,6 +139,8 @@ function buildJobConfig(opts: OcrCmdOptions, config: ReturnType<typeof loadOcrCo
     ...(config.route_tables_to_vlm !== undefined ? { route_tables_to_vlm: config.route_tables_to_vlm } : {}),
     ...(config.long_edge_min !== undefined ? { long_edge_min: config.long_edge_min } : {}),
     ...(config.rpm !== undefined ? { rpm: config.rpm } : {}),
+    ...(config.providers ? { providers: config.providers } : {}),
+    ...(config.tier_provider ? { tier_provider: config.tier_provider } : {}),
     // --batch-api wins over sync escalation per run (see batch.py's mode
     // switch) — both flags are still forwarded independently rather than
     // one silently overriding the other, so the engine's own precedence is
@@ -171,6 +189,7 @@ async function runCheck(
   scriptPath: string,
   runEngine: typeof realRunEngine,
   json: boolean,
+  config: OcrConfig,
 ): Promise<number> {
   if (!resolved) { printMissingPython(json); return 0; }
   if (!fs.existsSync(scriptPath)) {
@@ -181,9 +200,13 @@ async function runCheck(
 
   const result = await runEngine({ pythonPath: resolved.path, scriptPath, check: true });
   const data = (result.result ?? { ok: false }) as Partial<OcrCheckResult>;
+  // `providers` config lives on the TS side (haily.json/--config) — the
+  // python engine has no job at --check time to read it from, so it's
+  // attached here rather than round-tripped through the engine.
+  data.providers = providerCheckSummary(config);
 
   if (json) { console.log(JSON.stringify(ok('ocr', data), null, 2)); return 0; }
-  printCheckHuman(data, resolved.path, scriptPath);
+  printCheckHuman(data, resolved.path, scriptPath, config);
   return 0;
 }
 
@@ -193,8 +216,9 @@ function printMissingPython(json: boolean): void {
   else console.error(`ocr: ${msg}`);
 }
 
-function printCheckHuman(data: Partial<OcrCheckResult>, pythonPath: string, scriptPath: string): void {
+function printCheckHuman(data: Partial<OcrCheckResult>, pythonPath: string, scriptPath: string, config: OcrConfig): void {
   for (const line of checkReportLines(data, pythonPath, scriptPath)) console.log(line);
+  for (const line of providerCheckLines(config)) console.log(line);
 }
 
 function printHumanSummary(data: OcrRunData): void {

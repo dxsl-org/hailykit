@@ -22,6 +22,7 @@ import time
 from typing import Any, Callable
 
 import assemble
+import batch_api
 import batch_submit
 import gemini_client
 import job_config
@@ -248,7 +249,19 @@ def process_document(
 
     # --batch-api and sync escalation are mutually exclusive per run — batch
     # wins (see this phase's Hard Contracts); local tier above always runs.
-    if job.config.get("batch_api"):
+    # Batch API is Gemini-only end-to-end (batch_api.py's ASSUMPTION) — a
+    # `tier_provider["flash"]` pointed at a non-gemini provider can never
+    # submit, so that combination falls back to synchronous escalation with a
+    # warning instead of silently no-op'ing (see batch_api.flash_provider_is_gemini).
+    want_batch_api = bool(job.config.get("batch_api"))
+    if want_batch_api and not batch_api.flash_provider_is_gemini(job.config):
+        logger.warning(
+            "batch-api requested but tier_provider maps flash to a non-gemini provider; "
+            "falling back to synchronous escalation for %s", slug,
+        )
+        want_batch_api = False
+
+    if want_batch_api:
         batch_submitted = batch_submit.run(
             manifest=manifest, manifest_path=manifest_path, input_path=job.input, job=job,
             attempts_max=attempts_max, emit_fn=emit_fn, slug=slug,

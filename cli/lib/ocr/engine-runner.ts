@@ -29,7 +29,10 @@ const SAFE_ENV = [
   'TEMP', 'TMP', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TERM', 'APPDATA', 'LOCALAPPDATA',
   'PROGRAMFILES', 'PROGRAMDATA', 'COMSPEC',
 ];
-/** The only two credentials this tool ever forwards to the child — never
+/** Gemini credentials forwarded to the child by default (the built-in
+ *  provider). Additional provider keys are forwarded only by NAME when the
+ *  resolved config references them via `providers[*].api_key_env` — a
+ *  config-derived allowlist, never a blanket env passthrough. Keys are never
  *  interpolated into argv or a log line, only into the env block below. */
 const KEY_ENV = ['GOOGLE_API_KEY', 'GEMINI_API_KEY'];
 
@@ -46,6 +49,11 @@ export interface EngineRunOptions {
   onProgress?: (rawLine: string, evt?: ProgressEvent) => void;
   /** Abort triggers a SIGTERM to the child (Ctrl-C lifecycle). */
   signal?: AbortSignal;
+  /** Extra env-var NAMES to forward to the child, beyond the built-in Gemini
+   *  keys — sourced from the resolved config's `providers[*].api_key_env`, so
+   *  an OpenAI/OpenRouter/etc. provider's key reaches the engine. Names only;
+   *  values are read from the parent env, never passed as arguments. */
+  keyEnvNames?: string[];
 }
 
 export interface EngineRunResult {
@@ -56,9 +64,9 @@ export interface EngineRunResult {
   error?: string;
 }
 
-function scrubbedEnv(): NodeJS.ProcessEnv {
+function scrubbedEnv(keyEnvNames: string[] = []): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
-  for (const key of [...SAFE_ENV, ...KEY_ENV]) {
+  for (const key of [...SAFE_ENV, ...KEY_ENV, ...keyEnvNames]) {
     const value = process.env[key];
     if (value !== undefined) env[key] = value;
   }
@@ -127,7 +135,7 @@ function spawnAndCollect(opts: EngineRunOptions, args: string[]): Promise<Engine
   return new Promise((resolve) => {
     const child = spawn(opts.pythonPath, args, {
       cwd: opts.cwd ?? process.cwd(),
-      env: scrubbedEnv(),
+      env: scrubbedEnv(opts.keyEnvNames),
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe'],
     });

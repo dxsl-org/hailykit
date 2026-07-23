@@ -29,6 +29,7 @@ import gemini_client
 import job_config
 import manifest as manifest_mod
 import prompts
+import provider
 import sanitize
 
 logger = logging.getLogger("ocr_engine.vlm_tier")
@@ -91,14 +92,19 @@ def _attempt_tier(
 ) -> dict[str, Any]:
     """One tier attempt. `generate_fn` already retries transient errors
     internally and returns only its FINAL outcome, so `cost_usd` here is
-    already "final attempt only" by construction."""
-    model = job.config["models"][tier]
-    config = gemini_client.config_from_job(job.config, api_key)
+    already "final attempt only" by construction. Model/config/adapter come
+    from `provider.resolve` (native Gemini + `models[tier]` when no
+    `providers`/`tier_provider` is configured — byte-identical to before).
+    `generate_fn` stays test-injectable: a non-default override (identity-
+    checked against `gemini_client.generate`) replaces only the call, not the
+    resolved model/config, so existing tests keep working unmodified."""
+    binding = provider.resolve(tier, job.config, api_key)
+    fn = binding.generate_fn if generate_fn is gemini_client.generate else generate_fn
     parts = [
         {"text": prompts.PAGE_OCR_PROMPT},
         {"inlineData": {"mimeType": "image/png", "data": page_b64}},
     ]
-    result = generate_fn(model, parts, config=config)
+    result = fn(binding.model, parts, config=binding.config)
     cost = gemini_client.compute_cost_usd(tier, result.get("usage") or {}) if result.get("ok") else 0.0
     return {
         "ok": result.get("ok", False),
@@ -106,7 +112,7 @@ def _attempt_tier(
         "markdown": result.get("text", ""),
         "cost_usd": cost,
         "tier": tier,
-        "model": model,
+        "model": binding.model,
     }
 
 

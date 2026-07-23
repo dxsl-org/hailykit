@@ -32,6 +32,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
     # raster) — not in the phase spec's explicit default list, added because
     # the pixel-dims/long-edge branch needs a threshold. See Deviation Log.
     "long_edge_min": 1000,
+    # Provider abstraction (see provider.py): empty == every tier resolves to
+    # native Gemini with `models[tier]`, byte-identical to the pre-abstraction
+    # code path. `providers` names adapters (kind gemini|openai|cli);
+    # `tier_provider` maps "flash"/"pro" to one of those names.
+    "providers": {},
+    "tier_provider": {},
 }
 
 

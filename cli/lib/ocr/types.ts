@@ -5,6 +5,35 @@
  * module (no imports beyond nothing).
  */
 
+/** One `providers` entry — an adapter binding a tier can point to via
+ *  `tier_provider`. Only `kind`, `model`, `api_key_env`, `base_url`, and
+ *  `command` are ever accepted — an inline key VALUE (`api_key`/`key`/
+ *  `apikey`) is never a recognized field and is dropped by `config.ts`'s
+ *  sanitizer, never forwarded to the job JSON the Python engine reads. */
+export interface OcrProviderEntry {
+  kind: 'gemini' | 'openai' | 'cli';
+  /** Model name/id passed to the adapter (Gemini/OpenAI model, or the
+   *  `{model}` placeholder value for a `cli` command template). */
+  model?: string;
+  /** Name of the environment variable holding the API key — NEVER the key
+   *  value itself. Read by the Python engine via `os.environ`. */
+  api_key_env?: string;
+  /** OpenAI-compatible base URL (`kind: "openai"` only). A user-configured
+   *  egress endpoint — page images are sent there; not validated/blocked. */
+  base_url?: string;
+  /** Argv template for `kind: "cli"` — `{model}`/`{prompt}`/`{image}`
+   *  placeholders substituted per call, run with `shell=False`. */
+  command?: string[];
+}
+
+/** Maps escalation tiers to a `providers` entry name. Absent/empty means
+ *  every tier uses native Gemini with `models.flash`/`models.pro` — the
+ *  pre-provider-abstraction default, unchanged. */
+export interface OcrTierProvider {
+  flash?: string;
+  pro?: string;
+}
+
 /** Config block accepted inside a job file's `config` key. Snake_case keys
  *  are intentional: this object is serialized verbatim into the job JSON
  *  the Python engine reads, so there is no translation layer to keep in sync. */
@@ -18,6 +47,10 @@ export interface OcrJobConfig {
   long_edge_min?: number;
   /** Gemini requests-per-minute throttle (consumed by phase 2's client). */
   rpm?: number;
+  /** Named VLM adapters a tier can be routed to (see `OcrProviderEntry`). */
+  providers?: Record<string, OcrProviderEntry>;
+  /** Which named `providers` entry each tier resolves to (see `OcrTierProvider`). */
+  tier_provider?: OcrTierProvider;
   /** Forward-compat no-op today (phase 1 engine ignores unknown keys and
    *  already resumes naturally from an existing manifest); phase 3's batch
    *  runner reads this to decide retry-vs-skip semantics explicitly. */
@@ -38,7 +71,23 @@ export interface OcrJob {
   config: OcrJobConfig;
 }
 
-/** `ocr_engine.py --check` result shape (`run_check()`). */
+/** One configured `providers` entry as reported by `--check` — presence
+ *  booleans only, NEVER the key value (security contract, mirrors `keys`
+ *  below and `gemini_client.py`'s never-print-values rule). */
+export interface OcrProviderCheckEntry {
+  name: string;
+  kind: string;
+  model?: string;
+  api_key_env?: string;
+  api_key_set: boolean;
+  /** Only set for `kind: "cli"` — whether `command[0]` resolves on PATH. */
+  command_on_path?: boolean;
+}
+
+/** `ocr_engine.py --check` result shape (`run_check()`), plus the TS-side
+ *  `providers` summary `ocr.ts` attaches from the loaded `haily.json`/
+ *  `--config` (the Python engine has no job at `--check` time to read
+ *  `providers` from, so this field is populated entirely on the TS side). */
 export interface OcrCheckResult {
   ok: boolean;
   python: string;
@@ -48,6 +97,7 @@ export interface OcrCheckResult {
   opencv_installed: boolean;
   pypdfium2_installed: boolean;
   keys: { GEMINI_API_KEY: boolean; GOOGLE_API_KEY: boolean };
+  providers?: OcrProviderCheckEntry[];
 }
 
 /** Per-page confidence block (`manifest.py` page entry). */

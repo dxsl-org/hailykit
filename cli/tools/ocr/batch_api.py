@@ -28,6 +28,7 @@ import urllib.request
 from typing import Any, Callable
 
 import gemini_client
+import provider
 
 _FILE_UPLOAD_BASE = "https://generativelanguage.googleapis.com/upload/v1beta/files"
 _MODEL_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
@@ -45,6 +46,15 @@ BATCH_PRICE_MULTIPLIER = 0.5  # Batch Mode is 50% of synchronous per-token prici
 
 def compute_batch_cost_usd(tier: str, usage: dict[str, Any]) -> float:
     return round(gemini_client.compute_cost_usd(tier, usage) * BATCH_PRICE_MULTIPLIER, 6)
+
+
+def flash_provider_is_gemini(config: dict[str, Any]) -> bool:
+    """Batch API is Gemini File-API/JSONL-specific end-to-end (see this
+    module's ASSUMPTION docstring) — checked before ever calling
+    `submit_pages` so a non-gemini `tier_provider["flash"]` falls back to
+    synchronous escalation instead of a doomed submit attempt (see batch.py's
+    mode-switch)."""
+    return provider.provider_kind_for_tier("flash", config) == "gemini"
 
 
 def request(

@@ -20,6 +20,7 @@ import batch
 import batch_api
 import gemini_client
 import manifest as manifest_mod
+import provider
 import sanitize
 import vlm_tier
 
@@ -66,7 +67,11 @@ def fetch_batch_results(job_id: str, *, config: gemini_client.GeminiConfig, requ
     return {"ok": True, "results": rows}
 
 def _collect_job(*, job_id: str, api_key: str, job_config: dict[str, Any], request_fn: Callable[..., dict[str, Any]]) -> dict[str, Any]:
-    config = gemini_client.config_from_job(job_config, api_key)
+    # Collect always talks to the native Gemini Batch/File API — routed
+    # through provider.py's Gemini-only helper so a flash `providers` entry's
+    # custom `api_key_env` (if still gemini-kind) is honored the same as the
+    # sync path, without risking a non-Gemini config object on this call.
+    config = provider.resolve_gemini_only("flash", job_config, api_key)
     poll = poll_batch_job(job_id, config=config, request_fn=request_fn)
     if not poll["ok"]:
         return {"ok": False, "error": poll["error"]}

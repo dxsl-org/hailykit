@@ -8,6 +8,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### 🚀 Improvements
 
 - ocr: add `hailykit ocr` — tiered docling → Gemini Flash → Gemini Pro pipeline for bulk PDF/scan → Markdown, with local/batch-API escalation, resume, and per-page manifests
+- ocr: pluggable VLM providers per tier — native Gemini plus any OpenAI-compatible endpoint (OpenRouter, Qwen-VL, Pixtral, local vLLM/Ollama) or a self-authenticating CLI transport; keys referenced by env-var name only, never stored in config
+- ocr: `--config <path>` to load the OCR config block from an explicit project-local file (global < local < --config)
 - hl-ocr: add skill orchestrating the OCR CLI with mandatory language detection, multimodal sample verification, and cost/quality reporting
 - hc-docs: add reciprocal disambiguation link to hl-ocr for mass conversion
 

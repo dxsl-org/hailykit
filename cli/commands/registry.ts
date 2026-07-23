@@ -355,17 +355,20 @@ Options:
   --json                Emit the JSON envelope (machine-readable)
   --python <path>       Force the python interpreter (else: config → skills venv → PATH python3)
   --lang <list>         Comma-separated OCR language codes (e.g. en,vi)
+  --config <path>       Highest-precedence config file (providers/tier_provider etc.), overrides haily.json
 
 Requires docling in the resolved python's environment — run \`hailykit ocr --check\` first.
 Sends page images to Gemini for flash/pro tiers; keep --max-tier local for sensitive documents.
 --batch-api is submit-today-collect-later: re-run with --collect to fetch results once the job completes.
+A \`kind: "openai"\` provider sends page images to its configured --base_url — a data-egress choice
+the operator makes when adding that provider entry, not validated or restricted here.
 `.trim();
 
 const ocrCommand: CommandSpec = {
   name: 'ocr',
   summary: 'Tiered-cost OCR: PDF/image → Markdown (docling → Gemini Flash → Pro)',
   help: OCR_HELP,
-  valueFlags: ['out', 'max-tier', 'python', 'lang'],
+  valueFlags: ['out', 'max-tier', 'python', 'lang', 'config'],
   run: ({ positionals, options }) => cmdOcr({
     input: positionals[0],
     out: stringOption(options, 'out', '') || undefined,
@@ -379,6 +382,7 @@ const ocrCommand: CommandSpec = {
     lang: stringOption(options, 'lang', '') || undefined,
     batchApi: options['batch-api'] === true,
     collect: options.collect === true,
+    configPath: stringOption(options, 'config', '') || undefined,
   }),
 };
 

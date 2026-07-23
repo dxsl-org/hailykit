@@ -36,7 +36,7 @@ function writeStub(code: string): string {
 test('registry exposes ocr with its value-flags', () => {
   const spec = findCommand('ocr');
   assert.ok(spec);
-  for (const f of ['out', 'max-tier', 'python', 'lang']) {
+  for (const f of ['out', 'max-tier', 'python', 'lang', 'config']) {
     assert.ok(spec!.valueFlags.includes(f), `missing value-flag ${f}`);
   }
 });
@@ -69,6 +69,69 @@ test('local ocr block overrides global for the same keys', () => {
   const dir = tmpConfigDir(JSON.stringify({ ocr: { python: '/local/python' } }));
   const cfg = loadOcrConfig(dir);
   assert.equal(cfg.python, '/local/python');
+});
+
+// --- providers / tier_provider sanitize -------------------------------------
+
+test('providers: valid entries pass through, inline key value is dropped', () => {
+  const dir = tmpConfigDir(JSON.stringify({
+    ocr: {
+      providers: {
+        or: { kind: 'openai', model: 'vision-1', base_url: 'https://api.example.com/v1', api_key_env: 'OPENROUTER_API_KEY', api_key: 'sk-should-not-persist' },
+      },
+      tier_provider: { flash: 'or' },
+    },
+  }));
+  const cfg = loadOcrConfig(dir);
+  assert.deepEqual(cfg.providers, {
+    or: { kind: 'openai', model: 'vision-1', base_url: 'https://api.example.com/v1', api_key_env: 'OPENROUTER_API_KEY' },
+  });
+  assert.deepEqual(cfg.tier_provider, { flash: 'or' });
+  assert.equal((cfg.providers!.or as Record<string, unknown>).api_key, undefined);
+  assert.equal(JSON.stringify(cfg).includes('sk-should-not-persist'), false);
+});
+
+test('providers: an unrecognized kind is rejected entirely', () => {
+  const dir = tmpConfigDir(JSON.stringify({
+    ocr: { providers: { bad: { kind: 'anthropic', model: 'x' } } },
+  }));
+  const cfg = loadOcrConfig(dir);
+  assert.equal(cfg.providers, undefined);
+});
+
+test('providers: cli kind keeps a valid command[] array', () => {
+  const dir = tmpConfigDir(JSON.stringify({
+    ocr: { providers: { local: { kind: 'cli', model: 'm', command: ['gemini', '-m', '{model}', '-p', '{prompt}', '@{image}'] } } },
+  }));
+  const cfg = loadOcrConfig(dir);
+  assert.deepEqual(cfg.providers!.local.command, ['gemini', '-m', '{model}', '-p', '{prompt}', '@{image}']);
+});
+
+// --- --config precedence -----------------------------------------------------
+
+test('--config takes precedence over local and global ocr blocks', () => {
+  const dir = tmpConfigDir(JSON.stringify({ ocr: { max_tier: 'flash', python: '/local/python' } }));
+  const configFile = path.join(dir, 'custom-ocr.json');
+  fs.writeFileSync(configFile, JSON.stringify({ max_tier: 'pro' }));
+  const cfg = loadOcrConfig(dir, configFile);
+  assert.equal(cfg.max_tier, 'pro');
+  assert.equal(cfg.python, '/local/python'); // untouched key from local still applies
+});
+
+test('--config accepts a full haily.json shape (ocr-wrapped) as well as a bare ocr-config object', () => {
+  const dir = tmpConfigDir();
+  const configFile = path.join(dir, 'custom.json');
+  fs.writeFileSync(configFile, JSON.stringify({ ocr: { max_tier: 'local' } }));
+  const cfg = loadOcrConfig(dir, configFile);
+  assert.equal(cfg.max_tier, 'local');
+});
+
+test('--config missing/malformed contributes nothing (never throws)', () => {
+  const dir = tmpConfigDir();
+  assert.deepEqual(loadOcrConfig(dir, path.join(dir, 'nope.json')), {});
+  const bad = path.join(dir, 'bad.json');
+  fs.writeFileSync(bad, '{ not json');
+  assert.deepEqual(loadOcrConfig(dir, bad), {});
 });
 
 // --- python-resolve ladder (fake fs) -----------------------------------------
@@ -340,6 +403,42 @@ test('cmdOcr forwards --batch-api as job.config.batch_api', async () => {
   assert.equal(code, 0);
   assert.equal((capturedConfig as { batch_api?: boolean }).batch_api, true);
   assert.equal((capturedConfig as { collect?: boolean }).collect, undefined);
+});
+
+test('cmdOcr forwards configured provider api_key_env names to the engine runner', async () => {
+  const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hl-ocr-run-'));
+  const inputFile = path.join(workDir, 'sample.pdf');
+  fs.writeFileSync(inputFile, '%PDF-1.4 stub');
+  const outDir = path.join(workDir, 'out');
+  const fakeScript = path.join(workDir, 'ocr_engine.py');
+  fs.writeFileSync(fakeScript, '# stub');
+  // A project-local provider referencing a non-Gemini key env: its NAME must
+  // reach the runner so the key crosses to the child; a random env NOT named
+  // by any provider must not be forwarded (config-derived allowlist).
+  fs.mkdirSync(path.join(workDir, '.claude'), { recursive: true });
+  fs.writeFileSync(
+    path.join(workDir, '.claude', 'haily.json'),
+    JSON.stringify({ ocr: { providers: { or: { kind: 'openai', model: 'v1', base_url: 'https://x/v1', api_key_env: 'OPENROUTER_API_KEY' } }, tier_provider: { flash: 'or' } } }),
+  );
+  let capturedKeys: string[] | undefined;
+
+  const code = await cmdOcr({
+    input: inputFile,
+    out: outDir,
+    resume: false,
+    check: false,
+    json: true,
+    cwd: workDir,
+    scriptPath: fakeScript,
+    runEngineFn: async (opts) => {
+      capturedKeys = opts.keyEnvNames;
+      return { ok: true, code: 0, result: { ok: true, doc_dir: outDir, pages: 0, manifest: path.join(outDir, 'manifest.json') } };
+    },
+  });
+
+  assert.equal(code, 0);
+  assert.ok(capturedKeys?.includes('OPENROUTER_API_KEY'), 'provider api_key_env name must be forwarded');
+  assert.ok(!capturedKeys?.includes('SOME_UNRELATED_SECRET'), 'only config-referenced env names are forwarded');
 });
 
 test('cmdOcr forwards --collect as job.config.collect', async () => {
