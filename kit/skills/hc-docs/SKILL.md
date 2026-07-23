@@ -98,4 +98,4 @@ See `references/llms-txt-specification.md` for full format spec and validation r
 **Follows:** `{skill:hc-cook}` — document after implementing
 **Follows:** `{skill:hc-ship}` — update docs before releasing
 **Setup:** `init` subcommand runs at project start, before any implementation
-**Related:** `{skill:hc-review}`, `{skill:hc-new}`
+**Related:** `{skill:hc-review}`, `{skill:hc-new}`, `{skill:hc-ocr}` — mass conversion of a scanned PDF/image corpus (tiered cost, sample verification); use `extract` here for a single external doc or project docs

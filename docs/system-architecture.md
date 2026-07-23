@@ -38,7 +38,7 @@
 │  utils/               logger · errors · strip-json-comments   │
 └───────────────────────────────────────────────────────────────┘
 kit/   ← sub "kit": distributable skill catalog (versioned in metadata.json)
-├── skills/            39 skill dirs (hX-name/SKILL.md, where X ∈ {c,l})
+├── skills/            40 skill dirs (hX-name/SKILL.md, where X ∈ {c,l})
 ├── agents/            25 agent .md files (provider-neutral model tiers)
 ├── templates/         4 task templates (bug, feature, refactor, usage)
 ├── standards/         ~106 language/framework standards (auto-injected)
@@ -66,6 +66,11 @@ own `{ v: 2 }` shape. They replace third-party CLIs / LLM reasoning in skills:
 | `test-detect` · `coverage-parse` | LLM framework-guessing, hand-parsed coverage | hc-test |
 | `deps-audit` | per-ecosystem audit parsing | hc-fix deps |
 | `adr-next` · `license-detect` · `pack` | manual numbering / SPDX / repomix core | hc-adr, hc-cop, hc-scout |
+| `ocr` | third-party OCR SaaS for bulk PDF/scan → Markdown | hc-ocr |
+
+`ocr` is the one command above that isn't zero-dep: it spawns a user-installed
+Python engine (`cli/tools/ocr/`, docling + opencv-python-headless) and, above
+`--max-tier local`, calls the Gemini API for flash/pro escalation.
 
 Security-sensitive primitives are centralized in `lib/`: `spawn.ts` (absolute-path
 resolve, scrubbed env, win32 `.cmd`, stdout-on-non-zero), `fs-scan.ts` (realpath

@@ -36,3 +36,7 @@ Thumbs.db
 
 # Hook execution logs
 .logs/
+
+# Python bytecode caches (OCR engine + any bundled python tools)
+__pycache__/
+*.pyc

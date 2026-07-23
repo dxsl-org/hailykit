@@ -12,6 +12,7 @@ import { cmdLicenseDetect } from './license-detect';
 import { cmdPack } from './pack';
 import { cmdCrossReview } from './cross-review';
 import type { Stage } from '../lib/cross-review/types';
+import { cmdOcr } from './ocr';
 
 /**
  * Registry of native analysis commands (stats, and the Tier 1–3 tools added by
@@ -338,6 +339,49 @@ const crossReviewCommand: CommandSpec = {
 
 type CrossReviewCmdTier = 'fast' | 'medium' | 'thinking' | 'ultra' | undefined;
 
+const OCR_HELP = `
+hailykit ocr <input> --out <dir> — Tiered-cost OCR: PDF/image → Markdown (docling → Gemini Flash → Pro)
+
+Arguments:
+  input                 PDF or image file to convert
+
+Options:
+  --out <dir>           Output directory (required for a real run)
+  --max-tier <t>        Cap the escalation ladder: local | flash | pro (default: engine's flash)
+  --resume              Re-attempt only pending/failed pages from an existing manifest
+  --batch-api            Submit flagged pages as async Gemini Batch jobs (50% cost) instead of calling flash/pro synchronously
+  --collect              Poll/collect outstanding batch jobs for this input/output instead of running a normal pass
+  --check               Report python/docling/key availability + install guidance; installs nothing, exits 0
+  --json                Emit the JSON envelope (machine-readable)
+  --python <path>       Force the python interpreter (else: config → skills venv → PATH python3)
+  --lang <list>         Comma-separated OCR language codes (e.g. en,vi)
+
+Requires docling in the resolved python's environment — run \`hailykit ocr --check\` first.
+Sends page images to Gemini for flash/pro tiers; keep --max-tier local for sensitive documents.
+--batch-api is submit-today-collect-later: re-run with --collect to fetch results once the job completes.
+`.trim();
+
+const ocrCommand: CommandSpec = {
+  name: 'ocr',
+  summary: 'Tiered-cost OCR: PDF/image → Markdown (docling → Gemini Flash → Pro)',
+  help: OCR_HELP,
+  valueFlags: ['out', 'max-tier', 'python', 'lang'],
+  run: ({ positionals, options }) => cmdOcr({
+    input: positionals[0],
+    out: stringOption(options, 'out', '') || undefined,
+    maxTier: (['local', 'flash', 'pro'].includes(stringOption(options, 'max-tier', ''))
+      ? stringOption(options, 'max-tier', '')
+      : undefined) as 'local' | 'flash' | 'pro' | undefined,
+    resume: options.resume === true,
+    check: options.check === true,
+    json: options.json === true,
+    python: stringOption(options, 'python', '') || undefined,
+    lang: stringOption(options, 'lang', '') || undefined,
+    batchApi: options['batch-api'] === true,
+    collect: options.collect === true,
+  }),
+};
+
 export const COMMANDS: CommandSpec[] = [
   statsCommand,
   gitInsightsCommand,
@@ -351,6 +395,7 @@ export const COMMANDS: CommandSpec[] = [
   licenseDetectCommand,
   packCommand,
   crossReviewCommand,
+  ocrCommand,
 ];
 
 /** Look up a registered command by name. */
