@@ -13,7 +13,34 @@ callers only ever see the dict shapes returned here.
 """
 from __future__ import annotations
 
+import math
 from typing import Any
+
+
+def _finite_score(value: Any) -> float | None:
+    """Round a docling score to 4dp, or None if it is absent/non-finite.
+
+    docling reports `ocr_score` as NaN for pages it never OCR'd (born-digital
+    text layers) — NaN is not valid JSON and would break the manifest for any
+    strict parser (the TypeScript reader among them), so it becomes null.
+    """
+    try:
+        num = float(value)
+    except (TypeError, ValueError):
+        return None
+    return round(num, 4) if math.isfinite(num) else None
+
+
+def _grade_name(grade: Any) -> str:
+    """Normalize docling's QualityGrade enum to a bare uppercase name.
+
+    `str(QualityGrade.GOOD)` is `"QualityGrade.GOOD"`, which no longer matches
+    the GRADE_ORDER table in job_config and silently collapses to POOR — so a
+    clean page gets a spurious `escalate:low_grade` flag. Take the enum name
+    (or the segment after the last dot) instead.
+    """
+    name = getattr(grade, "name", None) or str(grade).rsplit(".", 1)[-1]
+    return name.upper()
 
 
 def docling_version() -> str | None:
@@ -33,10 +60,21 @@ def convert_document(input_path: str, ocr_lang: list[str]) -> Any:
     traceback on stdout.
     """
     from docling.datamodel.base_models import InputFormat
-    from docling.datamodel.pipeline_options import EasyOcrOptions, PdfPipelineOptions
+    from docling.datamodel.pipeline_options import PdfPipelineOptions, RapidOcrOptions
     from docling.document_converter import DocumentConverter, PdfFormatOption
 
-    pipeline_options = PdfPipelineOptions(ocr_options=EasyOcrOptions(lang=ocr_lang))
+    # RapidOCR (ONNX) is the bundled OCR backend: it installs cleanly on the
+    # Python 3.14 target venv and ships no NC-licensed weights, unlike docling's
+    # EasyOCR default (which is not installed) or Surya. Table + formula
+    # enrichment are on so tables reach the manifest as `table` content and
+    # equations get flagged for VLM escalation. do_ocr stays on so scanned
+    # pages are read; born-digital pages still extract their text layer.
+    pipeline_options = PdfPipelineOptions(
+        do_ocr=True,
+        do_table_structure=True,
+        do_formula_enrichment=True,
+        ocr_options=RapidOcrOptions(lang=ocr_lang),
+    )
     converter = DocumentConverter(
         format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
     )
@@ -57,10 +95,10 @@ def page_confidence(result: Any, page_no: int) -> dict[str, Any]:
     if score is None:
         return {"layout": 0.0, "ocr": 0.0, "grade": "POOR"}
 
-    layout = float(getattr(score, "layout_score", 0.0))
-    ocr = float(getattr(score, "ocr_score", 0.0))
+    layout = _finite_score(getattr(score, "layout_score", 0.0))
+    ocr = _finite_score(getattr(score, "ocr_score", 0.0))
     grade = getattr(score, "grade", None) or getattr(score, "mean_grade", "POOR")
-    return {"layout": round(layout, 4), "ocr": round(ocr, 4), "grade": str(grade).upper()}
+    return {"layout": layout, "ocr": ocr, "grade": _grade_name(grade)}
 
 
 def page_content_types(result: Any, page_no: int) -> list[str]:

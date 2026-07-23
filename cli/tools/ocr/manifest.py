@@ -230,10 +230,19 @@ def apply_resume_integrity(manifest: dict[str, Any], manifest_path: str, doc_dir
     return downgraded
 
 
-def needs_escalation(entry: dict[str, Any], attempts_max: int) -> bool:
+def needs_escalation(entry: dict[str, Any], attempts_max: int, max_tier: str = "pro") -> bool:
     """A page still needs a VLM escalation attempt: it carries an
     `escalate:*` flag (set once by the local tier), hasn't already succeeded
-    at flash/pro tier, and hasn't exhausted `attempts_max`."""
+    at flash/pro tier, and hasn't exhausted `attempts_max`.
+
+    `max_tier="local"` disables escalation entirely — a flagged page can never
+    be serviced at that ceiling, so it is NOT pending work: the flag stays on
+    the page (informative for the skill's sample-verify) but never blocks the
+    terminal `document.md` commit or the dedup skip. Default is escalation-
+    enabled so callers that only run when escalation is active are unaffected.
+    """
+    if max_tier not in ("flash", "pro"):
+        return False
     flags = entry.get("flags") or []
     if not any(str(flag).startswith("escalate:") for flag in flags):
         return False
@@ -244,18 +253,22 @@ def needs_escalation(entry: dict[str, Any], attempts_max: int) -> bool:
     return True
 
 
-def has_pending_work(manifest: dict[str, Any], attempts_max: int) -> bool:
+def has_pending_work(manifest: dict[str, Any], attempts_max: int, max_tier: str = "pro") -> bool:
     """True if any page still needs local (re)processing, a bounded retry, or
     escalation. Doubles as: (a) the file-level dedup gate — an unchanged file
     whose manifest has no pending work is skipped whole — and (b) the
-    terminal-commit gate for `document.md` regeneration."""
+    terminal-commit gate for `document.md` regeneration.
+
+    `max_tier` is forwarded to `needs_escalation`: at the `local` ceiling an
+    unserviceable escalate flag does not count as pending, so local-only runs
+    still finalize `document.md` and dedup-skip on re-run."""
     for entry in manifest.get("pages") or []:
         status = entry.get("status")
         if status == "pending":
             return True
         if status == "failed" and entry.get("attempts", 0) < attempts_max:
             return True
-        if needs_escalation(entry, attempts_max):
+        if needs_escalation(entry, attempts_max, max_tier):
             return True
     return False
 

@@ -21,6 +21,7 @@ level). NOT wired into `npm test` — that runs the Node/TS suite only.
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 import tempfile
@@ -117,6 +118,70 @@ class EscalationCostAccumulationTest(unittest.TestCase):
         pro_cost = round(1.25 * (2000 / 1_000_000) + 5.00 * (2000 / 1_000_000), 6)
         self.assertAlmostEqual(result["cost_usd"], flash_cost + pro_cost, places=6)
         self.assertGreater(result["cost_usd"], pro_cost)  # would fail pre-fix: only pro's cost was recorded
+
+
+class ConfidenceMappingTest(unittest.TestCase):
+    """Live-docling smoke test surfaced two mapping bugs the mocked suite hid:
+    docling's `grade` is a QualityGrade enum (`str()` → 'QualityGrade.GOOD',
+    which no longer matches GRADE_ORDER and collapses to POOR → spurious
+    escalate:low_grade), and `ocr_score` is NaN for born-digital pages (invalid
+    JSON). Both are pure mapping and testable without docling installed."""
+
+    def test_grade_enum_normalized_to_bare_name(self) -> None:
+        import local_tier
+
+        class _Grade:
+            name = "GOOD"
+
+            def __str__(self) -> str:
+                return "QualityGrade.GOOD"
+
+        self.assertEqual(local_tier._grade_name(_Grade()), "GOOD")
+        self.assertEqual(local_tier._grade_name("QualityGrade.EXCELLENT"), "EXCELLENT")
+        self.assertEqual(local_tier._grade_name("fair"), "FAIR")
+
+    def test_nan_score_becomes_none_not_nan(self) -> None:
+        import local_tier
+
+        self.assertIsNone(local_tier._finite_score(float("nan")))
+        self.assertIsNone(local_tier._finite_score(None))
+        self.assertEqual(local_tier._finite_score(0.63582), 0.6358)
+
+    def test_page_confidence_maps_enum_and_nan(self) -> None:
+        import local_tier
+
+        class _Score:
+            layout_score = 0.6358
+            ocr_score = float("nan")
+            grade = "QualityGrade.GOOD"
+
+        class _Report:
+            pages = {1: _Score()}
+
+        class _Result:
+            confidence = _Report()
+
+        conf = local_tier.page_confidence(_Result(), 1)
+        self.assertEqual(conf["grade"], "GOOD")
+        self.assertIsNone(conf["ocr"])  # NaN → null, keeps manifest JSON valid
+        self.assertEqual(conf["layout"], 0.6358)
+        json.dumps(conf)  # must not raise (no NaN token)
+
+
+class EscalationCeilingTest(unittest.TestCase):
+    """A flagged page can never be serviced at max_tier=local, so it must not
+    count as pending work — otherwise document.md never commits and the doc
+    never dedup-skips on re-run."""
+
+    def test_local_ceiling_does_not_block_completion(self) -> None:
+        import manifest as manifest_mod
+
+        entry = {"page": 1, "status": "done", "tier": "local", "flags": ["escalate:low_grade"]}
+        self.assertFalse(manifest_mod.needs_escalation(entry, 3, "local"))
+        self.assertTrue(manifest_mod.needs_escalation(entry, 3, "flash"))
+        manifest = {"pages": [entry]}
+        self.assertFalse(manifest_mod.has_pending_work(manifest, 3, "local"))
+        self.assertTrue(manifest_mod.has_pending_work(manifest, 3, "pro"))
 
 
 if __name__ == "__main__":

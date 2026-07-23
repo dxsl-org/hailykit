@@ -224,7 +224,7 @@ def process_document(
         if manifest_mod.config_fingerprint(manifest.get("job", {}).get("config") or {}) != manifest_mod.config_fingerprint(job.config):
             warnings.append("config_changed")
         manifest_mod.apply_resume_integrity(manifest, manifest_path, doc_dir)
-        if manifest.get("pages") and not manifest_mod.has_pending_work(manifest, attempts_max):
+        if manifest.get("pages") and not manifest_mod.has_pending_work(manifest, attempts_max, job.config.get("max_tier", "flash")):
             emit_fn({"ev": "doc_skipped", "doc": slug, "reason": "unchanged_complete"})
             return _doc_summary(slug, job.input, doc_dir, manifest_path, manifest, status="skipped", warnings=warnings)
     else:
@@ -264,7 +264,7 @@ def process_document(
     # Terminal commit — gated on no page pending/in-flight; permanently-failed
     # pages (attempts exhausted) don't block it, but a batch:submitted page's
     # "pending" status correctly blocks it until --collect runs.
-    if not manifest_mod.has_pending_work(manifest, attempts_max):
+    if not manifest_mod.has_pending_work(manifest, attempts_max, job.config.get("max_tier", "flash")):
         document_markdown = assemble.regenerate_document(doc_dir)
         assemble.write_document(doc_dir, document_markdown)
 
