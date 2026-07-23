@@ -1,11 +1,11 @@
 ---
-name: hc-ocr
+name: hl-ocr
 description: "Bulk OCR for PDFs and scanned images to Markdown via a tiered docling to Gemini Flash to Gemini Pro ladder, with multimodal sample verification and a cost/quality report."
 when_to_use: "Invoke when converting a batch of scanned PDFs or images to Markdown at scale, needing tiered escalation cost control and fidelity verification against the source pages."
 user-invocable: true
 argument-hint: "<input> --out <dir> [--max-tier local|flash|pro] [--lang <list>] [--batch-api] [--collect] [--resume] [--check]"
 metadata:
-  category: coding
+  category: workflow
   keywords: [ocr, pdf, scan, docling, gemini, batch-api, transcription, markdown, multimodal-verify]
 ---
 
@@ -16,7 +16,7 @@ Converts a batch of scanned PDFs or images to Markdown through a cost-tiered pip
 ## Usage
 
 ```
-{skill:hc-ocr} <input> --out <dir> [--max-tier local|flash|pro] [--lang <list>] [--batch-api] [--collect] [--resume] [--check] [--json] [--python <path>]
+{skill:hl-ocr} <input> --out <dir> [--max-tier local|flash|pro] [--lang <list>] [--batch-api] [--collect] [--resume] [--check] [--json] [--python <path>]
 ```
 
 | Flag | Behavior |
@@ -32,10 +32,10 @@ Converts a batch of scanned PDFs or images to Markdown through a cost-tiered pip
 | `--python <path>` | Override the resolved venv interpreter |
 
 ```
-{skill:hc-ocr} ./scans --out ./out --lang vi,en
-{skill:hc-ocr} ./scans --out ./out --batch-api
-{skill:hc-ocr} ./scans --out ./out --collect
-{skill:hc-ocr} --check
+{skill:hl-ocr} ./scans --out ./out --lang vi,en
+{skill:hl-ocr} ./scans --out ./out --batch-api
+{skill:hl-ocr} ./scans --out ./out --collect
+{skill:hl-ocr} --check
 ```
 
 ## Constraints
@@ -66,7 +66,7 @@ Each converted document gets a `manifest.json` (schema v1: `totals`, `pages[]`, 
 ## Workflow Position
 
 **Precedes:** `{skill:hl-write}`, `{skill:hl-research}` — verified Markdown output feeds authored documents or research corpora
-**Related:** `{skill:hc-docs}` — single-document or project-doc extraction via native Read; use `{skill:hc-ocr}` instead for scanned-corpus batches that need tiered cost control and sample verification
+**Related:** `{skill:hc-docs}` — single-document or project-doc extraction via native Read; use `{skill:hl-ocr}` instead for scanned-corpus batches that need tiered cost control and sample verification
 
 ## References
 

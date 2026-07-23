@@ -1,6 +1,6 @@
 # Sample-Verify Protocol
 
-Detailed sampling, judging, and threshold-tuning procedure for `{skill:hc-ocr}`'s Verify stage. Read `manifest.json` after every wave and run this protocol before Ship.
+Detailed sampling, judging, and threshold-tuning procedure for `{skill:hl-ocr}`'s Verify stage. Read `manifest.json` after every wave and run this protocol before Ship.
 
 ## Sample Selection
 

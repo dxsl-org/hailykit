@@ -66,7 +66,7 @@ own `{ v: 2 }` shape. They replace third-party CLIs / LLM reasoning in skills:
 | `test-detect` · `coverage-parse` | LLM framework-guessing, hand-parsed coverage | hc-test |
 | `deps-audit` | per-ecosystem audit parsing | hc-fix deps |
 | `adr-next` · `license-detect` · `pack` | manual numbering / SPDX / repomix core | hc-adr, hc-cop, hc-scout |
-| `ocr` | third-party OCR SaaS for bulk PDF/scan → Markdown | hc-ocr |
+| `ocr` | third-party OCR SaaS for bulk PDF/scan → Markdown | hl-ocr |
 
 `ocr` is the one command above that isn't zero-dep: it spawns a user-installed
 Python engine (`cli/tools/ocr/`, docling + opencv-python-headless) and, above

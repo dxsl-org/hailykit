@@ -8,8 +8,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### 🚀 Improvements
 
 - ocr: add `hailykit ocr` — tiered docling → Gemini Flash → Gemini Pro pipeline for bulk PDF/scan → Markdown, with local/batch-API escalation, resume, and per-page manifests
-- hc-ocr: add skill orchestrating the OCR CLI with mandatory language detection, multimodal sample verification, and cost/quality reporting
-- hc-docs: add reciprocal disambiguation link to hc-ocr for mass conversion
+- hl-ocr: add skill orchestrating the OCR CLI with mandatory language detection, multimodal sample verification, and cost/quality reporting
+- hc-docs: add reciprocal disambiguation link to hl-ocr for mass conversion
 
 ## [1.14.10] (2026-07-21)
 

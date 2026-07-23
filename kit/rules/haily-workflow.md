@@ -83,7 +83,7 @@ Flow: `scout → debug → brainstorm → plan`
 | "viết/write <document\|book\|story> X" | `{skill:hl-write} "X"` |
 | "viết tiểu thuyết/tiểu luận/kế hoạch kinh doanh X" | `{skill:hl-write} "X"` |
 | "continue/resume writing X" (long book/novel workspace) | `{skill:hl-write} <workspace-dir>` |
-| "OCR this scan corpus, then write/research from it" | `{skill:hc-ocr}` then `{skill:hl-write}` or `{skill:hl-research}` |
+| "OCR this scan corpus, then write/research from it" | `{skill:hl-ocr}` then `{skill:hl-write}` or `{skill:hl-research}` |
 
 ## Shipping & Release
 
