@@ -96,7 +96,7 @@ CLI `run <tool> --input '{...}'`
 
 The `kit/` directory is a distributable snapshot of the skill catalog, versioned independently. It contains:
 
-- **`skills/`** — 39 skill directories (format: `hX-skill-name/SKILL.md` where X ∈ {c,l})
+- **`skills/`** — 40 skill directories (format: `hX-skill-name/SKILL.md` where X ∈ {c,l})
   - Each skill is a self-contained unit with `SKILL.md` (frontmatter + content) and optional `references/` subdirs
   - All skills are production-ready; zero npm dependencies
 
