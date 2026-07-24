@@ -141,7 +141,9 @@ Update project docs (codebase-summary, PDR)  → {skill:hc-docs}
 Generate llms.txt site index                 → {skill:hc-docs} llms
 Search library docs (context7)               → {skill:hc-lookup}
 Diagrams (Mermaid v11)                       → {skill:hl-visualize} --mermaid
+Bulk OCR PDF/scans → Markdown (tiered cost, verify) → {skill:hl-ocr}
 ```
+Disambiguate: batch of scanned PDFs/images needing tiered cost control and sample verification → `{skill:hl-ocr}` · single external doc or project docs, native-Read extraction → `{skill:hc-docs} extract` · turning transcribed/researched material into authored prose → `{skill:hl-write}`.
 
 ## Mobile / Native & E-commerce
 

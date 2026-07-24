@@ -5,6 +5,22 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.14.11] (2026-07-24)
+
+### 🚀 Improvements
+
+- ocr: add bulk PDF-to-Markdown pipeline with tiered escalation
+- ocr: support local, batch-API, and resumable runs
+- ocr: write per-page manifests for every document
+- ocr: add pluggable VLM providers per tier
+- ocr: support OpenAI-compatible endpoints and CLI transport
+- ocr: reference provider keys by env-var name only
+- ocr: add --config flag for project-local settings
+- hl-ocr: add skill orchestrating the OCR CLI
+- hl-ocr: verify samples multimodally against source pages
+- hl-ocr: report cost and quality per wave
+- hc-docs: link to hl-ocr for mass conversion
+
 ## [1.14.10] (2026-07-21)
 
 ### 🚀 Improvements
