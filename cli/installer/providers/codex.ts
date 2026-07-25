@@ -26,6 +26,61 @@ import { warnIfCodexHooksUnsupported } from './codex-version.js';
 const AGENTS_SENTINEL_START = '# --- hailykit-agents-start ---';
 const AGENTS_SENTINEL_END = '# --- hailykit-agents-end ---';
 const KNOWN_TIERS = new Set<string>(['thinking', 'medium', 'fast', 'deep']);
+const SKILLS_MANIFEST = 'hailykit-installed-skills.json';
+const SKILL_OWNERSHIP_MARKER = '.hailykit-codex-skill.json';
+const SAFE_SKILL_DIR_RE = /^[a-z][a-z0-9-]*$/;
+
+function readSkillsManifest(providerDir: string): string[] {
+  try {
+    const raw: unknown = JSON.parse(
+      fs.readFileSync(path.join(providerDir, SKILLS_MANIFEST), 'utf8'));
+    return Array.isArray(raw)
+      ? raw.filter((name): name is string =>
+        typeof name === 'string' && SAFE_SKILL_DIR_RE.test(name))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function isCodexManagedSkillDir(skillDir: string): boolean {
+  try {
+    const marker = JSON.parse(
+      fs.readFileSync(path.join(skillDir, SKILL_OWNERSHIP_MARKER), 'utf8')) as unknown;
+    return typeof marker === 'object' && marker !== null &&
+      (marker as Record<string, unknown>).provider === 'codex';
+  } catch {
+    return false;
+  }
+}
+
+function isLegacyHailyKitSkillDir(skillDir: string, canonicalNames: Set<string>): boolean {
+  try {
+    const parsed = parseFrontmatter(
+      fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf8'));
+    if (parsed.metadata.author === 'HailyKit') return true;
+    const rawName = parsed.frontmatter.name ?? '';
+    const separator = String.fromCharCode(58);
+    return rawName.includes(separator) &&
+      canonicalNames.has(rawName.replace(separator, '-')) &&
+      canonicalNames.has(path.basename(skillDir));
+  } catch {
+    return false;
+  }
+}
+
+function removeLegacySkillDirs(skillsRoot: string, canonicalNames: Set<string>): number {
+  if (!fs.existsSync(skillsRoot)) return 0;
+  let removed = 0;
+  for (const entry of fs.readdirSync(skillsRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const skillDir = path.join(skillsRoot, entry.name);
+    if (!isLegacyHailyKitSkillDir(skillDir, canonicalNames)) continue;
+    fs.rmSync(skillDir, { recursive: true, force: true });
+    removed++;
+  }
+  return removed;
+}
 
 /**
  * Build the default scaffold content for a fresh or reset AGENTS.md.
@@ -36,7 +91,7 @@ function _agentsMdScaffold(rulesBlock: string): string {
     '# Agent Instructions',
     '',
     '<!-- Scaffolded by HailyKit. Add your own instructions above the rules block. -->',
-    '<!-- Skills are in ~/.codex/skills/*/SKILL.md and regenerated on every upgrade. -->',
+    '<!-- Skills are in .agents/skills/ (project) or ~/.agents/skills/ (global). -->',
     '',
     rulesBlock,
     '',
@@ -104,6 +159,14 @@ export class CodexProvider extends BaseProvider {
     return `Use the ${roles[0]} agent for this step.`;
   }
 
+  private _getSkillsRoot(providerDir: string): string {
+    return path.join(path.dirname(path.resolve(providerDir)), '.agents', 'skills');
+  }
+
+  private _removeLegacySkills(providerDir: string, canonicalNames: Set<string>): number {
+    return removeLegacySkillDirs(path.join(providerDir, 'skills'), canonicalNames);
+  }
+
   // ── Skills ────────────────────────────────────────────────────────────────
 
   /**
@@ -118,16 +181,15 @@ export class CodexProvider extends BaseProvider {
    *   3. {agent:X} and {skill:X} refs resolved to Codex syntax
    *
    * @param extractedClaudeDir - Source kit/ dir from the release zip.
-   * @param targetProviderDir  - ~/.codex/ (unused for skills path; kept for interface compat).
+   * @param targetProviderDir  - Provider config dir; its parent determines skill scope.
    * @returns Number of skills installed.
    */
-  installSkills(extractedClaudeDir: string, _targetProviderDir: string): number {
+  installSkills(extractedClaudeDir: string, targetProviderDir: string): number {
     const srcSkillsDir = path.join(extractedClaudeDir, 'skills');
     if (!fs.existsSync(srcSkillsDir)) return 0;
 
-    // NOTE: Codex 2025+ canonical global skills path is ~/.agents/skills/, not ~/.codex/skills/.
-    const skillsOutDir = path.join(os.homedir(), '.agents', 'skills');
-    let count = 0;
+    const skillsOutDir = this._getSkillsRoot(targetProviderDir);
+    const installed: string[] = [];
 
     for (const skillName of fs.readdirSync(srcSkillsDir).sort()) {
       const skillSrcDir = path.join(srcSkillsDir, skillName);
@@ -139,12 +201,45 @@ export class CodexProvider extends BaseProvider {
       if (!isProviderAllowed(parsed, this.name)) continue;
 
       const destDir = path.join(skillsOutDir, skillName);
+      const wasManaged = isCodexManagedSkillDir(destDir);
+      const existed = fs.existsSync(destDir);
+      if (existed && !wasManaged) {
+        console.warn(`    Skipped ${skillName}: existing skill is not managed by HailyKit Codex`);
+        continue;
+      }
+      if (wasManaged) {
+        fs.rmSync(destDir, { recursive: true, force: true });
+      }
       fs.mkdirSync(destDir, { recursive: true });
       this._copySkillDir(skillSrcDir, destDir, skillName);
-      count++;
+      fs.writeFileSync(
+        path.join(destDir, SKILL_OWNERSHIP_MARKER),
+        JSON.stringify({ provider: this.name, skill: skillName }) + '\n',
+        'utf8',
+      );
+      installed.push(skillName);
     }
 
-    return count;
+    const installedSet = new Set(installed);
+    for (const stale of readSkillsManifest(targetProviderDir)) {
+      const staleDir = path.join(skillsOutDir, stale);
+      if (!installedSet.has(stale) && isCodexManagedSkillDir(staleDir)) {
+        fs.rmSync(staleDir, { recursive: true, force: true });
+      }
+    }
+
+    fs.mkdirSync(targetProviderDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(targetProviderDir, SKILLS_MANIFEST),
+      JSON.stringify(installed, null, 2) + '\n',
+      'utf8',
+    );
+
+    const legacyRemoved = this._removeLegacySkills(targetProviderDir, installedSet);
+    if (legacyRemoved > 0) {
+      console.log(`    Removed ${legacyRemoved} legacy HailyKit skill(s) from provider-local skills/`);
+    }
+    return installed.length;
   }
 
   /** Recursively copy a skill dir; applies SKILL.md transformations to the main file only. */
@@ -297,7 +392,7 @@ export class CodexProvider extends BaseProvider {
       '## HailyKit Workflow Rules',
       '',
       '> Skills are available via `$<skill-name>` in chat (e.g. `$hc-plan`).',
-      '> See `~/.codex/skills/` for full skill instructions.',
+      '> See `.agents/skills/` (project) or `~/.agents/skills/` (global) for full instructions.',
       '',
       parts.join('\n\n---\n\n'),
       SENTINEL_END,
@@ -307,6 +402,7 @@ export class CodexProvider extends BaseProvider {
     // Files with this marker are entirely auto-generated — safe to replace.
     const OLD_SCAFFOLD_MARKER = 'hailykit-skills.md and hailykit-rules.md are regenerated on upgrade';
 
+    fs.mkdirSync(targetProviderDir, { recursive: true });
     const agentsMd = path.join(targetProviderDir, 'AGENTS.md');
 
     if (fs.existsSync(agentsMd)) {
@@ -382,28 +478,27 @@ export class CodexProvider extends BaseProvider {
   }
 
   uninstall(providerDir: string): void {
-    super.uninstall(providerDir);
+    const skillsRoot = this._getSkillsRoot(providerDir);
+    const manifestSkills = readSkillsManifest(providerDir);
+    let count = 0;
+    for (const name of manifestSkills) {
+      const skillDir = path.join(skillsRoot, name);
+      if (!isCodexManagedSkillDir(skillDir)) continue;
+      fs.rmSync(skillDir, { recursive: true, force: true });
+      count++;
+    }
+    const legacyRemoved = this._removeLegacySkills(providerDir, new Set(manifestSkills));
+    fs.rmSync(path.join(providerDir, SKILLS_MANIFEST), { force: true });
 
     // Strip the managed [agents.X] registry block from config.toml — base uninstall
     // removes agents/ but would otherwise leave dangling config entries Codex warns on.
+    super.uninstall(providerDir);
     this._removeSentinelBlock(path.join(providerDir, 'config.toml'), AGENTS_SENTINEL_START, AGENTS_SENTINEL_END);
 
-    // Remove HailyKit skill dirs from ~/.agents/skills/ (all hl-*, hc-*, hs-* dirs)
-    const agentsSkillsDir = path.join(os.homedir(), '.agents', 'skills');
-    if (!fs.existsSync(agentsSkillsDir)) return;
-    let count = 0;
-    for (const entry of fs.readdirSync(agentsSkillsDir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      if (
-        entry.name.startsWith('hl-') ||
-        entry.name.startsWith('hc-') ||
-        entry.name.startsWith('hs-')
-      ) {
-        fs.rmSync(path.join(agentsSkillsDir, entry.name), { recursive: true, force: true });
-        count++;
-      }
+    if (count > 0) console.log(`    Removed ${count} HailyKit skill(s) from .agents/skills/`);
+    if (legacyRemoved > 0) {
+      console.log(`    Removed ${legacyRemoved} legacy HailyKit skill(s) from provider-local skills/`);
     }
-    if (count > 0) console.log(`    Removed ${count} skills from ~/.agents/skills/`);
   }
 
   // Not used — installSkills is fully overridden above.

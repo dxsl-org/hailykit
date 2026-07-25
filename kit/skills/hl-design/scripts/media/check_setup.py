@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify hd:ai-generation environment: API keys + dependencies."""
+"""Verify hl-design media environment: API keys + dependencies."""
 from __future__ import annotations
 
 import os
@@ -26,14 +26,14 @@ def check_deps() -> list[str]:
 
 
 def main() -> int:
-    print("Checking hd:ai-generation setup...")
+    print("Checking hl-design media setup...")
     errors = check_env() + check_deps()
     if errors:
         print("\n[FAIL] Issues found:")
         for e in errors:
             print(f"  - {e}")
         return 1
-    print("[OK] hd:ai-generation environment ready.")
+    print("[OK] hl-design media environment ready.")
     return 0
 
 

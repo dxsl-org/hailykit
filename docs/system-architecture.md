@@ -131,7 +131,7 @@ The `kit/` directory is a distributable snapshot of the skill catalog, versioned
   - Fields: `version`, `name`, `description`, `buildDate`, `repository`, `deletions[]` (stale file cleanup on upgrade), `download` (installer telemetry)
   - `deletions[]` contains all skill/rule/hook files removed in prior versions — tells CLI to delete them from user machines during upgrade
 
-**Installation flow:** CLI downloads release zip (cli + kit bundled), then `mergeClaudeDir(kit/)` → syncs `kit/skills/` → `~/.claude/skills/`, fixes stale files via `metadata.deletions[]`, resolves agent `model: <tier>` frontmatter via MODEL_MAP (in cli/installer/converter.ts; built-in defaults with fallback), strips model tier for user-configured-model providers, converts rules + hooks per provider.
+**Installation flow:** CLI downloads release zip (cli + kit bundled), then `mergeClaudeDir(kit/)` → syncs `kit/skills/` → `~/.claude/skills/`, fixes stale files via `metadata.deletions[]`, resolves agent `model: <tier>` frontmatter via MODEL_MAP (in cli/installer/converter.ts; built-in defaults with fallback), strips model tier for user-configured-model providers, and dispatches provider-specific skill installs. Codex writes full skill dirs to `~/.agents/skills/` and records installed names in `hailykit-installed-skills.json`; cleanup prunes only HailyKit-owned leftovers by combining that manifest with each skill directory's `.hailykit-codex-skill.json` ownership marker.
 
 ## Installer data flow (unchanged from old hailykit, ported to TS)
 
@@ -141,10 +141,11 @@ CLI `install --provider <name> [--project] [--version <tag>]`
   → github.fetchRelease(tag) → downloadZip → extractor.extract → resolveRoot
   → for each provider:
        claude   → merger.mergeClaudeDir (full sync + deletions + settings migrate + apply deny rules) + venv.setupVenv
+       codex    → provider.installSkills (full skill dirs + manifest-scoped cleanup) + installRules + installHooks + writeVersion
        others   → provider.installSkills (SKILL.md → toml/md) + installRules + installHooks + writeVersion
 ```
 
-Manifests: `metadata.json` (`version`, `deletions[]`) drives stale-file cleanup; `portable-manifest.json` drives provider path migrations on upgrade.
+Manifests: `metadata.json` (`version`, `deletions[]`) drives stale-file cleanup; `portable-manifest.json` drives provider path migrations on upgrade; `hailykit-installed-skills.json` records Codex skill ownership for scoped cleanup, with `.hailykit-codex-skill.json` as the per-directory ownership signal.
 
 ## Manifest formats
 

@@ -44,7 +44,7 @@ test('GeminiProvider.installSkills converts SKILL.md to an hl-*.toml command', (
   fs.mkdirSync(skillDir, { recursive: true });
   fs.writeFileSync(
     path.join(skillDir, 'SKILL.md'),
-    '---\nname: hl:plan\ndescription: Plan stuff\n---\n\nDo planning.',
+    '---\nname: hl-plan\ndescription: Plan stuff\n---\n\nDo planning.',
   );
 
   const target = path.join(root, 'out');
@@ -61,7 +61,7 @@ test('GeminiProvider.installSkills installs TOML command AND native SKILL.md', (
   const claude = path.join(root, 'claude');
   const skillDir = path.join(claude, 'skills', 'hl-plan');
   fs.mkdirSync(skillDir, { recursive: true });
-  const md = '---\nname: hl:plan\ndescription: Plan stuff\n---\n\nDo planning.';
+  const md = '---\nname: hl-plan\ndescription: Plan stuff\n---\n\nDo planning.';
   fs.writeFileSync(path.join(skillDir, 'SKILL.md'), md);
 
   const target = path.join(root, 'out');
@@ -167,8 +167,6 @@ test('AntigravityProvider.installSkills: global vs project installation and mani
 test('CodexProvider skill copy resolves {model:ultra} placeholders', () => {
   const root = tmp();
   const claude = path.join(root, 'claude');
-  // Codex always installs to the real ~/.agents/skills/ — use a probe name no
-  // real catalog will ever contain, so the test can never touch a user install.
   const probeName = 'hc-hktest-modelref-probe';
   const skillDir = path.join(claude, 'skills', probeName);
   fs.mkdirSync(skillDir, { recursive: true });
@@ -176,15 +174,123 @@ test('CodexProvider skill copy resolves {model:ultra} placeholders', () => {
     path.join(skillDir, 'SKILL.md'),
     `---\nname: ${probeName}\ndescription: Plan\n---\n\nUnder ultra pass model: {model:ultra}.`,
   );
-  const destProbe = path.join(os.homedir(), '.agents', 'skills', probeName);
-  try {
-    new CodexProvider().installSkills(claude, path.join(root, 'out'));
-    const installed = fs.readFileSync(path.join(destProbe, 'SKILL.md'), 'utf8');
-    assert.ok(!installed.includes('{model:'), `placeholder leaked: ${installed}`);
-    assert.match(installed, /model: gpt-5\.5/);
-  } finally {
-    fs.rmSync(destProbe, { recursive: true, force: true });
-  }
+  const target = path.join(root, '.codex');
+  new CodexProvider().installSkills(claude, target);
+
+  const destProbe = path.join(root, '.agents', 'skills', probeName, 'SKILL.md');
+  const installed = fs.readFileSync(destProbe, 'utf8');
+  assert.ok(!installed.includes('{model:'), `placeholder leaked: ${installed}`);
+  assert.match(installed, /model: gpt-5\.5/);
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(path.join(target, 'hailykit-installed-skills.json'), 'utf8')),
+    [probeName],
+  );
+
+  const staleAsset = path.join(root, '.agents', 'skills', probeName, 'references', 'removed.md');
+  fs.mkdirSync(path.dirname(staleAsset), { recursive: true });
+  fs.writeFileSync(staleAsset, 'stale');
+  new CodexProvider().installSkills(claude, target);
+  assert.ok(!fs.existsSync(staleAsset), 'managed skill dirs must be replaced on upgrade');
+});
+
+test('CodexProvider install removes only HailyKit-owned legacy skills', () => {
+  const root = tmp();
+  const source = path.join(root, 'kit');
+  const current = path.join(source, 'skills', 'hc-plan');
+  fs.mkdirSync(current, { recursive: true });
+  fs.writeFileSync(
+    path.join(current, 'SKILL.md'),
+    '---\nname: hc-plan\ndescription: Plan\nmetadata:\n  author: HailyKit\n---\n\nBody.',
+  );
+
+  const target = path.join(root, '.codex');
+  const ownedLegacy = path.join(target, 'skills', 'hc-plan');
+  const userLegacy = path.join(target, 'skills', 'hc-personal');
+  fs.mkdirSync(ownedLegacy, { recursive: true });
+  fs.mkdirSync(userLegacy, { recursive: true });
+  const separator = String.fromCharCode(58);
+  fs.writeFileSync(
+    path.join(ownedLegacy, 'SKILL.md'),
+    `---\nname: hc${separator}plan\n---\n\nOld.`,
+  );
+  fs.writeFileSync(
+    path.join(userLegacy, 'SKILL.md'),
+    '---\nname: hc-personal\nmetadata:\n  author: User\n---\n\nKeep.',
+  );
+
+  new CodexProvider().installSkills(source, target);
+
+  assert.ok(!fs.existsSync(ownedLegacy));
+  assert.ok(fs.existsSync(userLegacy));
+  assert.ok(fs.existsSync(path.join(root, '.agents', 'skills', 'hc-plan', 'SKILL.md')));
+});
+
+test('CodexProvider uninstall is scope-aware and preserves user-owned prefixed skills', () => {
+  const root = tmp();
+  const source = path.join(root, 'kit');
+  const current = path.join(source, 'skills', 'hc-plan');
+  fs.mkdirSync(current, { recursive: true });
+  fs.writeFileSync(
+    path.join(current, 'SKILL.md'),
+    '---\nname: hc-plan\ndescription: Plan\nmetadata:\n  author: HailyKit\n---\n\nBody.',
+  );
+
+  const target = path.join(root, '.codex');
+  const provider = new CodexProvider();
+  provider.installSkills(source, target);
+  fs.writeFileSync(path.join(target, '.hailykit-meta.json'), '{"version":"1.0.0"}');
+
+  const personal = path.join(root, '.agents', 'skills', 'hc-personal');
+  fs.mkdirSync(personal, { recursive: true });
+  fs.writeFileSync(
+    path.join(personal, 'SKILL.md'),
+    '---\nname: hc-personal\nmetadata:\n  author: HailyKit\n---\n\nKeep.',
+  );
+
+  provider.uninstall(target);
+
+  assert.ok(!fs.existsSync(path.join(root, '.agents', 'skills', 'hc-plan')));
+  assert.ok(fs.existsSync(personal));
+  assert.ok(!fs.existsSync(path.join(target, 'hailykit-installed-skills.json')));
+});
+
+test('CodexProvider rules advertise canonical project and global skill roots', () => {
+  const root = tmp();
+  const source = path.join(root, 'kit');
+  fs.mkdirSync(path.join(source, 'rules'), { recursive: true });
+  fs.writeFileSync(path.join(source, 'rules', 'base.md'), 'Use {skill:hc-plan}.');
+  const target = path.join(root, '.codex');
+
+  new CodexProvider().installRules(source, target);
+
+  const agents = fs.readFileSync(path.join(target, 'AGENTS.md'), 'utf8');
+  assert.match(agents, /\.agents\/skills\//);
+  assert.doesNotMatch(agents, /\.codex[\\/]skills/);
+  assert.match(agents, /\$hc-plan/);
+});
+
+test('CodexProvider install never overwrites an unowned same-name skill', () => {
+  const root = tmp();
+  const sourceSkill = path.join(root, 'kit', 'skills', 'hc-plan');
+  fs.mkdirSync(sourceSkill, { recursive: true });
+  fs.writeFileSync(
+    path.join(sourceSkill, 'SKILL.md'),
+    '---\nname: hc-plan\ndescription: HailyKit\n---\n\nManaged body.',
+  );
+
+  const existingSkill = path.join(root, '.agents', 'skills', 'hc-plan');
+  fs.mkdirSync(existingSkill, { recursive: true });
+  const userContent = '---\nname: hc-plan\ndescription: Personal\n---\n\nUser body.';
+  fs.writeFileSync(path.join(existingSkill, 'SKILL.md'), userContent);
+
+  const count = new CodexProvider().installSkills(
+    path.join(root, 'kit'),
+    path.join(root, '.codex'),
+  );
+
+  assert.equal(count, 0);
+  assert.equal(fs.readFileSync(path.join(existingSkill, 'SKILL.md'), 'utf8'), userContent);
+  assert.ok(!fs.existsSync(path.join(existingSkill, '.hailykit-codex-skill.json')));
 });
 
 // ---------------------------------------------------------------------------

@@ -892,9 +892,7 @@ function buildFrameworkExtrasStandardsSection(extras, configDirName = '.claude')
  *
  * Prompts naturally carry the slash text a user types (e.g. `/hc-review`), so
  * matching skill invocation is the same code path as keyword matching — no new
- * hook/event is needed (see phase-03 Design Decision, Option A). Both legacy
- * colon form (`hc:review`) and current slash form (`/hc-review`) are matched
- * during the transition window.
+ * hook/event is needed (see phase-03 Design Decision, Option A).
  *
  * Slash-slug alternations use `(?<![\w./-])\/slug\b(?!\/)` instead of a plain
  * `\/slug\b`: the plain form false-positives on path mentions like
@@ -918,13 +916,12 @@ const CONTEXTUAL_TRIGGERS = [
   {
     file: 'team-coordination-rules.md',
     // NOTE: only needed inside Agent Team sessions
-    pattern: /\bteammate\b|\bagent.?team\b|\bhl:team\b|\bSendMessage\b|\bTeam\b.*\bagent\b/i
+    pattern: /\bteammate\b|\bagent.?team\b|\bSendMessage\b|\bTeam\b.*\bagent\b|(?<![\w./-])\/hl-team\b(?!\/)/i
   },
   {
     file: 'review-audit-self-decision.md',
     // NOTE: review/audit sessions need sticky-decision and threat-model rules.
-    // Matches both legacy colon form and current slash form of the review/security skills.
-    pattern: /\breview\b|\baudit\b|\bsecurity.?review\b|\bcode.?review\b|\bred.?team\b|\bhc:review\b|\bhc:security\b|(?<![\w./-])\/hc-review\b(?!\/)|(?<![\w./-])\/hc-security\b(?!\/)/i
+    pattern: /\breview\b|\baudit\b|\bsecurity.?review\b|\bcode.?review\b|\bred.?team\b|(?<![\w./-])\/hc-review\b(?!\/)|(?<![\w./-])\/hc-security\b(?!\/)/i
   }
 ];
 

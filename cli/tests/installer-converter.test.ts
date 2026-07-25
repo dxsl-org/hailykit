@@ -88,7 +88,7 @@ test('toCommandName accepts current hyphen format', () => {
 test('toCommandName preserves hs- prefix (no hl- mangling)', () => {
   assert.equal(toCommandName({ name: 'hs-assess' }), 'hs-assess');
   assert.equal(toCommandName({ name: 'hs-dfir' }), 'hs-dfir');
-  assert.equal(toCommandName({ name: 'hs:harden' }), 'hs-harden');
+  assert.equal(toCommandName({ name: 'hs-harden' }), 'hs-harden');
 });
 
 test('resolveSkillRefs resolves hs- references', () => {
@@ -96,9 +96,12 @@ test('resolveSkillRefs resolves hs- references', () => {
   assert.equal(out, 'see /hs-dfir and /hc-fix');
 });
 
-test('toCommandName converts legacy colon format', () => {
-  assert.equal(toCommandName({ name: 'hl:plan' }, 'fallback'), 'hl-plan');
-  assert.equal(toCommandName({ name: 'hc:cook' }), 'hc-cook');
+test('toCommandName rejects retired colon format', () => {
+  const separator = String.fromCharCode(58);
+  assert.throws(
+    () => toCommandName({ name: `hc${separator}cook` }),
+    /use a hyphenated domain prefix/,
+  );
 });
 
 test('toCommandName applies hl- prefix to bare names', () => {
@@ -109,10 +112,9 @@ test('toCommandName applies hl- prefix to bare names', () => {
 test('toCommandName strips path-traversal chars from the slug', () => {
   // The slug becomes a filename; separators and `..` must never survive.
   assert.equal(toCommandName({ name: 'hc-../../../etc/cron.d/x' }), 'hc-etccrondx');
-  assert.equal(toCommandName({ name: 'hc:..\\..\\evil' }), 'hc-evil');
   assert.equal(toCommandName({ name: '../../escape' }), 'hl-escape');
   // No output may contain a path separator or dot-dot.
-  for (const n of ['hc-../x', 'hl:../../y', 'a/b/c']) {
+  for (const n of ['hc-../x', 'hl-../../y', 'a/b/c']) {
     const out = toCommandName({ name: n });
     assert.ok(!/[/\\]/.test(out) && !out.includes('..'), `unsafe slug: ${out}`);
   }

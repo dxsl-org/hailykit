@@ -20,6 +20,13 @@ const path = require('path');
 
 const repoRoot = path.resolve(__dirname, '..');
 const claudeDir = path.join(repoRoot, 'kit');
+const SCAN_SKIP_DIRS = new Set([
+  '.agents', '.git', '.reference', '.test-build', 'dist', 'node_modules', 'release',
+]);
+const TEXT_EXTENSIONS = new Set([
+  '.cjs', '.example', '.js', '.json', '.md', '.mjs', '.py', '.sh',
+  '.toml', '.ts', '.txt', '.yaml', '.yml',
+]);
 
 // Claude Code built-in commands that must not be used as skill names
 const BUILTIN_COMMANDS = new Set([
@@ -30,7 +37,7 @@ const BUILTIN_COMMANDS = new Set([
 ]);
 
 // Skills whose bare name collides with a Claude Code built-in but are safe
-// because the full invocation uses the prefix (/hl:help, /hl:review, etc.).
+// because the full invocation uses a domain prefix.
 const ALLOWED_BUILTIN_OVERLAPS = new Set(['hl-help']);
 
 // Regex to find skill references in markdown — both forms:
@@ -63,6 +70,7 @@ function findFiles(dir, predicate) {
     // Skip symlinks to prevent traversal outside the repo
     if (stat.isSymbolicLink()) continue;
     if (stat.isDirectory()) {
+      if (SCAN_SKIP_DIRS.has(entry)) continue;
       results.push(...findFiles(full, predicate));
     } else if (predicate(entry, full)) {
       results.push(full);
@@ -172,27 +180,21 @@ function collectCkReferences() {
   return refs;
 }
 
-// Malformed skill refs from the pre-2026-06 colon convention. HL_REF_RE requires a
-// hyphen after the prefix, so both shapes would otherwise pass the registry check
-// silently as dead pointers:
-//   {skill:hd:ai-generation}  — colon name inside the canonical wrapper
-//   hc:scout / `hl:design`    — bare colon token in headers, frontmatter, prose, JSON examples
-// The bare pattern requires a non-word/non-path char (or line start) before the prefix so
-// file paths and hyphenated names (haily-x:) never match; ha/hm/hi are removed prefixes.
+// Retired colon-form names are dead pointers. Scan every shipped catalog file,
+// not only Markdown: Codex copies scripts and environment templates verbatim.
 const MALFORMED_SKILL_REF_RE = /\{skill:[a-z]+:[a-z0-9-]+\}/g;
-const LEGACY_COLON_REF_RE = /(?:^|[^a-zA-Z0-9_/{:-])((?:hl|hc|hd|hs|ha|hm|hi):[a-z][a-z0-9-]*)/g;
+const LEGACY_COLON_REF_RE = /(?:^|[^a-zA-Z0-9_{:-])((?:hl|hc|hd|hs|ha|hm|hi):[a-z][a-z0-9-]*)/g;
 
 /**
- * Scans all .md files under kit/ for colon-form skill refs — the {skill:xx:yy}
- * wrapper shape and bare legacy tokens. Lines using the documented bad-example
- * convention ("→ no match") are skipped, same as HL_REF_RE handling.
+ * Scans every text-like source file in the repository for colon-form skill refs.
  * Returns Array<{ ref, file, line }>.
  */
 function collectMalformedSkillRefs() {
-  const mdFiles = findFiles(claudeDir, (entry) => entry.endsWith('.md'));
+  const catalogFiles = findFiles(repoRoot, (entry) =>
+    TEXT_EXTENSIONS.has(path.extname(entry).toLowerCase()));
   const malformed = [];
 
-  for (const filePath of mdFiles) {
+  for (const filePath of catalogFiles) {
     let content;
     try {
       content = readFileSync(filePath, 'utf8');
@@ -200,7 +202,6 @@ function collectMalformedSkillRefs() {
       continue;
     }
     content.split('\n').forEach((line, idx) => {
-      if (/→\s*\*?\*?no match/.test(line)) return;
       const file = path.relative(repoRoot, filePath);
       for (const re of [MALFORMED_SKILL_REF_RE, LEGACY_COLON_REF_RE]) {
         re.lastIndex = 0;
