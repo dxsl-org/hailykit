@@ -25,6 +25,49 @@ function shippedHarness(tier: EvalTier): string {
   return text;
 }
 
+/**
+ * The context block a judgment agent actually receives at SubagentStart, at shipped
+ * defaults (reasoning harness off). Env values are pinned rather than read from the
+ * machine so the variant hash is reproducible across checkouts — the point is to measure
+ * the *shape and volume* of the injection, which a different repo path would not change.
+ */
+function shippedInjection(tier: EvalTier, only?: string[], omit?: string[]): string {
+  const hook = path.resolve(__dirname, '..', '..', '..', 'kit', 'hooks', 'haily-lib', 'subagent.cjs');
+  /* eslint-disable @typescript-eslint/no-var-requires -- dev-only eval tool reading a kit hook */
+  const s = require(hook);
+  const env: Record<string, string> = {
+    HL_MODEL_TIER: tier,
+    HL_REPORTS_PATH: '.agents/reports',
+    HL_DOCS_PATH: 'docs',
+    HL_PLANS_PATH: '.agents',
+    HL_NAME_PATTERN: '260101-0000',
+    HL_PACKAGE_MANAGER: 'npm',
+  };
+  const agentType = 'haily-planner';
+  const builders: Record<string, () => string[]> = {
+    id: () => s.buildIdSection(agentType, ''),
+    plan: () => s.buildPlanSection({}, env),
+    reports: () => s.buildReportsSection(env),
+    lang: () => s.buildLangSection(env),
+    rules: () => s.buildRulesSection(env),
+    venv: () => s.buildVenvSection(env),
+    naming: () => s.buildNamingSection(env),
+    'plan-cli': () => s.buildPlanCliSection(agentType),
+    trust: () => s.buildTrustSection({}),
+    prefix: () => s.buildPrefixSection(env),
+    reasoning: () => s.buildReasoningHarness(env, {}),
+    econ: () => s.buildEconSection(),
+  };
+  const text = s.getSections(agentType)
+    .filter((key: string) => (!only || only.includes(key)) && !(omit ?? []).includes(key))
+    .map((key: string) => builders[key]?.() ?? [])
+    .filter((lines: string[]) => lines.length > 0)
+    .map((lines: string[]) => lines.join('\n'))
+    .join('\n\n');
+  if (!text) throw new Error('shipped injection produced no text');
+  return text;
+}
+
 const VARIANTS: Record<HarnessVariant, VariantSpec> = {
   none: {
     name: 'none',
@@ -60,6 +103,29 @@ const VARIANTS: Record<HarnessVariant, VariantSpec> = {
     thinkSection: '',
     reasonSection: shippedHarness('thinking'),
     description: 'Phase 4 sequence, compressed form served to the thinking tier.',
+  },
+  'full-injection': {
+    name: 'full-injection',
+    tier: 'ultra',
+    thinkSection: '',
+    reasonSection: shippedInjection('ultra'),
+    description: 'The whole SubagentStart context block a judgment agent gets at shipped defaults.',
+  },
+  // Ablations. `full-injection` moves the score; these two locate which part does it,
+  // which is the only way to slim the block without guessing.
+  'econ-only': {
+    name: 'econ-only',
+    tier: 'ultra',
+    thinkSection: '',
+    reasonSection: shippedInjection('ultra', ['econ']),
+    description: 'Output Economy alone — the section most likely to drive answer shape.',
+  },
+  'full-minus-econ': {
+    name: 'full-minus-econ',
+    tier: 'ultra',
+    thinkSection: '',
+    reasonSection: shippedInjection('ultra', undefined, ['econ']),
+    description: 'Everything except Output Economy — the complement of econ-only.',
   },
 };
 
