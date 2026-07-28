@@ -99,7 +99,7 @@ Stop and restart from systematic investigation if any of these thoughts occur:
 
 ## --deep Mode
 
-Spawns a capped 2–3 stream hypothesis panel instead of a single investigation stream — full protocol in `references/hypothesis-panel.md`. Convergence (≥2 streams agreeing) satisfies the existing SUSPECTED→PROBABLE bar in `references/confidence-signaling.md`; CONFIRMED keeps its existing reproduction requirement regardless of panel size. Divergent streams surface a differential to the user instead of a guess. Recommended whenever the symptom touches a high-risk domain (canonical list: `{skill:hc-cook}` `references/agent-invocations.md` → Domain-Risk Review). No cross-model leg here — all panel streams are internal `haily-debugger` subagents; `--deep` never sends anything externally. No `--quick` counterpart exists for this skill. Cost: 3–5× baseline (`docs/engineering-standards.md` → Depth Tiers), bounded by the 3-stream cap.
+Spawns a capped 2–3 stream hypothesis panel instead of a single investigation stream — full protocol in `references/hypothesis-panel.md`. Stream agreement is candidate convergence, not observed evidence: it selects the next discriminating falsification step, but it cannot promote SUSPECTED to PROBABLE without one reproducible case or two genuinely different observed signal types. CONFIRMED still requires reproduction plus elimination of a competing hypothesis regardless of panel size. Divergent streams surface a differential to the user instead of a guess. Recommended whenever the symptom touches a high-risk domain (canonical list: `{skill:hc-cook}` `references/agent-invocations.md` → Domain-Risk Review). No cross-model leg here — all panel streams are internal `haily-debugger` subagents; `--deep` never sends anything externally. No `--quick` counterpart exists for this skill. Cost: 3–5× baseline (`docs/engineering-standards.md` → Depth Tiers), bounded by the 3-stream cap.
 
 **Parity hint (upward):** on an `ultra`-tier session, `--deep` still spawns the full panel when requested — the tier only adds an advisory note that the marginal gain over the default single-stream trace is smaller. See `docs/engineering-standards.md` § Depth Tiers → Parity hint.
 
@@ -112,6 +112,7 @@ Reports save to `.agents/debug/debug-YYMMDD-HHMM-{slug}.md`. Minimum contents: s
 | File | Content |
 |------|---------|
 | `references/confidence-signaling.md` | SUSPECTED/PROBABLE/CONFIRMED vocabulary, signal type ranking, fix gate rule, display format, examples |
+| `{skill:hl-reasoning}` `references/reasoning-primitives.md` | Shared reasoning vocabulary: discriminating observation for the next falsification step, cheap disconfirming check ordering |
 | `references/hypothesis-panel.md` | `--deep` parallel falsification panel: differential construction, stream assignment, independence rule, convergence/divergence resolution |
 
 ## Workflow Position
