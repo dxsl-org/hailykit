@@ -36,7 +36,10 @@ function sumBytes(paths, reader) {
   let total = 0;
   for (const p of paths) {
     const content = reader(p);
-    if (content !== null) total += Buffer.byteLength(content, 'utf8');
+    // Normalize line endings before counting. `git show` always yields LF while a
+    // Windows working tree may hold CRLF, which otherwise reports a phantom delta of
+    // one byte per line on files nobody touched.
+    if (content !== null) total += Buffer.byteLength(content.replace(/\r\n/g, '\n'), 'utf8');
   }
   return total;
 }
