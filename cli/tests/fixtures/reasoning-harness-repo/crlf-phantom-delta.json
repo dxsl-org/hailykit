@@ -1,0 +1,55 @@
+{
+  "id": "crlf-phantom-delta",
+  "class": "evidence_trap",
+  "prompt": "A script reports how much a directory of text files has grown. For each file it counts the bytes of `git show HEAD:<path>` as the before value and the bytes of the working-tree file as the after value, then prints the percentage difference.\n\nOn a Windows checkout it reports the directory grew by 1 percent. `git status` reports no modified files in that directory, and the byte difference equals the number of lines in it.\n\nDecide whether the reported growth is real.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "fail",
+  "decisive_evidence_keys": [
+    "measurement_artifact"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "measurement_artifact"
+      ]
+    },
+    {
+      "id": "measurement_artifact",
+      "kind": "evidence_value_contains",
+      "key": "measurement_artifact",
+      "phrases": [
+        "line"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

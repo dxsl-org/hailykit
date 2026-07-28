@@ -29,10 +29,23 @@ export function fixtureDir(root = path.resolve(__dirname, '..', '..', '..', 'cli
   return root;
 }
 
-export function loadFixtures(root = fixtureDir()): ReasoningFixture[] {
-  const dir = fs.existsSync(root) ? root : path.resolve(process.cwd(), 'cli', 'tests', 'fixtures', 'reasoning-harness');
+/**
+ * Load a fixture pack. A caller-supplied `root` that does not exist throws rather than
+ * falling back: silently measuring the default pack because `--fixtures` was mistyped
+ * would produce a complete, eligible, and entirely wrong run.
+ * @throws when an explicitly-passed fixture directory is missing
+ */
+export function loadFixtures(root?: string): ReasoningFixture[] {
+  const dir = root ?? defaultFixtureDir();
+  if (root && !fs.existsSync(root)) throw new Error(`fixture directory not found: ${root}`);
   return fs.readdirSync(dir).filter((name) => name.endsWith('.json')).sort()
     .map((name) => parseFixtureJson(fs.readFileSync(path.join(dir, name), 'utf8'), name));
+}
+
+/** Bundled pack location, tolerating both the source tree and a compiled build layout. */
+function defaultFixtureDir(): string {
+  const bundled = fixtureDir();
+  return fs.existsSync(bundled) ? bundled : path.resolve(process.cwd(), 'cli', 'tests', 'fixtures', 'reasoning-harness');
 }
 
 export function parseFixtureJson(text: string, source = '<fixture>'): ReasoningFixture {
