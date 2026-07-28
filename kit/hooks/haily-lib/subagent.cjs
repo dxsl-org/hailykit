@@ -12,27 +12,29 @@
 'use strict';
 
 const path = require('node:path');
+const { deriveTier } = require('./model.cjs');
 
 // ═══════════════════════════════════════════════════════
 // AGENT → SECTION MAP  (behavioral contract — do not reorder)
 // ═══════════════════════════════════════════════════════
 
 // NOTE: 'econ' (Output Economy reminder) is appended to every row and to
-// ALL_SECTIONS — unlike 'think'/'reason' it is NOT tier-gated (see
-// buildEconSection): concise reporting is model-independent, so every agent
-// type gets it regardless of HL_MODEL_TIER.
+// ALL_SECTIONS — unlike 'reasoning' it is NOT tier-gated (see buildEconSection):
+// concise reporting is model-independent, so every agent type gets it regardless
+// of HL_MODEL_TIER. The 'reasoning' key is never written here — `getSections`
+// derives it from JUDGMENT_AGENTS so the two cannot disagree.
 const AGENT_SECTIONS = {
   // ── Core workflow ──────────────────────────────────────────────────────────
   'haily-researcher':       ['id', 'plan', 'reports', 'lang', 'naming', 'trust', 'prefix', 'econ'],
-  'haily-planner':          ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix', 'think', 'reason', 'econ'],
+  'haily-planner':          ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix', 'econ'],
   'haily-implementor':      ['id', 'plan', 'reports', 'lang', 'rules', 'venv', 'naming', 'plan-cli', 'trust', 'prefix', 'econ'],
   'haily-designer':         ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix', 'econ'],
   'haily-refiner':          ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix', 'econ'],
   'haily-tester':           ['id', 'plan', 'reports', 'lang', 'rules', 'venv', 'trust', 'prefix', 'econ'],
-  'haily-debugger':         ['id', 'plan', 'reports', 'lang', 'rules', 'venv', 'naming', 'trust', 'prefix', 'think', 'reason', 'econ'],
-  'haily-reviewer':         ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix', 'think', 'reason', 'econ'],
+  'haily-debugger':         ['id', 'plan', 'reports', 'lang', 'rules', 'venv', 'naming', 'trust', 'prefix', 'econ'],
+  'haily-reviewer':         ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix', 'econ'],
   'haily-optimizer':        ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix', 'econ'],
-  'haily-brainstormer':     ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix', 'think', 'reason', 'econ'],
+  'haily-brainstormer':     ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix', 'econ'],
   'haily-project-manager':  ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'plan-cli', 'trust', 'prefix', 'econ'],
   'haily-docs-writer':      ['id', 'plan', 'reports', 'lang', 'rules', 'naming', 'trust', 'prefix', 'econ'],
   'haily-reporter':         ['id', 'plan', 'reports', 'lang', 'naming', 'trust', 'prefix', 'econ'],
@@ -56,17 +58,25 @@ const PLAN_CLI_AGENTS = new Set([
 ]);
 
 // Agents whose work is single-pass judgment (architecture, review, root-cause,
-// debate) rather than mechanical execution — the extended-thinking directive
-// targets these. A later phase (--deep model escalation) reuses this list, so
-// keep it exported rather than inlining the agent names elsewhere.
+// debate) rather than mechanical execution — the reasoning harness targets these.
+// This list is the ONLY place membership is declared: `getSections` derives the
+// 'reasoning' key from it, so a row in AGENT_SECTIONS can never drift out of
+// agreement with it. Mechanical, pinned/capped, apex, and unknown agent types are
+// excluded by construction, since only listed names get the key.
 const JUDGMENT_AGENTS = ['haily-planner', 'haily-reviewer', 'haily-debugger', 'haily-brainstormer'];
 
+const JUDGMENT_AGENT_SET = new Set(JUDGMENT_AGENTS);
+
 /**
- * Returns the ordered section key list for a given agent type.
+ * Ordered section key list for an agent type. The 'reasoning' key is appended
+ * ahead of 'econ' for judgment agents only; the builder itself still no-ops on
+ * an ultra/empty/unrecognized tier, so this is routing, not a tier decision.
  * @param {string} agentType @returns {string[]}
  */
 function getSections(agentType) {
-  return AGENT_SECTIONS[agentType] ?? ALL_SECTIONS;
+  const base = AGENT_SECTIONS[agentType] ?? ALL_SECTIONS;
+  if (!JUDGMENT_AGENT_SET.has(agentType)) return base;
+  return [...base.filter((key) => key !== 'econ'), 'reasoning', 'econ'];
 }
 
 // ═══════════════════════════════════════════════════════
@@ -147,37 +157,60 @@ function buildPrefixSection(env) {
 // string must no-op rather than accidentally satisfy a "< ultra" check.
 const THINK_BOOST_TIERS = new Set(['thinking', 'medium', 'fast']);
 
-/**
- * Extended-thinking directive for judgment agents running below the deep tier.
- * Empty, 'ultra', or any unrecognized HL_MODEL_TIER value yields `[]` — the
- * ultra tier already reasons at max budget, and unknown/non-Claude sessions
- * must never receive a Claude-specific keyword that could confuse them.
- * @param {NodeJS.ProcessEnv} env @returns {string[]}
- */
-function buildThinkSection(env) {
-  const tier = env.HL_MODEL_TIER || '';
-  if (!THINK_BOOST_TIERS.has(tier)) return [];
-  return [
-    `## Depth Directive`,
-    `ultrathink: reason exhaustively before concluding — verify assumptions, consider alternatives, and check your work before responding.`,
-  ];
-}
+// The `thinking` tier gets a compressed form: it needs the sequence named, not
+// spelled out. Budgets are ≤120 est. tokens full / ≤80 compressed, asserted at
+// runtime by cli/tests/haily-subagent-reasoning-harness.test.ts.
+const HARNESS_FULL = [
+  'Outcome Floor: state what must hold for your answer to be usable; if it cannot hold, say that instead of answering.',
+  'Ground: every claim names a source you actually opened.',
+  'Split: mark each statement as observed or inferred.',
+  'Attack: try to break your own conclusion before reporting it.',
+  'Deliver: verdict plus what would change it, in whatever format your report contract already requires.',
+].join('\n');
+
+const HARNESS_COMPRESSED =
+  'Floor: state what must hold for the answer to be usable. Ground each claim in a source you opened. '
+  + 'Mark observed vs inferred. Attack your own conclusion first. Deliver verdict plus what would change it.';
 
 /**
- * Reasoning-contract scaffold for judgment agents (see JUDGMENT_AGENTS) running
- * below the deep tier. Shares THINK_BOOST_TIERS gate with buildThinkSection —
- * same fail-safe rule: empty, 'ultra', or unrecognized tier yields `[]`. Ultra
- * sessions already reason at max budget without a forced template; forcing one
- * on unknown/non-Claude sessions risks confusing a model with no such contract.
- * @param {NodeJS.ProcessEnv} env @returns {string[]}
+ * Mechanical reasoning sequence for judgment agents (see JUDGMENT_AGENTS)
+ * running below the top tier: Outcome Floor → Ground → Split → Attack → Deliver.
+ *
+ * OFF BY DEFAULT — opt in with `haily.json` `reasoningHarness.enabled: true`.
+ * The only measurement that exists says this text makes weak models *worse*: on the
+ * Phase 3/4 eval fixtures an empty prelude scored 0.500 at both fast and medium while
+ * this sequence scored 0.000 and 0.167
+ * (`.agents/260726-1042-weak-model-reasoning-harness/reports/phase-04-measured-result.md`).
+ * That evidence is narrow — 6 single-turn strict-JSON fixtures on qwen2.5 3b/7b, which is
+ * not what real agents do — so the mechanism is kept and gated rather than deleted, and
+ * anyone re-enabling it is expected to re-measure first.
+ *
+ * Empty, 'ultra', or any unrecognized HL_MODEL_TIER yields `[]`. Ultra already
+ * reasons at max budget, and an unknown tier must no-op rather than guess.
+ *
+ * NOTE: the sequence deliberately prescribes no output shape — it defers to the
+ * agent's own report contract. The wording it replaces did prescribe one ("end
+ * with verdict + confidence"), and the Phase 3 baseline measured the cost: on
+ * qwen2.5:7b it competed with the caller's required structure and drove the mean
+ * score from 0.500 to 0.000, with failing outputs running 2,000–2,800 bytes of
+ * prose against 200–450 for successes. Any future edit that reintroduces a
+ * format instruction here must re-run that baseline first.
+ *
+ * NOTE: `ultrathink` is a Claude-specific extended-thinking trigger, so it is
+ * gated on the session model resolving to the Claude family — a non-Claude model
+ * gains nothing from the keyword and may be confused by it. Tier alone is not
+ * enough of a gate, since non-Claude ids also resolve to a tier.
+ * @param {NodeJS.ProcessEnv} env
+ * @param {{ reasoningHarness?: { enabled?: boolean } }} [config] `haily.json` contents
+ * @returns {string[]}
  */
-function buildReasonSection(env) {
+function buildReasoningHarness(env, config) {
+  if (config?.reasoningHarness?.enabled !== true) return [];
   const tier = env.HL_MODEL_TIER || '';
   if (!THINK_BOOST_TIERS.has(tier)) return [];
-  return [
-    `## Reasoning Contract`,
-    `State competing hypotheses/options → cite file:line evidence per claim → end with verdict + confidence (high/medium/low) + what would change it.`,
-  ];
+  const claudeFamily = deriveTier(env.HL_SESSION_MODEL || '') !== null;
+  const body = tier === 'thinking' ? HARNESS_COMPRESSED : HARNESS_FULL;
+  return ['## Reasoning Procedure', claudeFamily ? `ultrathink: ${body}` : body];
 }
 
 /**
@@ -203,6 +236,6 @@ module.exports = {
   getSections,
   buildIdSection, buildPlanSection, buildReportsSection, buildLangSection,
   buildRulesSection, buildVenvSection, buildNamingSection, buildPlanCliSection,
-  buildTrustSection, buildPrefixSection, buildThinkSection, buildReasonSection,
+  buildTrustSection, buildPrefixSection, buildReasoningHarness,
   buildEconSection,
 };

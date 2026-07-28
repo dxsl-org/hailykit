@@ -73,9 +73,14 @@ function loadModelMapForLookup() {
  * Reverse-lookup a non-Claude model id (gpt-*, qwen-*, gemini-*, ...) against
  * the provider tier tables so non-Claude sessions still resolve a tier instead
  * of always falling back to null. Claude ids are excluded — `deriveTier`
- * already owns that family via substring heuristics. First match wins; when a
- * provider maps multiple tiers to the same id (e.g. gemini's flat table) the
- * result is any one of those tiers, which is fine because they're identical.
+ * already owns that family via substring heuristics.
+ *
+ * NOTE: when one id maps to several tiers the HIGHEST tier wins, never an
+ * arbitrary first match. A flat provider table (gemini maps all four tiers to
+ * gemini-2.5-pro) would otherwise resolve its strongest model to `fast` and
+ * hand a capable model the weak-model reasoning harness. Over-estimating a
+ * tier only withholds a boost; under-estimating injects guidance a strong
+ * model did not need, so the conservative direction is up.
  * @param {string} modelId @returns {string|null}
  */
 function reverseLookupTier(modelId) {
@@ -88,22 +93,25 @@ function reverseLookupTier(modelId) {
   // Without this a shorter tier's value that happens to be a substring of a
   // longer one (codex fast="gpt-5.4-mini", medium="gpt-5.4") would let the
   // fuzzy pass below mis-resolve an exact "gpt-5.4" id to the wrong tier.
-  for (const provider of providers) {
-    const tiers = map[provider] || {};
-    for (const tier of CANONICAL_TIERS) {
-      if (String(tiers[tier] || '').toLowerCase() === id) return tier;
-    }
-  }
+  const exact = highestMatch(map, providers, (candidate) => candidate === id);
+  if (exact) return exact;
   // Pass 2: fuzzy fallback for runtime ids carrying a suffix the map's
   // canonical name doesn't (date stamps, quantization tags, etc.).
+  return highestMatch(map, providers, (candidate) => id.includes(candidate) || candidate.includes(id));
+}
+
+/** Highest-ranked tier whose mapped id satisfies `matches`, or null. */
+function highestMatch(map, providers, matches) {
+  let best = null;
   for (const provider of providers) {
     const tiers = map[provider] || {};
     for (const tier of CANONICAL_TIERS) {
       const candidate = String(tiers[tier] || '').toLowerCase();
-      if (candidate && (id.includes(candidate) || candidate.includes(id))) return tier;
+      if (!candidate || !matches(candidate)) continue;
+      if (best === null || tierRank(tier) > tierRank(best)) best = tier;
     }
   }
-  return null;
+  return best;
 }
 
 /**
