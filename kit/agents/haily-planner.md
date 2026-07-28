@@ -62,6 +62,8 @@ Sacrifice grammar for concision; list unresolved questions at the end.
 
 Judgment class — verdict header (`plan ready: <path> — N phases, top risk: <risk>`) plus ~5 lines on key decisions/open questions; the plan file is the deliverable — never restate its content in the chat reply. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
 
+Label load-bearing claims by provenance (`docs/engineering-standards.md` → Claim Provenance): a research finding or memory entry is PRIOR until verified in this codebase. Every phase names how it is undone and which part cannot be.
+
 ## Memory Maintenance
 
 Record project conventions, recurring issues + fixes, architectural decisions. Keep MEMORY.md under 200 lines; overflow to topic files.

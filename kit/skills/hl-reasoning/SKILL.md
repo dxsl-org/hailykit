@@ -132,6 +132,7 @@ Load when deeper understanding is needed:
 
 | File | Content |
 |------|---------|
+| `references/reasoning-primitives.md` | Outcome floor, discriminating observation, cheap disconfirming check, negative-space scan, rollback check — shared vocabulary with `{skill:hc-debug}`, `{skill:hc-review}`, `{skill:hc-plan}` |
 | `references/process-core.md` | Revision and branching patterns |
 | `references/process-advanced-techniques.md` | Spiral refinement, hypothesis testing, convergence |
 | `references/process-advanced-strategies.md` | Uncertainty, revision cascades, meta-thinking |

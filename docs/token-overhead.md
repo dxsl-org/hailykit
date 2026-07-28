@@ -87,21 +87,39 @@ Phase 1 fixes both: the hook now emits `buildReminderContext`'s real `content` s
 `measure-kit-overhead.mjs` only walks `kit/rules`, `kit/standards`, and skill
 `description:` frontmatter — it does not cover `kit/hooks/haily-subagent.cjs`
 output, which is computed at runtime per `SubagentStart` event, not read from
-a static file. Measured directly from `buildThinkSection`/`buildReasonSection`
-(`kit/hooks/haily-lib/subagent.cjs`) with `HL_MODEL_TIER=thinking`:
+a static file. Measured directly from `buildReasoningHarness`
+(`kit/hooks/haily-lib/subagent.cjs`).
 
-| Section | Bytes | Est. tokens | Gate |
-|---|---|---|---|
-| `think` (Depth Directive) | 154 | 39 | `HL_MODEL_TIER` ∈ {thinking, medium, fast} |
-| `reason` (Reasoning Contract) | 170 | 43 | same gate, same `JUDGMENT_AGENTS` rows |
-| Combined | 326 | 82 | — |
+**Default cost is zero.** The harness is off unless `haily.json` sets
+`reasoningHarness.enabled: true`; a default install pays nothing for it on any
+tier or agent. The figures below are what an opted-in repo pays:
 
-Both sections are 2 lines each (4 lines combined), within the ≤5-line budget
-from `phase-08-exemplar-injection-reasoning-scaffolds.md`. Cost is paid only
-for judgment agents (`haily-planner`, `haily-reviewer`, `haily-debugger`,
-`haily-brainstormer`) and only below `ultra` tier — `HL_MODEL_TIER=ultra` or
-empty (unrecognized/non-Claude model) yields `[]` for both, i.e. zero added
-cost on those sessions.
+| Tier | Session model | Bytes | Est. tokens | Budget |
+|---|---|---|---|---|
+| `fast` / `medium` | Claude family | 422 | 106 | 120 |
+| `fast` / `medium` | non-Claude | 410 | 103 | 120 |
+| `thinking` | Claude family | 237 | 60 | 80 |
+| `thinking` | non-Claude | 225 | 57 | 80 |
+| `ultra`, empty, unrecognized | any | 0 | 0 | — |
+| any tier, opt-in absent (default) | any | 0 | 0 | — |
+
+One 2-line section (`## Reasoning Procedure`) replaces the former `think` +
+`reason` pair, which cost 326 bytes / 82 est. tokens across 4 lines. The
+`thinking` tier gets a compressed form; the Claude-family rows carry the extra
+`ultrathink:` keyword, which is withheld from other providers because it is a
+Claude-specific extended-thinking trigger.
+
+Budgets are asserted at runtime by
+`cli/tests/haily-subagent-reasoning-harness.test.ts`, not by the static
+measurement script. When enabled, cost is paid only for judgment agents
+(`haily-planner`, `haily-reviewer`, `haily-debugger`, `haily-brainstormer`) —
+routing is derived from the exported `JUDGMENT_AGENTS` list — and only below
+`ultra` tier; `HL_MODEL_TIER=ultra` or an empty/unrecognized value yields `[]`.
+
+The four judgment agents each carry one added claim-provenance line in their
+`## Report Contract` (60–80 est. tokens per spawn). That line is unconditional —
+it is report vocabulary, not a reasoning boost, so it does not follow the
+`reasoningHarness.enabled` gate.
 
 ### `econ` section (Phase 11 — Agent Output Economy)
 

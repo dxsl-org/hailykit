@@ -388,16 +388,23 @@ function checkReferencesTablePaths() {
 
     const skillDir = path.dirname(filePath);
     const rel = path.relative(repoRoot, filePath);
-    const pathRe = /`((?:references|scripts)\/[^`\s]+)`/g;
+    // A row may point at ANOTHER skill's reference by prefixing the owning skill:
+    //   | `{skill:hl-reasoning}` `references/reasoning-primitives.md` | ... |
+    // Those resolve against that skill's directory, not this one. Without the prefix
+    // capture a shared reference would look broken here and push authors toward
+    // duplicating the file, which is exactly what a cross-skill pointer avoids.
+    const pathRe = /(?:`\{skill:([a-z]+-[a-z0-9-]+)\}`\s*)?`((?:references|scripts)\/[^`\s]+)`/g;
     const seen = new Set();
     let match;
     while ((match = pathRe.exec(sectionText)) !== null) {
-      const refPath = match[1];
-      if (seen.has(refPath)) continue;
-      seen.add(refPath);
-      const resolved = path.join(skillDir, refPath);
-      if (!existsSync(resolved)) {
-        problems.push({ file: rel, problem: `References table path does not resolve: ${refPath}` });
+      const [, ownerSkill, refPath] = match;
+      const key = `${ownerSkill ?? ''}:${refPath}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const baseDir = ownerSkill ? path.join(skillsDir, ownerSkill) : skillDir;
+      if (!existsSync(path.join(baseDir, refPath))) {
+        const label = ownerSkill ? `{skill:${ownerSkill}} ${refPath}` : refPath;
+        problems.push({ file: rel, problem: `References table path does not resolve: ${label}` });
       }
     }
 

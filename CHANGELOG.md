@@ -5,6 +5,26 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### 🐛 Fixes
+
+- hooks: reverse tier lookup resolves a model mapped to several tiers to the highest one. A flat provider table (all four `gemini` tiers map to `gemini-2.5-pro`) previously classified the strongest available model as `fast`
+- hooks: the Claude-specific `ultrathink` keyword is gated on the session model resolving to the Claude family — tier alone also matches non-Claude models, which were receiving it
+- cross-review: drop `-a never` from the `codex exec` argv. It is not a valid flag, so every codex review leg failed with `unexpected argument`
+- scripts: `measure-kit-overhead.mjs` normalizes line endings before comparing HEAD against the working tree, ending a phantom delta on untouched files in a Windows checkout
+
+### 🚀 Improvements
+
+- standards: claim-provenance vocabulary (OBSERVED / DERIVED / PRIOR / ASSUMED) defined once in `docs/engineering-standards.md`, with the rule that restating a claim never promotes it
+- hl-reasoning: new `references/reasoning-primitives.md` — outcome floor, discriminating observation, cheap disconfirming check, negative-space scan, rollback check — referenced by `hc-debug`, `hc-review`, and `hc-plan` instead of copied into each
+- hc-review: findings must separate what was OBSERVED from what is carried over as PRIOR, and Critical/High findings name how the change is undone
+- hooks: `think` and `reason` sections merged into one tier-aware `reasoning` section, routed from the exported `JUDGMENT_AGENTS` list so routing and membership cannot drift
+- ci: `check-skill-cross-refs.js` validates cross-skill References rows against the owning skill's directory, so a shared reference no longer has to be duplicated per skill
+
+### 🧪 Experimental
+
+- hooks: `haily.json` `reasoningHarness.enabled` (default `false`) gates the Outcome Floor → Ground → Split → Attack → Deliver sequence. Off by default and zero-cost at default: on the eval fixtures it scored *below* an empty prelude on weak models, so it is kept for further measurement rather than promoted. See `.agents/260726-1042-weak-model-reasoning-harness/reports/post-harness-eval-summary.md`
+- dev: opt-in reasoning-eval runner (`scripts/run-reasoning-evals.mjs`) with `codex`, `gemini`, and `ollama` adapters. Never runs in CI — requires an explicit `--live`, `--dry-run`, or `--offline-score`
+
 ## [1.14.11] (2026-07-24)
 
 ### 🚀 Improvements
