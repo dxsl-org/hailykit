@@ -133,14 +133,31 @@ async function execute(fixture: ReasoningFixture, req: ProviderExecution, deps: 
   return { ...base, status: 'success', note: null };
 }
 
-/** First line, length-capped: enough to tell a quota refusal from a dead CLI, short enough
- *  that a persisted note cannot become a dumping ground for provider output. */
+/**
+ * Length-capped diagnostic line. Prefers a line that looks like a failure over the first
+ * line present, because CLIs open with benign preamble — the gemini CLI always prints
+ * "Loaded cached credentials." first, which masked a real "you have exhausted your capacity"
+ * message behind a note that read "provider produced no output".
+ */
 function excerpt(text: string): string {
-  return text.split('\n').map((line) => line.trim()).find(Boolean)?.slice(0, 160) ?? 'no diagnostic output';
+  const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
+  // Two tiers, because the specific cause rarely comes first. "Error when talking to Gemini
+  // API" matches any generic error pattern while saying nothing; the line after it carries
+  // the quota and its reset time. Named causes win over the generic banner.
+  const cause = /exhaust|quota|capacity|rate limit|usage limit|unauthor|forbidden|api key|denied|not found|unexpected argument|invalid/i;
+  const generic = /error|fail|refus/i;
+  const pick = lines.find((line) => cause.test(line)) ?? lines.find((line) => generic.test(line)) ?? lines[0];
+  return pick?.slice(0, 200) ?? 'no diagnostic output';
 }
 
+/**
+ * Provider-side refusals that mean "the call never reached the model", so the cell was not
+ * measured. Capacity and quota wording is included because a provider that has run out is
+ * an environment fault, not a model answering badly — misfiling it as a non-zero exit is
+ * what made an exhausted quota look like an unexplained empty response.
+ */
 function looksAuthFailure(text: string): boolean {
-  return /unauthorized|forbidden|api key|please (?:log|sign) in|authentication failed|usage limit|rate limit/i.test(text);
+  return /unauthorized|forbidden|api key|please (?:log|sign) in|authentication failed|usage limit|rate limit|quota|exhausted (?:your )?capacity|resource[_ ]exhausted|insufficient[_ ]quota/i.test(text);
 }
 
 function emptyUsage(): EvalUsage {

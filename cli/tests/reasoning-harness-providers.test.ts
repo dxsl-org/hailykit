@@ -129,6 +129,22 @@ test('an out-of-quota provider message is an auth_failure, not a scored row', as
   assert.equal(result.rows[0].status, 'auth_failure');
 });
 
+test('an exhausted quota is an auth_failure and its note names the real cause', async () => {
+  // The gemini CLI prints "Loaded cached credentials." before anything else, then reports the
+  // real problem, then emits a JSON error envelope on stdout. Taking the first line and
+  // classifying on the old pattern set produced `non_zero_exit` with the note "provider
+  // produced no output" — both wrong, and between them they hid an 8-hour quota reset.
+  const dir = oneFixtureDir();
+  const stderr = 'Loaded cached credentials.\nError when talking to Gemini API\nYou have exhausted your capacity on this model. Your quota will reset after 8h0m49s.';
+  const result = await runReasoningEvals({
+    cwd: process.cwd(), fixtures: dir, out: path.join(dir, 'out.ndjson'), provider: 'gemini', tier: 'ultra', variant: 'none', repeats: 1, live: true, dryRun: false,
+  }, { runner: () => ({ ok: false, status: 1, stdout: '{"error":{"message":"[object Object]","code":1}}', stderr }) });
+  assert.equal(result.rows[0].status, 'auth_failure');
+  assert.match(result.rows[0].note ?? '', /exhausted/i);
+  assert.doesNotMatch(result.rows[0].note ?? '', /Loaded cached credentials/);
+  assert.equal(result.rows[0].baselineEligible, false);
+});
+
 test('resume retries an environment failure instead of baking it in as a measurement', async () => {
   const dir = oneFixtureDir();
   const out = path.join(dir, 'out.ndjson');
