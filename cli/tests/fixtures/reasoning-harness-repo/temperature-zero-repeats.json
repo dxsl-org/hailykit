@@ -1,0 +1,55 @@
+{
+  "id": "temperature-zero-repeats",
+  "class": "discriminating_test_trap",
+  "prompt": "A benchmark runs 6 questions against a local model, 5 repeats each, and reports 30 rows. The model is called with temperature set to 0. Inspecting the artifact shows every question produced an identical score across all 5 of its repeats.\n\nThe report then computes a confidence interval treating the 30 rows as independent observations.\n\nDecide whether that treatment is sound, and state how many independent observations the run actually produced.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "fail",
+  "decisive_evidence_keys": [
+    "effective_n"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "effective_n"
+      ]
+    },
+    {
+      "id": "effective_n",
+      "kind": "evidence_value_contains",
+      "key": "effective_n",
+      "phrases": [
+        "6"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

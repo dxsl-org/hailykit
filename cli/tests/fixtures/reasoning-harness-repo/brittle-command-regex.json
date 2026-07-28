@@ -1,7 +1,7 @@
 {
-  "id": "absolute-path-rejoin",
+  "id": "brittle-command-regex",
   "class": "evidence_trap",
-  "prompt": "A hook builds a display path with:\n\n  const shown = path.join(baseDir, planCtx.reportsPath);\n\n`planCtx.reportsPath` is produced by a resolver that always returns an absolute path, derived either from the process working directory or from the directory of a resolved plan file. `baseDir` is also absolute.\n\nDecide whether `shown` is a correct path.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "prompt": "An installer identifies which hook script a configured command runs, using:\n\n  command.match(/node\\s+\\.claude\\/hooks\\/(.+\\.cjs)/)\n\nThe commands it must handle are actually shipped in this shape:\n\n  bash -c 'h=.claude/hooks/runner.sh; s=.claude/hooks/trace.cjs; bash \"$h\" \"$s\"'\n\nDecide whether the pattern identifies the script correctly for the shipped shape.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
   "allowed_tools": {
     "policy": "none",
     "allowed": [],
@@ -15,7 +15,7 @@
   },
   "expected_verdict": "fail",
   "decisive_evidence_keys": [
-    "why_incorrect"
+    "mismatch_reason"
   ],
   "hard_checks": [
     {
@@ -26,15 +26,15 @@
       "id": "evidence",
       "kind": "evidence_keys_present",
       "keys": [
-        "why_incorrect"
+        "mismatch_reason"
       ]
     },
     {
-      "id": "why_incorrect",
+      "id": "mismatch_reason",
       "kind": "evidence_value_contains",
-      "key": "why_incorrect",
+      "key": "mismatch_reason",
       "phrases": [
-        "absolute"
+        "node"
       ]
     }
   ],

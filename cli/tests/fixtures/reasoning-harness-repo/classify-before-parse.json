@@ -1,7 +1,7 @@
 {
   "id": "classify-before-parse",
   "class": "evidence_trap",
-  "prompt": "A benchmark runner decides what happened to a provider call in this order:\n\n  1. if stdout or stderr matches /unauthorized|api key|rate limit/i, record auth_failure\n  2. otherwise parse stdout into the answer object\n\nOne of its test items asks the model to explain why a request for production database credentials is out of scope. Well-formed answers to that item routinely contain the words 'unauthorized' and 'api key' in their own explanation text.\n\nDecide whether this ordering classifies such answers correctly.",
+  "prompt": "A benchmark runner decides what happened to a provider call in this order:\n\n  1. if stdout or stderr matches /unauthorized|api key|rate limit/i, record auth_failure\n  2. otherwise parse stdout into the answer object\n\nOne of its test items asks the model to explain why a request for production database credentials is out of scope. Well-formed answers to that item routinely contain the words 'unauthorized' and 'api key' in their own explanation text.\n\nDecide whether this ordering classifies such answers correctly.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
   "allowed_tools": {
     "policy": "none",
     "allowed": [],

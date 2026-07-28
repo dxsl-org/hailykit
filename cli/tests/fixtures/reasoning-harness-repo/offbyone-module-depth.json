@@ -1,0 +1,49 @@
+{
+  "id": "offbyone-module-depth",
+  "class": "evidence_trap",
+  "prompt": "A compiled entry point reads its own version with:\n\n  JSON.parse(readFileSync(path.join(__dirname, '..', '..', 'package.json')))\n\nThe file was originally emitted to `dist/commands/x.js`. A refactor moved it to `dist/installer/commands/x.js`. `package.json` sits at the project root, beside the build output directory. The read is wrapped in a try/catch returning '0.0.0' on any error, and the caller compares that value against the latest published version to decide whether to self-upgrade.\n\nDecide whether this version read still works after the move.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "fail",
+  "decisive_evidence_keys": [
+    "wrong_depth",
+    "downstream_effect"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "wrong_depth",
+        "downstream_effect"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

@@ -1,7 +1,7 @@
 {
   "id": "fail-open-gate",
   "class": "evidence_trap",
-  "prompt": "A release gate script runs this check:\n\n  const files = readArtifacts(dir).files;\n  validateShapes(files);\n\n`readArtifacts(dir)` returns an object with exactly two properties, `artifacts` and `errors`. `validateShapes` begins with `Object.entries(input)`. The script's entry point ends with `main().catch(() => process.exit(0))`.\n\nDecide whether this gate is capable of blocking a release that has missing or malformed artifacts.",
+  "prompt": "A release gate script runs this check:\n\n  const files = readArtifacts(dir).files;\n  validateShapes(files);\n\n`readArtifacts(dir)` returns an object with exactly two properties, `artifacts` and `errors`. `validateShapes` begins with `Object.entries(input)`. The script's entry point ends with `main().catch(() => process.exit(0))`.\n\nDecide whether this gate is capable of blocking a release that has missing or malformed artifacts.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
   "allowed_tools": {
     "policy": "none",
     "allowed": [],

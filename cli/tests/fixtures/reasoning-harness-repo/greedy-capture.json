@@ -1,7 +1,7 @@
 {
-  "id": "absolute-path-rejoin",
+  "id": "greedy-capture",
   "class": "evidence_trap",
-  "prompt": "A hook builds a display path with:\n\n  const shown = path.join(baseDir, planCtx.reportsPath);\n\n`planCtx.reportsPath` is produced by a resolver that always returns an absolute path, derived either from the process working directory or from the directory of a resolved plan file. `baseDir` is also absolute.\n\nDecide whether `shown` is a correct path.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "prompt": "A pattern extracts a script path from a command string:\n\n  /\\.claude\\/hooks\\/(.+\\.cjs)/\n\nIt is applied to:\n\n  bash -c 'a=.claude/hooks/one.cjs; b=.claude/hooks/two.cjs; run \"$a\" \"$b\"'\n\nDecide whether the captured group equals `one.cjs`.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
   "allowed_tools": {
     "policy": "none",
     "allowed": [],
@@ -15,7 +15,7 @@
   },
   "expected_verdict": "fail",
   "decisive_evidence_keys": [
-    "why_incorrect"
+    "capture_span"
   ],
   "hard_checks": [
     {
@@ -26,15 +26,15 @@
       "id": "evidence",
       "kind": "evidence_keys_present",
       "keys": [
-        "why_incorrect"
+        "capture_span"
       ]
     },
     {
-      "id": "why_incorrect",
+      "id": "capture_span",
       "kind": "evidence_value_contains",
-      "key": "why_incorrect",
+      "key": "capture_span",
       "phrases": [
-        "absolute"
+        "two.cjs"
       ]
     }
   ],

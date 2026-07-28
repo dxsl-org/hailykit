@@ -1,0 +1,47 @@
+{
+  "id": "silent-fallthrough",
+  "class": "evidence_trap",
+  "prompt": "A reviewer component tries several external command-line tools in order until one succeeds. When every candidate fails, because none is installed or each exits non-zero, the function returns an empty finding list and the caller prints 'review complete, no findings'.\n\nThe per-candidate failure reasons are collected into an array that nothing ever reads.\n\nDecide whether 'no findings' is a truthful report in that situation.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "fail",
+  "decisive_evidence_keys": [
+    "indistinguishable_states"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "indistinguishable_states"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

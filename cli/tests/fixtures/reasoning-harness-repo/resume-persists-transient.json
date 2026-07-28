@@ -1,7 +1,7 @@
 {
-  "id": "absolute-path-rejoin",
+  "id": "resume-persists-transient",
   "class": "evidence_trap",
-  "prompt": "A hook builds a display path with:\n\n  const shown = path.join(baseDir, planCtx.reportsPath);\n\n`planCtx.reportsPath` is produced by a resolver that always returns an absolute path, derived either from the process working directory or from the directory of a resolved plan file. `baseDir` is also absolute.\n\nDecide whether `shown` is a correct path.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "prompt": "A long benchmark writes each completed row to disk so an interrupted run can resume. On resume it keeps every row already present except those marked `incomplete`, and re-runs only the missing cells.\n\nRows can also carry the status `auth_failure`, recorded when the provider refused the call because a rate limit was hit. Four such rows sit in the artifact from a run that hit a quota mid-way.\n\nDecide whether resuming will produce a correct final artifact.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
   "allowed_tools": {
     "policy": "none",
     "allowed": [],
@@ -15,7 +15,7 @@
   },
   "expected_verdict": "fail",
   "decisive_evidence_keys": [
-    "why_incorrect"
+    "stuck_status"
   ],
   "hard_checks": [
     {
@@ -26,15 +26,15 @@
       "id": "evidence",
       "kind": "evidence_keys_present",
       "keys": [
-        "why_incorrect"
+        "stuck_status"
       ]
     },
     {
-      "id": "why_incorrect",
+      "id": "stuck_status",
       "kind": "evidence_value_contains",
-      "key": "why_incorrect",
+      "key": "stuck_status",
       "phrases": [
-        "absolute"
+        "auth_failure"
       ]
     }
   ],

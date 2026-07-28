@@ -1,7 +1,7 @@
 {
   "id": "uninstall-orphan",
   "class": "evidence_trap",
-  "prompt": "An installer creates these subdirectories under its install root: skills, rules, agents, hooks, contextual, standards, templates.\n\nIts uninstall routine is:\n\n  for (const sub of ['skills','rules','agents','hooks','contextual','standards']) removeDir(sub);\n\nDecide whether uninstall removes everything the installer created.",
+  "prompt": "An installer creates these subdirectories under its install root: skills, rules, agents, hooks, contextual, standards, templates.\n\nIts uninstall routine is:\n\n  for (const sub of ['skills','rules','agents','hooks','contextual','standards']) removeDir(sub);\n\nDecide whether uninstall removes everything the installer created.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
   "allowed_tools": {
     "policy": "none",
     "allowed": [],

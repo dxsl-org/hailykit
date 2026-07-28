@@ -1,7 +1,7 @@
 {
   "id": "fail-safe-null-tier",
   "class": "evidence_trap",
-  "prompt": "A function maps a model id to a capability tier and returns null when the id matches nothing it knows. A reviewer proposes returning the lowest tier instead of null, so callers always get a usable value.\n\nEvery caller treats null as 'no tier known' and skips the tier-dependent behavior entirely, while the lowest tier would activate guidance meant for low-capability models.\n\nDecide whether returning null for an unknown id is a defect.",
+  "prompt": "A function maps a model id to a capability tier and returns null when the id matches nothing it knows. A reviewer proposes returning the lowest tier instead of null, so callers always get a usable value.\n\nEvery caller treats null as 'no tier known' and skips the tier-dependent behavior entirely, while the lowest tier would activate guidance meant for low-capability models.\n\nDecide whether returning null for an unknown id is a defect.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
   "allowed_tools": {
     "policy": "none",
     "allowed": [],
