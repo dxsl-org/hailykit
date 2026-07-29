@@ -394,7 +394,7 @@ export function migrateSettings(targetClaudeDir: string): number {
 
 export interface CopyDirOptions {
   skipProtected?: boolean;
-  /** When true, apply {skill:x:y} → /hc:cook Claude slash syntax in .md files. */
+  /** When true, resolve canonical skill tags to Claude slash syntax in .md files. */
   resolveSkillRefsForClaude?: boolean;
   /** When set, skill directories whose `providers` frontmatter excludes this provider are skipped. */
   providerName?: string;

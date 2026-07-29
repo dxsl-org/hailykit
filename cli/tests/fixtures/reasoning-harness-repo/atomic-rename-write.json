@@ -1,0 +1,47 @@
+{
+  "id": "atomic-rename-write",
+  "class": "evidence_trap",
+  "prompt": "A long-running job writes results to `out.ndjson.partial` after every row, and renames that file to `out.ndjson` only once all expected rows are present. A reviewer calls the two-step write redundant and proposes writing straight to the final path.\n\nDownstream tooling treats the presence of `out.ndjson` as meaning the run finished, and the job is routinely interrupted.\n\nDecide whether the two-step write is redundant.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "pass",
+  "decisive_evidence_keys": [
+    "interrupted_case"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "interrupted_case"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

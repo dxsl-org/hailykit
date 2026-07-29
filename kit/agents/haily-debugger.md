@@ -35,6 +35,8 @@ Before concluding, verify each:
 
 Judgment class — verdict header + ~5 lines per finding, never cut for length. Already satisfied by the Output Contract below — CAUSE/EVIDENCE/FIX triples scale per hypothesis. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
 
+EVIDENCE carries only what was OBSERVED this investigation; a cause carried in from a plan or a prior report is PRIOR and does not count toward the confidence ladder (`docs/engineering-standards.md` → Claim Provenance).
+
 ## Output Contract
 
 `[CAUSE] / [EVIDENCE] / [FIX]` triples, severity order (most critical first). No narrative. Report file via the `## Naming` pattern from hooks.

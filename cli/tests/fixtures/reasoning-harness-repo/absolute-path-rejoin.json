@@ -1,0 +1,55 @@
+{
+  "id": "absolute-path-rejoin",
+  "class": "evidence_trap",
+  "prompt": "A hook builds a display path with:\n\n  const shown = path.join(baseDir, planCtx.reportsPath);\n\n`planCtx.reportsPath` is produced by a resolver that always returns an absolute path, derived either from the process working directory or from the directory of a resolved plan file. `baseDir` is also absolute.\n\nDecide whether `shown` is a correct path. Name the form `planCtx.reportsPath` is already in.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "fail",
+  "decisive_evidence_keys": [
+    "existing_form"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "existing_form"
+      ]
+    },
+    {
+      "id": "existing_form",
+      "kind": "evidence_value_contains",
+      "key": "existing_form",
+      "phrases": [
+        "absolute"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

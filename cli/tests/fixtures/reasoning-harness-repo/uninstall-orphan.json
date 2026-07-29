@@ -1,0 +1,55 @@
+{
+  "id": "uninstall-orphan",
+  "class": "evidence_trap",
+  "prompt": "An installer creates these subdirectories under its install root: skills, rules, agents, hooks, contextual, standards, templates.\n\nIts uninstall routine is:\n\n  for (const sub of ['skills','rules','agents','hooks','contextual','standards']) removeDir(sub);\n\nDecide whether uninstall removes everything the installer created.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "fail",
+  "decisive_evidence_keys": [
+    "orphaned_dir"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "orphaned_dir"
+      ]
+    },
+    {
+      "id": "orphaned_dir",
+      "kind": "evidence_value_contains",
+      "key": "orphaned_dir",
+      "phrases": [
+        "templates"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

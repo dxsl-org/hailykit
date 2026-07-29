@@ -257,7 +257,6 @@ function sanitizeSlug(s: string): string {
 /**
  * Derive the command slug from SKILL.md frontmatter `name:` field.
  * `name: hc-cook`      → `hc-cook`   (current hyphen format)
- * `name: hc:cook`      → `hc-cook`   (legacy colon format)
  * `name: plan`         → `hl-plan`   (legacy no-prefix — assumes hl domain)
  *
  * Output is sanitized to kebab-case — it is used as a filename, so path
@@ -271,12 +270,13 @@ export function toCommandName(
   fallback?: string,
 ): string {
   const raw = frontmatter.name || fallback || '';
+  if (raw.includes(':')) {
+    throw new Error(`Invalid skill name "${raw}": use a hyphenated domain prefix`);
+  }
   // Current format: already hyphenated — hc-cook, hl-brainstorm, hd-ui-ux, hs-dfir
   if (/^(hc|hd|hl|hs)-/.test(raw)) return sanitizeSlug(raw);
-  // Legacy colon format: hc:cook → hc-cook
-  if (/^(hc|hd|hl|hs):/.test(raw)) return sanitizeSlug(raw.replace(':', '-'));
   // Legacy bare name: no prefix → assume hl domain
-  return `hl-${sanitizeSlug(raw.replace(/^hl[:-]/, ''))}`;
+  return `hl-${sanitizeSlug(raw.replace(/^hl-/, ''))}`;
 }
 
 /**

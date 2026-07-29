@@ -1,0 +1,47 @@
+{
+  "id": "digest-in-seed-only",
+  "class": "evidence_trap",
+  "prompt": "A manifest hash is computed over a seed object that includes a digest of the prompt template. The manifest written to disk contains the provider, model, variant, question-set hash, and the resulting manifest hash \u2014 but not the template digest itself.\n\nA later tool wants to confirm two artifacts were produced under the same template. The only template-derived value available to it is the manifest hash, which also varies with the variant.\n\nDecide whether the tool can verify template identity from what is stored.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "fail",
+  "decisive_evidence_keys": [
+    "unavailable_field"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "unavailable_field"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

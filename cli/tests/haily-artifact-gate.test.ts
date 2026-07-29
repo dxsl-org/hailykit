@@ -27,7 +27,7 @@ function writeJson(dir: string, name: string, value: unknown): void {
 }
 
 const VALID_CONTEXT = {
-  skill: 'hc:cook', mode: 'auto', task: 't', acceptanceCriteria: ['a'],
+  skill: 'hc-cook', mode: 'auto', task: 't', acceptanceCriteria: ['a'],
   touchpoints: ['f.ts'], publicContracts: ['c'], blastRadius: ['b'], scoutSummary: 's',
 };
 const VALID_RISK = { highRisk: false, reasons: [], autoStopRequired: false, humanApproved: false, largeDiff: false };

@@ -1,0 +1,55 @@
+{
+  "id": "resume-hash-covers-mode",
+  "class": "evidence_trap",
+  "prompt": "A benchmark's resume identity is a hash covering provider, model, variant, question set, repeat count, commit, execution mode, and the source of any offline scores. A reviewer argues that mode and score source are runtime details that do not belong in a content hash, and should be dropped to keep the identity stable across invocations.\n\nDry-run rows are fabricated locally without contacting a provider, and resume reuses any row whose identity matches.\n\nDecide whether including execution mode in the identity is correct. Name the execution mode that makes this matter.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "pass",
+  "decisive_evidence_keys": [
+    "mode_at_risk"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "mode_at_risk"
+      ]
+    },
+    {
+      "id": "mode_at_risk",
+      "kind": "evidence_value_contains",
+      "key": "mode_at_risk",
+      "phrases": [
+        "dry"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

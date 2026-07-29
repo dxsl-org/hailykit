@@ -150,6 +150,22 @@ and responds according to this matrix:
 | **Input Routing** | Acting on the detected input type: selecting the execution path, workflow file, or stage entry point | "Conflict Resolution" (for precedence) |
 | **Routing Precedence** | Priority order when multiple routing signals conflict (e.g., image file + task text override) | "Conflict Resolution" |
 
+### Claim Provenance
+
+How a load-bearing claim came to be known. Label the claim, not the sentence: apply these only where a wrong claim changes the decision — a root cause, a verdict, a chosen approach, a "this is safe to ship". Ordinary description stays unlabelled; labelling everything is noise and trains the reader to skip the labels that matter.
+
+| Label | Means | Typical source |
+|---|---|---|
+| **OBSERVED** | Read directly from the artifact this run | Command output, file contents at `file:line`, a reproduced failure |
+| **DERIVED** | Followed logically from something OBSERVED, stated with the observation it rests on | Call-graph reasoning, "X imports Y so a change to Y reaches X" |
+| **PRIOR** | Carried in from an earlier run, another agent, or a stored artifact — true when written, unverified now | Plan text, scout report, memory entry, a previous review |
+| **ASSUMED** | Believed without evidence, and the reader must be told so | Unread config, unverified library behavior, an unavailable environment |
+
+Two rules make the labels worth their cost:
+
+- **A claim may never be promoted by restating it.** PRIOR does not become OBSERVED because a second agent repeated it, and agreement between agents is not observation — see `{skill:hc-debug}` `references/confidence-signaling.md`, where panel convergence explicitly cannot satisfy the observed-signal bar.
+- **ASSUMED is never silent.** An assumption that carries a decision is written down where the decision is, not left implicit — `{skill:hc-plan}` phase files carry them in `## Assumptions` with a how-to-verify line.
+
 ### Standard Flags
 
 Skills do not need to offer these flags — but a skill that offers the underlying
@@ -304,6 +320,7 @@ No majority vote. A single evidenced critical finding blocks.
 | `haily.json` | `crossReview.timeoutMs` | 120000 | Per-call timeout for the external reviewer |
 | `haily.json` | `crossReview.disable` | false | Turn cross-model review off for this repo |
 | `haily.json` | `quiz.auto` | false | Offer the comprehension quiz before every commit gate |
+| `haily.json` | `reasoningHarness.enabled` | false | Inject the Outcome Floor → Ground → Split → Attack → Deliver sequence into judgment agents below `ultra`. **Experimental, off by default** — the only measurement available scored it *below* an empty prelude on weak models (`.agents/260726-1042-weak-model-reasoning-harness/reports/phase-04-measured-result.md`). Re-measure before enabling. |
 | `haily.json` | `output.verbosity` | `standard` | `concise` tightens MAIN-session chat output (status lines ≤1 line, outcome-first summaries, no decorative tables); never changes agent Report Contracts or model-trace lines |
 | env var | `HL_OUTPUT_VERBOSITY` | `standard` | Session-scoped mirror of `output.verbosity`, written by `haily-session.cjs` |
 

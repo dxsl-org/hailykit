@@ -1,0 +1,55 @@
+{
+  "id": "resume-persists-transient",
+  "class": "evidence_trap",
+  "prompt": "A long benchmark writes each completed row to disk so an interrupted run can resume. On resume it keeps every row already present except those marked `incomplete`, and re-runs only the missing cells.\n\nRows can also carry the status `auth_failure`, recorded when the provider refused the call because a rate limit was hit. Four such rows sit in the artifact from a run that hit a quota mid-way.\n\nDecide whether resuming will produce a correct final artifact.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "fail",
+  "decisive_evidence_keys": [
+    "stuck_status"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "stuck_status"
+      ]
+    },
+    {
+      "id": "stuck_status",
+      "kind": "evidence_value_contains",
+      "key": "stuck_status",
+      "phrases": [
+        "auth_failure"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

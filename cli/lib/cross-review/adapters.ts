@@ -51,9 +51,10 @@ const OPENCODE_INSTRUCTION = 'Review the attached file and reply exactly as it i
 export function buildInvocation(leg: ResolvedLeg, prompt: string, promptFilePath?: string): Invocation {
   switch (leg.cli) {
     case 'codex':
-      // `-` reads the prompt from stdin; read-only sandbox + never-approve = no writes.
+      // `-` reads the prompt from stdin; the read-only sandbox forbids writes. `codex exec` is
+      // already non-interactive and rejects `-a/--ask-for-approval` as an unknown argument.
       return {
-        args: ['exec', '-m', leg.model, '--json', '-s', 'read-only', '-a', 'never', '-'],
+        args: ['exec', '-m', leg.model, '--json', '-s', 'read-only', '-'],
         input: prompt,
         allowEnv: ['OPENAI_API_KEY'],
       };

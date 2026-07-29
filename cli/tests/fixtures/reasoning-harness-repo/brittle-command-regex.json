@@ -1,0 +1,55 @@
+{
+  "id": "brittle-command-regex",
+  "class": "evidence_trap",
+  "prompt": "An installer identifies which hook script a configured command runs, using:\n\n  command.match(/node\\s+\\.claude\\/hooks\\/(.+\\.cjs)/)\n\nThe commands it must handle are actually shipped in this shape:\n\n  bash -c 'h=.claude/hooks/runner.sh; s=.claude/hooks/trace.cjs; bash \"$h\" \"$s\"'\n\nDecide whether the pattern identifies the script correctly for the shipped shape. Name the token the pattern requires that the shipped command does not contain.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "fail",
+  "decisive_evidence_keys": [
+    "absent_token"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "absent_token"
+      ]
+    },
+    {
+      "id": "absent_token",
+      "kind": "evidence_value_contains",
+      "key": "absent_token",
+      "phrases": [
+        "node"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

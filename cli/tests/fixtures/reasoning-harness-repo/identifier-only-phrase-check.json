@@ -1,0 +1,47 @@
+{
+  "id": "identifier-only-phrase-check",
+  "class": "discriminating_test_trap",
+  "prompt": "A grading rule may require that an answer's explanation contain a given string. Two rules exist:\n\n  A: the explanation must contain 'templates', the name of the directory omitted from a cleanup list\n  B: the explanation must contain 'lower value', a way of saying the alternative is worth less\n\nBoth were checked against correct explanations from the strongest model available. Rule A passed every time. Rule B failed every time, against explanations that identified the right answer using other words.\n\nDecide whether rule B measures understanding.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "fail",
+  "decisive_evidence_keys": [
+    "difference_between"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "difference_between"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

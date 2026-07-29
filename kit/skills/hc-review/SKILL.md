@@ -92,7 +92,9 @@ Stages 2 and 3 spawn in parallel (one message) once Stage 1 passes; Stage 4's YA
 
 > **Required — recon-first, reuse-first:** Before reviewing, obtain blast-radius context (affected files beyond the diff, data flow paths) — but never re-derive what already exists. Resolve via the Scout ladder (Process step 2): session context → plan artifact → inline trace → `{skill:hc-scout} --quick`. Full-mode `{skill:hc-scout}` is never spawned for diff reviews; codebase and codebase-parallel modes run scout internally.
 
-> **Required — evidence-before-claims:** Run the verification command and read full output before declaring any finding fixed or the review complete.
+> **Required — evidence-before-claims:** Run the verification command and read full output before declaring any finding fixed or the review complete. A finding cites what was OBSERVED at `file:line`; a claim carried from plan text, a scout report, or a prior review is PRIOR until grep-verified and never becomes OBSERVED by being restated. See `docs/engineering-standards.md` → Claim Provenance.
+
+> **Required — rollback named for Critical and High:** Every Critical or High finding states how the change is undone and which part cannot be (data written, messages sent, migrations applied). Tests say the change works; rollback says what happens when it does not. See `{skill:hl-reasoning}` `references/reasoning-primitives.md` → Rollback Check.
 
 ## Process
 
@@ -184,6 +186,7 @@ Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-
 | `references/flow-ui-ux.md` | UI/UX review checklist (§1–§10) |
 | `references/flow-checklist.md` | Pre-landing checklist workflow |
 | `references/quality-verification.md` | Verification gate: evidence before completion claims |
+| `{skill:hl-reasoning}` `references/reasoning-primitives.md` | Shared reasoning vocabulary: negative-space scan for absent error branches/indexes/tests, rollback check for Critical and High findings |
 | `references/process-task-pipeline.md` | Task-managed review pipeline for multi-file features |
 | `references/process-reception.md` | Receiving and evaluating review feedback |
 | `references/process-edge-cases.md` | Edge case scouting before review |

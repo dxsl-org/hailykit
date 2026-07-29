@@ -1,0 +1,55 @@
+{
+  "id": "invalid-cli-flag",
+  "class": "exact_constraint_trap",
+  "prompt": "A tool is invoked with this argument list:\n\n  ['exec', '-m', 'some-model', '--json', '-s', 'read-only', '-a', 'never', '-']\n\nThe complete set of options its `exec` subcommand accepts is: -c/--config, -i/--image, -m/--model, -p/--profile, -s/--sandbox, -C/--cd, --add-dir, --skip-git-repo-check, --ephemeral, --ignore-user-config, --output-schema, --color, --json, -o/--output-last-message, -h/--help, -V/--version. A trailing `-` means read the prompt from stdin.\n\nDecide whether this invocation will run.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "fail",
+  "decisive_evidence_keys": [
+    "rejected_flag"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "rejected_flag"
+      ]
+    },
+    {
+      "id": "rejected_flag",
+      "kind": "evidence_value_contains",
+      "key": "rejected_flag",
+      "phrases": [
+        "-a"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

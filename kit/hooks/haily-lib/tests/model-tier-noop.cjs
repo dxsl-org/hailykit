@@ -13,7 +13,7 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 
 const { canonicalTier, tierRank } = require(path.join(__dirname, '..', 'model.cjs'));
-const { buildThinkSection } = require(path.join(__dirname, '..', 'subagent.cjs'));
+const { buildReasoningHarness } = require(path.join(__dirname, '..', 'subagent.cjs'));
 const { resolveThresholds } = require(path.join(__dirname, '..', '..', 'haily-optimize.cjs'));
 
 const tests = [];
@@ -39,21 +39,54 @@ test('tierRank of an unknown/empty tier is -1 (fails "< thinking" guards safely)
   assert.ok(tierRank('bogus') < tierRank('thinking'));
 });
 
-// ── subagent.cjs: buildThinkSection ─────────────────────────────────────────
-test('buildThinkSection returns [] when HL_MODEL_TIER is unset', () => {
-  assert.deepEqual(buildThinkSection({}), []);
+// ── subagent.cjs: buildReasoningHarness ─────────────────────────────────────
+// Opt-in config; every positive case must pass it explicitly.
+const ON = { reasoningHarness: { enabled: true } };
+
+test('buildReasoningHarness is OFF by default — no config means no injection', () => {
+  for (const tier of ['fast', 'medium', 'thinking']) {
+    assert.deepEqual(buildReasoningHarness({ HL_MODEL_TIER: tier }), [], `tier ${tier} injected without opt-in`);
+  }
+  assert.deepEqual(buildReasoningHarness({ HL_MODEL_TIER: 'fast' }, {}), []);
+  assert.deepEqual(buildReasoningHarness({ HL_MODEL_TIER: 'fast' }, { reasoningHarness: {} }), []);
 });
-test('buildThinkSection returns [] for ultra (already max reasoning budget)', () => {
-  assert.deepEqual(buildThinkSection({ HL_MODEL_TIER: 'ultra' }), []);
+test('buildReasoningHarness treats a non-true enabled value as off', () => {
+  for (const value of ['true', 1, {}, null]) {
+    assert.deepEqual(buildReasoningHarness({ HL_MODEL_TIER: 'fast' }, { reasoningHarness: { enabled: value } }), []);
+  }
 });
-test('buildThinkSection returns [] for an unrecognized tier string', () => {
-  assert.deepEqual(buildThinkSection({ HL_MODEL_TIER: 'deep' }), []);
+test('buildReasoningHarness returns [] when HL_MODEL_TIER is unset', () => {
+  assert.deepEqual(buildReasoningHarness({}, ON), []);
 });
-test('buildThinkSection injects the directive for thinking/medium/fast', () => {
+test('buildReasoningHarness returns [] for ultra (already max reasoning budget)', () => {
+  assert.deepEqual(buildReasoningHarness({ HL_MODEL_TIER: 'ultra' }, ON), []);
+});
+test('buildReasoningHarness returns [] for an unrecognized tier string', () => {
+  assert.deepEqual(buildReasoningHarness({ HL_MODEL_TIER: 'deep' }, ON), []);
+});
+test('buildReasoningHarness injects the sequence for thinking/medium/fast', () => {
   for (const tier of ['thinking', 'medium', 'fast']) {
-    const lines = buildThinkSection({ HL_MODEL_TIER: tier });
-    assert.ok(lines.length > 0, `expected a directive for tier ${tier}`);
-    assert.ok(lines.join('\n').toLowerCase().includes('ultrathink'));
+    const text = buildReasoningHarness({ HL_MODEL_TIER: tier }, ON).join('\n').toLowerCase();
+    assert.ok(text.includes('## reasoning procedure'), `expected a harness for tier ${tier}`);
+    for (const step of ['floor', 'ground', 'attack', 'deliver']) {
+      assert.ok(text.includes(step), `tier ${tier} missing step ${step}`);
+    }
+  }
+});
+test('ultrathink is added only when the session model is Claude family', () => {
+  const claude = buildReasoningHarness({ HL_MODEL_TIER: 'fast', HL_SESSION_MODEL: 'claude-haiku-4-5' }, ON).join('\n');
+  const other = buildReasoningHarness({ HL_MODEL_TIER: 'fast', HL_SESSION_MODEL: 'qwen2.5:3b' }, ON).join('\n');
+  const unknown = buildReasoningHarness({ HL_MODEL_TIER: 'fast' }).join('\n');
+  assert.ok(claude.includes('ultrathink:'));
+  assert.ok(!other.includes('ultrathink'));
+  assert.ok(!unknown.includes('ultrathink'));
+});
+test('the harness prescribes no output format (Phase 3 baseline regression)', () => {
+  for (const tier of ['thinking', 'medium', 'fast']) {
+    const text = buildReasoningHarness({ HL_MODEL_TIER: tier }, ON).join('\n').toLowerCase();
+    assert.ok(!text.includes('confidence (high'), `tier ${tier} reintroduced a confidence format`);
+    assert.ok(!text.includes('file:line'), `tier ${tier} reintroduced a citation format`);
+    assert.ok(text.includes('report contract') || tier === 'thinking', 'full form must defer to the report contract');
   }
 });
 

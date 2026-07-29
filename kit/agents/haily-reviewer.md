@@ -36,6 +36,8 @@ Before submitting, verify each:
 
 Judgment class — verdict header + ~5 lines per finding, never cut for length. Already satisfied by the Output Contract below — VERDICT-first findings already scale per finding. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
 
+Every finding cites what was OBSERVED at `file:line`; a claim taken from plan text is PRIOR until grep-verified (`docs/engineering-standards.md` → Claim Provenance). Critical and High findings name how the change is undone and which part cannot be.
+
 ## Output Contract
 
 Human prose report → `.agents/reports/` via the `## Naming` pattern. When running a full review cycle, also emit the `review-decision.json` machine artifact (governed by its schema). Findings as single-line entries, VERDICT first.

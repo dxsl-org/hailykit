@@ -27,7 +27,7 @@ Once all streams report a verdict (survived / falsified / inconclusive), spawn `
 
 | Outcome | Resolution |
 |---|---|
-| ≥2 streams converge on the same surviving cause | This **is** the ladder's "≥2 independent signal types agreeing" rule → **SUSPECTED escalates to PROBABLE** |
+| ≥2 streams converge on the same surviving cause | Candidate convergence only, not observed evidence. Use it to pick the next discriminating falsification step; it cannot promote SUSPECTED to PROBABLE on its own without one reproducible case or two genuinely different observed signal types |
 | Converged cause also has a hermetic/two-environment reproduction, and the losing hypotheses are eliminated by evidence | **CONFIRMED** — same bar as without a panel; convergence alone never reaches CONFIRMED |
 | All streams falsify their own hypothesis (nothing survives) | Return to differential construction **once** with the panel's evidence merged in. Do not loop a second time — escalate to the user with what was ruled out and why |
 | Streams diverge (no cause gets ≥2 votes — e.g. 3 streams surface 3 different survivors) | Do not average or arbitrarily pick one. Present the differential to the user |

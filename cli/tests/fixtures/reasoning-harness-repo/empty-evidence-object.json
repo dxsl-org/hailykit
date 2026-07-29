@@ -1,0 +1,55 @@
+{
+  "id": "empty-evidence-object",
+  "class": "evidence_trap",
+  "prompt": "An answer schema requires an `evidence` field that is an object mapping named keys to non-empty strings. Two layers enforce it. The shape validator checks that `evidence` is an object and that every value present is a non-empty string. A separate grading check then requires the specific keys that question demands.\n\nA model returns `\"evidence\": {}`. The shape validator accepts it and the grading check fails the row for the missing keys.\n\nA reviewer proposes moving the non-empty requirement into the shape validator so that `{}` is rejected as malformed instead. Rows rejected as malformed are recorded as unparseable output, while rows failing a grading check are recorded as a wrong answer.\n\nDecide whether the current two-layer split is correct. Name the field whose emptiness is at issue.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "pass",
+  "decisive_evidence_keys": [
+    "field_at_issue"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "field_at_issue"
+      ]
+    },
+    {
+      "id": "field_at_issue",
+      "kind": "evidence_value_contains",
+      "key": "field_at_issue",
+      "phrases": [
+        "evidence"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

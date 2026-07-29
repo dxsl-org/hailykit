@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Validate hc:docs skill setup and configuration.
+Validate hc-docs skill setup and configuration.
 
 Checks:
 - Gemini API key presence and format
@@ -217,7 +217,7 @@ def provide_setup_instructions():
     """Provide setup instructions if configuration is incomplete."""
     print_header("Setup Instructions")
 
-    print_info("To configure the hc:docs skill:")
+    print_info("To configure the hc-docs skill:")
     print("\n1. Get Gemini API key:")
     print("   → Google AI Studio: https://aistudio.google.com/apikey")
 
@@ -244,7 +244,7 @@ def provide_setup_instructions():
     print(f"   $ python ~/.claude/scripts/resolve_env.py --show-hierarchy --skill document-extract")
     print(f"   $ python ~/.claude/scripts/resolve_env.py GEMINI_API_KEY --skill document-extract --verbose")
 
-    print("\n5. For AI media generation (not analysis), see sibling skill: hd:ai-generation")
+    print("\n5. For AI media generation (not analysis), see sibling skill: hl-design")
 
 
 def main():
@@ -303,7 +303,7 @@ def main():
 
     if all_passed:
         if gemini_api_key:
-            print_success("✅ hc:docs is ready to use.")
+            print_success("✅ hc-docs is ready to use.")
         else:
             print_warning("⚠ GEMINI_API_KEY not found — extraction will fail until configured.")
         print_info("\nNext steps:")
@@ -316,7 +316,7 @@ def main():
         print("  python scripts/media_optimizer.py large.png --output small.png")
         print("\n  # Ad-hoc visual analysis (use gemini CLI, not this skill):")
         print("  gemini -y -p 'describe this image' < image.png")
-        print("\n  # AI media generation: use sibling skill hd:ai-generation")
+        print("\n  # AI media generation: use sibling skill hl-design")
     else:
         print_error("❌ Some checks failed. Please fix the issues above.")
         sys.exit(1)

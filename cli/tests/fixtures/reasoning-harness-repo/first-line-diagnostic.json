@@ -1,0 +1,55 @@
+{
+  "id": "first-line-diagnostic",
+  "class": "evidence_trap",
+  "prompt": "A runner records why a provider call failed by taking the first non-empty line of its error output:\n\n  return text.split('\\n').map(l => l.trim()).find(Boolean)\n\nThe provider it calls always opens with the line 'Loaded cached credentials.' before anything else, and reports the actual problem on a later line.\n\nDecide whether the recorded diagnostic will identify the real cause.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "fail",
+  "decisive_evidence_keys": [
+    "masked_by"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "masked_by"
+      ]
+    },
+    {
+      "id": "masked_by",
+      "kind": "evidence_value_contains",
+      "key": "masked_by",
+      "phrases": [
+        "credentials"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}
