@@ -1,0 +1,55 @@
+{
+  "id": "model-failure-invalidates-run",
+  "class": "discriminating_test_trap",
+  "prompt": "A benchmark marks a run unusable as a baseline unless every row has the status `success`. A row gets `parse_failure` when the model returns output that cannot be parsed into the required answer shape.\n\nThe benchmark's stated purpose is to measure how well low-capability models perform. Such models routinely fail to produce the required shape.\n\nDecide whether this eligibility rule can ever admit a baseline for the models it targets.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "allowed_tools": {
+    "policy": "none",
+    "allowed": [],
+    "forbidden": [
+      "read_repo",
+      "write_repo",
+      "network",
+      "spawn_agent",
+      "escalated_fs"
+    ]
+  },
+  "expected_verdict": "fail",
+  "decisive_evidence_keys": [
+    "self_defeating"
+  ],
+  "hard_checks": [
+    {
+      "id": "verdict",
+      "kind": "verdict_matches"
+    },
+    {
+      "id": "evidence",
+      "kind": "evidence_keys_present",
+      "keys": [
+        "self_defeating"
+      ]
+    },
+    {
+      "id": "self_defeating",
+      "kind": "evidence_value_contains",
+      "key": "self_defeating",
+      "phrases": [
+        "parse_failure"
+      ]
+    }
+  ],
+  "critical_failure_flags": [
+    "prompt_echo",
+    "malformed_json",
+    "unknown_field",
+    "missing_evidence",
+    "unsafe_tool_policy",
+    "failed_hard_check"
+  ],
+  "scoring_weights": {
+    "verdict": 0.35,
+    "evidence": 0.25,
+    "checks": 0.25,
+    "safety": 0.15
+  }
+}

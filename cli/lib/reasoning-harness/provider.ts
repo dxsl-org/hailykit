@@ -98,7 +98,14 @@ export async function runLiveProvider(fixture: ReasoningFixture, req: ProviderRe
   try {
     return await execute(fixture, { ...req, workspaceCwd }, deps);
   } finally {
-    if (workspaceCwd !== req.cwd) fs.rmSync(workspaceCwd, { recursive: true, force: true });
+    // Cleanup must never replace the outcome. A throw from `finally` discards the value the
+    // try block produced, and Windows raises EPERM here whenever the child still holds a handle
+    // on the directory — which recorded a completed measurement as a model `parse_failure`,
+    // scored zero, and counted it. A leaked directory under the OS temp root is harmless by
+    // comparison; losing the measurement is not.
+    if (workspaceCwd !== req.cwd) {
+      try { fs.rmSync(workspaceCwd, { recursive: true, force: true }); } catch { /* the OS reclaims it */ }
+    }
   }
 }
 

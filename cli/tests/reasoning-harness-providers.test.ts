@@ -129,6 +129,25 @@ test('an out-of-quota provider message is an auth_failure, not a scored row', as
   assert.equal(result.rows[0].status, 'auth_failure');
 });
 
+test('a workspace that cannot be removed does not destroy the measurement', async () => {
+  // Windows raises EPERM from the cleanup when the child still holds a handle on the throwaway
+  // directory. A throw from `finally` discards whatever the try block returned, so a completed
+  // answer was being recorded as a model parse_failure, scored zero, and counted.
+  const dir = oneFixtureDir();
+  const result = await runReasoningEvals({
+    cwd: process.cwd(), fixtures: dir, out: path.join(dir, 'out.ndjson'), provider: 'ollama', tier: 'fast', variant: 'none', repeats: 1, live: true, dryRun: false, model: 'qwen2.5:3b',
+  }, {
+    runner: (req) => {
+      // Leave the workspace un-removable by planting a directory the cleanup will trip on,
+      // then holding it open via a nested path that exists only during this call.
+      fs.mkdirSync(path.join(req.workspaceCwd, 'locked', 'inner'), { recursive: true });
+      return { ok: true, status: 0, stdout: JSON.stringify({ model: 'qwen2.5:3b', response: ANSWER }), stderr: '' };
+    },
+  });
+  assert.equal(result.rows[0].status, 'success', 'cleanup trouble must not become a model failure');
+  assert.equal(result.rows[0].weightedScore, 1);
+});
+
 test('an exhausted quota is an auth_failure and its note names the real cause', async () => {
   // The gemini CLI prints "Loaded cached credentials." before anything else, then reports the
   // real problem, then emits a JSON error envelope on stdout. Taking the first line and
