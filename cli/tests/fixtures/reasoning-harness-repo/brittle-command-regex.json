@@ -1,7 +1,7 @@
 {
   "id": "brittle-command-regex",
   "class": "evidence_trap",
-  "prompt": "An installer identifies which hook script a configured command runs, using:\n\n  command.match(/node\\s+\\.claude\\/hooks\\/(.+\\.cjs)/)\n\nThe commands it must handle are actually shipped in this shape:\n\n  bash -c 'h=.claude/hooks/runner.sh; s=.claude/hooks/trace.cjs; bash \"$h\" \"$s\"'\n\nDecide whether the pattern identifies the script correctly for the shipped shape.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "prompt": "An installer identifies which hook script a configured command runs, using:\n\n  command.match(/node\\s+\\.claude\\/hooks\\/(.+\\.cjs)/)\n\nThe commands it must handle are actually shipped in this shape:\n\n  bash -c 'h=.claude/hooks/runner.sh; s=.claude/hooks/trace.cjs; bash \"$h\" \"$s\"'\n\nDecide whether the pattern identifies the script correctly for the shipped shape. Name the token the pattern requires that the shipped command does not contain.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
   "allowed_tools": {
     "policy": "none",
     "allowed": [],
@@ -15,7 +15,7 @@
   },
   "expected_verdict": "fail",
   "decisive_evidence_keys": [
-    "mismatch_reason"
+    "absent_token"
   ],
   "hard_checks": [
     {
@@ -26,13 +26,13 @@
       "id": "evidence",
       "kind": "evidence_keys_present",
       "keys": [
-        "mismatch_reason"
+        "absent_token"
       ]
     },
     {
-      "id": "mismatch_reason",
+      "id": "absent_token",
       "kind": "evidence_value_contains",
-      "key": "mismatch_reason",
+      "key": "absent_token",
       "phrases": [
         "node"
       ]

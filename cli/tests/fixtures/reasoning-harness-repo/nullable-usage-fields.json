@@ -1,7 +1,7 @@
 {
   "id": "nullable-usage-fields",
   "class": "evidence_trap",
-  "prompt": "A benchmark records token counts and cost per call. Providers differ: some report both, some report token counts only, and a local one reports neither. The schema makes these fields nullable and the report prints 'n/a' when absent. A reviewer proposes defaulting them to 0 so averages always compute.\n\nCost figures are used to decide whether one configuration is cheaper than another.\n\nDecide whether nullable is the defect the reviewer says it is.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "prompt": "A benchmark records token counts and cost per call. Providers differ: some report both, some report token counts only, and a local one reports neither. The schema makes these fields nullable and the report prints 'n/a' when absent. A reviewer proposes defaulting them to 0 so averages always compute.\n\nCost figures are used to decide whether one configuration is cheaper than another. A provider that reports no cost would therefore appear to cost nothing, and would win that comparison without any measurement supporting it.\n\nDecide whether nullable is the defect the reviewer says it is. Name the value the proposal would put in place of an absent measurement.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
   "allowed_tools": {
     "policy": "none",
     "allowed": [],
@@ -15,7 +15,7 @@
   },
   "expected_verdict": "pass",
   "decisive_evidence_keys": [
-    "why_nullable"
+    "substituted_value"
   ],
   "hard_checks": [
     {
@@ -26,13 +26,13 @@
       "id": "evidence",
       "kind": "evidence_keys_present",
       "keys": [
-        "why_nullable"
+        "substituted_value"
       ]
     },
     {
-      "id": "why_nullable",
+      "id": "substituted_value",
       "kind": "evidence_value_contains",
-      "key": "why_nullable",
+      "key": "substituted_value",
       "phrases": [
         "0"
       ]

@@ -1,7 +1,7 @@
 {
   "id": "crlf-phantom-delta",
   "class": "evidence_trap",
-  "prompt": "A script reports how much a directory of text files has grown. For each file it counts the bytes of `git show HEAD:<path>` as the before value and the bytes of the working-tree file as the after value, then prints the percentage difference.\n\nOn a Windows checkout it reports the directory grew by 1 percent. `git status` reports no modified files in that directory, and the byte difference equals the number of lines in it.\n\nDecide whether this measurement is sound as a report of how much content the directory gained.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
+  "prompt": "A script reports how much a directory of text files has grown. For each file it counts the bytes of `git show HEAD:<path>` as the before value and the bytes of the working-tree file as the after value, then prints the percentage difference.\n\nOn a Windows checkout it reports the directory grew by 1 percent. `git status` reports no modified files in that directory, and the byte difference equals the number of lines in it.\n\nDecide whether this measurement is sound as a report of how much content the directory gained. Name the property of the files that differs between the two byte counts.\n\nVerdict convention: answer `pass` if the thing described is sound as it stands, and `fail` if it is defective. The verdict describes the thing under review, never any proposal mentioned about it.",
   "allowed_tools": {
     "policy": "none",
     "allowed": [],
@@ -15,7 +15,7 @@
   },
   "expected_verdict": "fail",
   "decisive_evidence_keys": [
-    "measurement_artifact"
+    "differing_property"
   ],
   "hard_checks": [
     {
@@ -26,13 +26,13 @@
       "id": "evidence",
       "kind": "evidence_keys_present",
       "keys": [
-        "measurement_artifact"
+        "differing_property"
       ]
     },
     {
-      "id": "measurement_artifact",
+      "id": "differing_property",
       "kind": "evidence_value_contains",
-      "key": "measurement_artifact",
+      "key": "differing_property",
       "phrases": [
         "line"
       ]
