@@ -118,23 +118,35 @@ async function execute(fixture: ReasoningFixture, req: ProviderExecution, deps: 
   const latencyMs = Math.max(0, now() - start);
   const fail = (status: RowStatus, note: string, outputBytes = 0): ProviderOutcome =>
     ({ status, finalAnswer: null, modelId: null, actualPolicy, usage: emptyUsage(), latencyMs, note, outputBytes });
+  /**
+   * Classify a failed call from the provider's streams plus its own out-of-band diagnostic,
+   * consulted only on failure — a parsed answer needs no explaining, and following a path the
+   * provider printed is worth doing only when something went wrong. A quota or auth refusal
+   * outranks the exit-code reading: it means the call never reached the model.
+   */
+  const failFromEvidence = (streams: string[], status: RowStatus, prefix: string, outputBytes = 0): ProviderOutcome => {
+    const extra = adapter.diagnose?.(res) ?? '';
+    const evidence = [...streams, extra].filter(Boolean).join('\n');
+    if (looksAuthFailure(evidence)) return fail('auth_failure', `provider auth or quota refusal: ${excerpt(extra || evidence)}`, outputBytes);
+    return fail(status, `${prefix}: ${excerpt(extra || evidence)}`, outputBytes);
+  };
   const raw = res.stdout.trim();
   const stderr = res.stderr.trim();
   if (res.error === 'tool_not_found' || res.error === 'blocked_in_tree') return fail('unavailable_cli', `provider CLI unavailable: ${excerpt(stderr)}`);
   if (res.error === 'spawn_failed') return fail('timeout', `provider execution failed or exceeded ${req.timeoutMs}ms: ${excerpt(stderr)}`);
-  if (!raw) return fail(looksAuthFailure(stderr) ? 'auth_failure' : (res.status ?? 0) !== 0 ? 'non_zero_exit' : 'empty_output', `provider produced no output: ${excerpt(stderr)}`);
+  // Empty stdout is where an exhausted quota actually lands, so the out-of-band diagnostic has
+  // to be consulted here too. Classifying from stderr alone filed 41 quota-refused rows as
+  // non_zero_exit while the report file named on that same stderr said the quota resets in 16h —
+  // the precise failure the diagnostic was added to prevent, surviving in the branch it skipped.
+  if (!raw) return failFromEvidence([stderr], (res.status ?? 0) !== 0 ? 'non_zero_exit' : 'empty_output', 'provider produced no output');
   if (Buffer.byteLength(raw, 'utf8') > MAX_OUTPUT_BYTES) return fail('truncation', `provider output exceeded ${MAX_OUTPUT_BYTES} bytes`, MAX_OUTPUT_BYTES);
   // Parse before classifying a refusal. A fixture about credentials or scope makes the model
   // legitimately write words like "unauthorized" or "api key" INTO its answer, so scanning raw
   // stdout ahead of the parse misread valid answers as quota refusals.
   const parsed = adapter.parse(raw);
   if (!parsed.answer) {
-    // Only now consult the adapter's out-of-band diagnostic: a parsed answer needs no explaining,
-    // and following a path the provider printed is worth doing only on failure.
-    const extra = adapter.diagnose?.(res) ?? '';
-    const evidence = [stderr, raw, extra].filter(Boolean).join('\n');
-    if (looksAuthFailure(evidence)) return fail('auth_failure', `provider auth or quota refusal: ${excerpt(extra || evidence)}`);
-    return fail((res.status ?? 0) === 0 ? 'parse_failure' : 'non_zero_exit', `provider exited ${res.status} without parseable final JSON: ${excerpt(extra || evidence)}`, Buffer.byteLength(raw, 'utf8'));
+    return failFromEvidence([stderr, raw], (res.status ?? 0) === 0 ? 'parse_failure' : 'non_zero_exit',
+      `provider exited ${res.status} without parseable final JSON`, Buffer.byteLength(raw, 'utf8'));
   }
   try { parseAnswer(parsed.answer, fixture.prompt); } catch (error) { return fail('parse_failure', String((error as Error).message), Buffer.byteLength(parsed.answer, 'utf8')); }
   const base = { finalAnswer: parsed.answer, modelId: parsed.modelId, actualPolicy, usage: parsed.usage, latencyMs, outputBytes: Buffer.byteLength(parsed.answer, 'utf8') };

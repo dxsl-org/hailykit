@@ -248,3 +248,26 @@ test('the model override lands in the requested model and changes run identity',
   assert.equal(resolveRequestedModel('ollama', 'fast', pinned.model), 'qwen2.5:3b');
   assert.notEqual(resolveRequestedModel('ollama', 'fast'), 'qwen2.5:3b');
 });
+
+test('a quota message hidden in a report file classifies even when stdout is empty', async () => {
+  // The case the previous test missed: on an exhausted quota the gemini CLI writes NOTHING to
+  // stdout, and the empty-stdout branch classified from stderr alone. 41 rows recorded
+  // non_zero_exit while the report file named on that same stderr said the quota resets in 16h.
+  const dir = oneFixtureDir();
+  const report = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'gemini-report-')), 'error.json');
+  fs.writeFileSync(report, JSON.stringify({
+    error: { message: '[object Object]' },
+    detail: { message: 'You have exhausted your capacity on this model. Your quota will reset after 16h5m33s.' },
+  }), 'utf8');
+  const result = await runReasoningEvals({
+    cwd: process.cwd(), fixtures: dir, out: path.join(dir, 'out.ndjson'), provider: 'gemini', tier: 'ultra', variant: 'none', repeats: 1, live: true, dryRun: false,
+  }, {
+    runner: () => ({
+      ok: false, status: 1, stdout: '',
+      stderr: `Loaded cached credentials.\nError when talking to Gemini API Full report available at: ${report}`,
+    }),
+  });
+  assert.equal(result.rows[0].status, 'auth_failure');
+  assert.match(result.rows[0].note ?? '', /16h5m33s/);
+  assert.equal(result.rows[0].baselineEligible, false);
+});
