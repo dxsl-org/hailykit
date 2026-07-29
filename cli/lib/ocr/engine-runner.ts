@@ -91,8 +91,8 @@ function parseProgressLine(line: string): ProgressEvent | undefined {
       return parsed as ProgressEvent;
     }
   } catch {
-    // Not JSON — tolerated as a plain log line (e.g. phase-1's `logging.info`
-    // chatter before phase 3 wires real NDJSON progress events).
+    // Not JSON — tolerated as a plain log line (the sync engine's `logging.info`
+    // chatter, emitted alongside the NDJSON progress events the batch path writes).
   }
   return undefined;
 }

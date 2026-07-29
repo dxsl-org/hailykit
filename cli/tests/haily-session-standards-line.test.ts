@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 
-// Regression coverage for phase-02 (standards-detection visibility, weak-model-lift
+// Regression coverage for standards-detection visibility (weak-model-lift
 // wave): when stack detection misses (unmapped language, unusual monorepo) a weak
 // model silently loses all standards scaffolding and nobody notices. haily-session.cjs
 // now emits a `standards: <list>` / `standards: none detected` segment gated on
@@ -40,7 +40,7 @@ function payload(sessionId: string): string {
 }
 
 function uniqueSessionId(label: string): string {
-  return `phase2-${label}-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `stdline-${label}-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 // haily-lib/session.cjs persists dedup/env state at this fixed path — clean it up

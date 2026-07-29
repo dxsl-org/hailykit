@@ -891,8 +891,8 @@ function buildFrameworkExtrasStandardsSection(extras, configDirName = '.claude')
  * Each entry maps a rule file to a regex tested against the raw user prompt text.
  *
  * Prompts naturally carry the slash text a user types (e.g. `/hc-review`), so
- * matching skill invocation is the same code path as keyword matching — no new
- * hook/event is needed (see phase-03 Design Decision, Option A).
+ * matching skill invocation is the same code path as keyword matching — no
+ * separate hook or event is needed to notice a skill being invoked.
  *
  * Slash-slug alternations use `(?<![\w./-])\/slug\b(?!\/)` instead of a plain
  * `\/slug\b`: the plain form false-positives on path mentions like
@@ -915,8 +915,10 @@ const CONTEXTUAL_TRIGGERS = [
   },
   {
     file: 'team-coordination-rules.md',
-    // NOTE: only needed inside Agent Team sessions
-    pattern: /\bteammate\b|\bagent.?team\b|\bSendMessage\b|\bTeam\b.*\bagent\b|(?<![\w./-])\/hl-team\b(?!\/)/i
+    // NOTE: only needed inside Agent Team sessions. Keyword-only on purpose — there is no
+    // team skill in the registry, so a slash-slug alternation here would match nothing a
+    // user can type. Add one only alongside a registered skill.
+    pattern: /\bteammate\b|\bagent.?team\b|\bSendMessage\b|\bTeam\b.*\bagent\b/i
   },
   {
     file: 'review-audit-self-decision.md',

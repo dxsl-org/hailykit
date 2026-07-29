@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-// Regression coverage for the loop-guard tripwire (phase-04 reward-hacking
+// Regression coverage for the loop-guard tripwire (reward-hacking
 // guards): while HL_LOOP_GUARD_ACTIVE=1 (set by hc-optimize/hc-goal around
 // their loop), haily-access.cjs must block Edit/Write/MultiEdit/NotebookEdit
 // targeting test/spec files or the regression-gate script, and must NOT

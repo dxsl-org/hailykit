@@ -98,7 +98,7 @@ const { formatBlockedError } = require('../haily-guard/error.cjs');
 const { loadConfig } = require('./config.cjs');
 
 // ═══════════════════════════════════════════════════════
-// LOOP-GUARD TRIPWIRE  (phase-04 req 2 — SECONDARY enforcement, audit-only)
+// LOOP-GUARD TRIPWIRE  (SECONDARY enforcement, audit-only)
 // ═══════════════════════════════════════════════════════
 // Set by hc-optimize (loop-protocol.md) / hc-goal (SKILL.md) around their
 // iteration/phase loop. HONEST LIMIT: the marker is agent-writable — a

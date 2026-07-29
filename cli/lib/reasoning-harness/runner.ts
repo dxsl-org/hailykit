@@ -91,8 +91,30 @@ function loadResumeState(finalPath: string, partialPath: string, manifest: Runne
   const src = fs.existsSync(partialPath) ? partialPath : fs.existsSync(finalPath) ? finalPath : null;
   if (!src) return [];
   const [storedManifest, ...rows] = parseNdjson(fs.readFileSync(src, 'utf8'));
-  if (storedManifest?.kind !== 'manifest' || storedManifest.manifestHash !== manifest.manifestHash) throw new Error('resume manifest hash mismatch');
+  if (storedManifest?.kind !== 'manifest') throw new Error(`${src}: first line is not a manifest, so no rows can be resumed`);
+  if (storedManifest.manifestHash !== manifest.manifestHash) throw new Error(`resume manifest hash mismatch — ${describeIdentityDrift(storedManifest, manifest)}`);
   return rows.filter((entry): entry is RunnerRow => entry.kind === 'row');
+}
+
+/**
+ * Name what actually changed between a stored manifest and the current one. A bare hash
+ * mismatch cost real debugging time: an artifact was unresumable because the identity
+ * definition itself had changed since it was written, and the message could not say so.
+ * Reports "identity definition changed" when every visible field still agrees, which is the
+ * signature of a seed field that was added or removed rather than a value that moved.
+ */
+function describeIdentityDrift(stored: RunnerManifest, current: RunnerManifest): string {
+  const fields = ['provider', 'tier', 'requestedModel', 'variant', 'repeats', 'fixtureHash', 'variantHash', 'promptDigest', 'executionMode', 'approvedOfflineSource'] as const;
+  const drift = fields
+    .filter((field) => stableStringify(stored[field]) !== stableStringify(current[field]))
+    .map((field) => `${field}: ${short(stored[field])} -> ${short(current[field])}`);
+  if (stored.expectedKeys.length !== current.expectedKeys.length) drift.push(`expectedKeys: ${stored.expectedKeys.length} -> ${current.expectedKeys.length} rows`);
+  return drift.length ? drift.join(', ') : 'every recorded field still matches, so the identity definition changed since this artifact was written — re-run it rather than resuming';
+}
+
+function short(value: unknown): string {
+  const text = typeof value === 'string' ? value : JSON.stringify(value) ?? 'null';
+  return text.length > 14 ? `${text.slice(0, 12)}…` : text;
 }
 
 function persistOutputs(finalPath: string, partialPath: string, artifacts: RunnerArtifacts): void {

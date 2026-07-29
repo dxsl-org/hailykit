@@ -177,24 +177,26 @@ const HARNESS_COMPRESSED =
  * running below the top tier: Outcome Floor → Ground → Split → Attack → Deliver.
  *
  * OFF BY DEFAULT — opt in with `haily.json` `reasoningHarness.enabled: true`.
- * The only measurement that exists says this text makes weak models *worse*: on the
- * Phase 3/4 eval fixtures an empty prelude scored 0.500 at both fast and medium while
- * this sequence scored 0.000 and 0.167
- * (`.agents/260726-1042-weak-model-reasoning-harness/reports/phase-04-measured-result.md`).
- * That evidence is narrow — 6 single-turn strict-JSON fixtures on qwen2.5 3b/7b, which is
- * not what real agents do — so the mechanism is kept and gated rather than deleted, and
- * anyone re-enabling it is expected to re-measure first.
+ * Every measurement taken so far says an empty prelude beats this text. On the eval
+ * fixtures under `cli/tests/fixtures/reasoning-harness-repo/`, no injected wording has
+ * ever outscored injecting nothing, at either weak tier, on local models or on the
+ * Claude models those tiers actually resolve to. The evidence is still narrow —
+ * single-turn strict-JSON questions, which is not what real agents do — so the mechanism
+ * is kept and gated rather than deleted, and anyone re-enabling it is expected to
+ * re-measure with `scripts/run-reasoning-evals.mjs` first.
  *
  * Empty, 'ultra', or any unrecognized HL_MODEL_TIER yields `[]`. Ultra already
  * reasons at max budget, and an unknown tier must no-op rather than guess.
  *
  * NOTE: the sequence deliberately prescribes no output shape — it defers to the
  * agent's own report contract. The wording it replaces did prescribe one ("end
- * with verdict + confidence"), and the Phase 3 baseline measured the cost: on
- * qwen2.5:7b it competed with the caller's required structure and drove the mean
- * score from 0.500 to 0.000, with failing outputs running 2,000–2,800 bytes of
- * prose against 200–450 for successes. Any future edit that reintroduces a
- * format instruction here must re-run that baseline first.
+ * with verdict + confidence"), and that clause was measured competing with the
+ * caller's required structure: on a local 7b model it drove the mean score from
+ * 0.500 to 0.000 with failing outputs running 2,000–2,800 bytes of prose against
+ * 200–450 for successes, and on Claude Sonnet it reached the answer schema as an
+ * unknown `summary_confidence` field that failed the parse outright. A prescribed
+ * format here corrupts the caller's contract regardless of model strength, so any
+ * edit reintroducing one must re-measure first.
  *
  * NOTE: `ultrathink` is a Claude-specific extended-thinking trigger, so it is
  * gated on the session model resolving to the Claude family — a non-Claude model

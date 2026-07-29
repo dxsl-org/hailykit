@@ -15,7 +15,7 @@ export function stripControlChars(s: string): string {
 }
 
 /** Render one status line for a `page` progress event; any other event type
- *  (or a non-JSON line — e.g. phase-1's `logging.info` chatter) passes
+ *  (or a non-JSON line — e.g. the engine's `logging.info` chatter) passes
  *  through unmodified since it's already human-readable text. */
 export function formatProgressLine(rawLine: string, evt?: ProgressEvent): string {
   if (!evt || evt.ev !== 'page') return rawLine;

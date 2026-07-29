@@ -5,11 +5,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-// Spawn-based coverage for the tool-call activity log hook (phase-02:
+// Spawn-based coverage for the tool-call activity log hook (
 // kit/hooks/haily-audit.cjs). Mirrors the harness pattern in
 // haily-access-loop-guard.test.ts: spawn the real .cjs so a wiring
 // regression fails a test, not a silent pass. Redaction negative-space is a
-// release gate (phase-03 §Security Considerations) — every secret pattern
+// release gate — every secret pattern
 // class must prove its value never reaches the log.
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
@@ -76,7 +76,7 @@ function auditPath(cwd: string): string {
 /**
  * Reader contract for the NDJSON log: one JSON.parse-able line per entry, but
  * a crash mid-write (no fsync) can leave a torn trailing line — any consumer
- * must skip it rather than throw. No dedicated reader ships in Phase 2 (the
+ * must skip it rather than throw. No dedicated reader ships yet (the
  * hook is write-only); this helper is the contract every future consumer
  * (and every other assertion below) relies on.
  */
@@ -485,6 +485,6 @@ test('timing: median hook invocation (no rotation) stays within a generous CI-sa
   durations.sort((a, b) => a - b);
   const median = durations[Math.floor(N / 2)];
   // Generous bound: cold Node spawn cost dominates, not hook logic — loose
-  // enough to avoid CI flake on slow/Windows runners (phase-03 §Risk Notes).
+  // enough to avoid CI flake on slow/Windows runners.
   assert.ok(median < 3000, `median hook invocation ${median}ms exceeds the generous 3000ms bound`);
 });

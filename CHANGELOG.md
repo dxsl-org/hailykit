@@ -11,6 +11,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - hooks: the Claude-specific `ultrathink` keyword is gated on the session model resolving to the Claude family — tier alone also matches non-Claude models, which were receiving it
 - cross-review: drop `-a never` from the `codex exec` argv. It is not a valid flag, so every codex review leg failed with `unexpected argument`
 - scripts: `measure-kit-overhead.mjs` normalizes line endings before comparing HEAD against the working tree, ending a phantom delta on untouched files in a Windows checkout
+- evals: variant identity covers only what the provider was shown. Hashing the human-readable `description` meant rewording a sentence changed the variant's identity, breaking resume for a change the model never saw
+- evals: a resume mismatch names the field that drifted (`variant: legacy -> none`) instead of reporting a bare hash mismatch, and says so explicitly when every recorded field still agrees — the signature of the identity definition itself having changed
+- hooks: the Agent Team contextual trigger no longer carries a slash-slug for a skill that is not in the registry, so it matches only text a user can actually type
 
 ### 🚀 Improvements
 

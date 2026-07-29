@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 
-// Regression coverage for phase-01 (injection-path repair): haily-rules.cjs used
+// Regression coverage for the injection-path repair: haily-rules.cjs used
 // to call buildReminderContext(sessionId, prompt, transcriptPath) — three
 // positional args — against context.cjs's options-object signature
 // ({ sessionId, config, staticEnv, configDirName, baseDir, prompt }). Every
@@ -53,7 +53,7 @@ function cleanupSession(sessionId: string): void {
 }
 
 function uniqueSessionId(label: string): string {
-  return `phase1-${label}-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `rulesinj-${label}-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 // Isolated project dir so config/contextual-rule lookups don't depend on this
