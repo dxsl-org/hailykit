@@ -23,7 +23,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### 🧪 Experimental
 
 - hooks: `haily.json` `reasoningHarness.enabled` (default `false`) gates the Outcome Floor → Ground → Split → Attack → Deliver sequence. Off by default and zero-cost at default: on the eval fixtures it scored *below* an empty prelude on weak models, so it is kept for further measurement rather than promoted. See `.agents/260726-1042-weak-model-reasoning-harness/reports/post-harness-eval-summary.md`
-- dev: opt-in reasoning-eval runner (`scripts/run-reasoning-evals.mjs`) with `codex`, `gemini`, and `ollama` adapters. Never runs in CI — requires an explicit `--live`, `--dry-run`, or `--offline-score`
+- dev: opt-in reasoning-eval runner (`scripts/run-reasoning-evals.mjs`) with `claude`, `codex`, `gemini`, and `ollama` adapters. Never runs in CI — requires an explicit `--live`, `--dry-run`, or `--offline-score`
+- dev: 41-fixture repo-derived pack, each question drawn from a defect this repository shipped or from code that reads as suspicious but is deliberate. `compareCells` refuses to summarize cells whose fixture or prompt identity differs, and reports statistical power per model
+- dev: the `claude` adapter is the only one that can measure the Claude-family `ultrathink` trigger, and the first to report real per-call cost. A `keyword-only` variant isolates the trigger from the reasoning wording it used to ship alongside
+- dev: an exhausted provider quota classifies as `auth_failure` naming its reset time, including when the provider writes nothing to stdout and hides the cause in a report file it names on stderr
 
 ## [1.14.11] (2026-07-24)
 

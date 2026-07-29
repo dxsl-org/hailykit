@@ -109,3 +109,37 @@ test('a single cell is not a comparison', () => {
   const dir = tmp();
   assert.throws(() => compareCells([cell(dir, 'a', {}, [1])]), /at least two cells/);
 });
+
+test('rates use measured rows, not attempted ones', () => {
+  const dir = tmp();
+  // Same four solved answers in both arms; the first arm additionally has two rows the provider
+  // never measured. Dividing by attempted rows would report 4/6 against 4/4 and hand back a power
+  // figure for a gap that does not exist.
+  const a = cell(dir, 'a', { variant: 'none' }, [1, 1, 1, 1, null, null]);
+  const b = cell(dir, 'b', { variant: 'full-injection' }, [1, 1, 1, 1]);
+  const result = compareCells([a, b]);
+  assert.deepEqual(result.cells.map((c) => c.measured), [4, 4]);
+  assert.deepEqual(result.cells.map((c) => c.rows), [6, 4]);
+  assert.equal(result.power[0].neededPerArm, null, 'identical measured rates mean there is no gap to power');
+});
+
+test('a cell that measured nothing is refused rather than scored zero', () => {
+  const dir = tmp();
+  // An exhausted quota or a cell that timed out on every row: solved is zero for reasons that
+  // have nothing to do with the model, and comparing it would publish that zero as a result.
+  const a = cell(dir, 'a', { variant: 'none' }, [1, 1, 0]);
+  const dead = cell(dir, 'dead', { variant: 'legacy' }, [null, null, null]);
+  assert.throws(() => compareCells([a, dead]), /measured no rows/);
+});
+
+test('median output length ignores rows the model never answered', () => {
+  const dir = tmp();
+  // The unmeasured row carries outputBytes 0 here and could carry an error envelope's bytes
+  // elsewhere. Either way it is not an answer, and letting it into this column makes an
+  // environment failure read as the model becoming terser.
+  const a = cell(dir, 'a', { variant: 'none' }, [1, 1, 1, null, null]);
+  const b = cell(dir, 'b', { variant: 'full-injection' }, [1, 1, 1]);
+  const [first, second] = compareCells([a, b]).cells;
+  assert.equal(first.medianOutputBytes, second.medianOutputBytes,
+    'three answered rows of the same sizes must give the same median regardless of unmeasured rows');
+});
