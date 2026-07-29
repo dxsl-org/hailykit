@@ -81,7 +81,7 @@ const VARIANTS: Record<HarnessVariant, VariantSpec> = {
     tier: 'fast',
     thinkSection: LEGACY_THINK,
     reasonSection: LEGACY_REASON,
-    description: 'Current pre-Phase4 legacy think/reason wording.',
+    description: 'The think/reason wording the hook shipped before the current sequence replaced it.',
   },
   // `legacy` carries the keyword and a reasoning instruction together, so a difference it
   // produces cannot be attributed to either. This isolates the keyword: nothing but the
@@ -106,14 +106,14 @@ const VARIANTS: Record<HarnessVariant, VariantSpec> = {
     tier: 'fast',
     thinkSection: '',
     reasonSection: shippedHarness('fast'),
-    description: 'Phase 4 Outcome Floor -> Ground -> Split -> Attack -> Deliver, full form.',
+    description: 'Outcome Floor -> Ground -> Split -> Attack -> Deliver, full form, read from the shipped hook.',
   },
   'proposed-compressed': {
     name: 'proposed-compressed',
     tier: 'thinking',
     thinkSection: '',
     reasonSection: shippedHarness('thinking'),
-    description: 'Phase 4 sequence, compressed form served to the thinking tier.',
+    description: 'The same sequence in the compressed form served to the thinking tier.',
   },
   'full-injection': {
     name: 'full-injection',
@@ -144,6 +144,15 @@ export function getVariant(name: HarnessVariant): VariantSpec {
   return VARIANTS[name];
 }
 
+/**
+ * Identity of what the model was actually shown, so two cells carrying the same hash received
+ * the same prelude at the same tier.
+ *
+ * NOTE: `description` is deliberately excluded. It is prose for a human reader that never
+ * reaches the model, so hashing it made an editorial reword change the variant's identity —
+ * breaking resume and making an old artifact's recorded hash unreproducible, for a change that
+ * altered nothing the model saw. Anything added here must be something the provider receives.
+ */
 export function variantHash(name: HarnessVariant): string {
   const variant = getVariant(name);
   return sha256(JSON.stringify({
@@ -151,7 +160,6 @@ export function variantHash(name: HarnessVariant): string {
     tier: variant.tier,
     thinkSection: variant.thinkSection,
     reasonSection: variant.reasonSection,
-    description: variant.description,
   }));
 }
 

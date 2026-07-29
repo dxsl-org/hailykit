@@ -7,7 +7,8 @@ import { fixtureDir, loadFixtures } from '../lib/reasoning-harness/fixtures';
 import { resolveRequestedModel } from '../lib/reasoning-harness/model';
 import { buildPromptBundle } from '../lib/reasoning-harness/provider';
 import { parseRunnerArgs, runReasoningEvals } from '../lib/reasoning-harness/runner';
-import { variantHash, variantPrelude } from '../lib/reasoning-harness/variants';
+import { getVariant, variantHash, variantPrelude } from '../lib/reasoning-harness/variants';
+import { sha256 } from '../lib/reasoning-harness/hash';
 
 function tmpDir(): string { return fs.mkdtempSync(path.join(os.tmpdir(), 'reasoning-runner-')); }
 function oneFixtureDir(fileName = 'framing-trap.json'): string {
@@ -203,4 +204,45 @@ test('keyword-only prelude carries the trigger and nothing else', () => {
   assert.match(variantPrelude('legacy'), /^ultrathink: /);
   assert.notEqual(variantHash('keyword-only'), variantHash('legacy'));
   assert.equal(variantPrelude('none'), '');
+});
+
+/**
+ * Variant identity must cover what the provider received and nothing else. Hashing the
+ * human-readable description meant rewording a sentence changed the hash, breaking resume and
+ * orphaning the provenance of artifacts already captured — a wording change scored as substance.
+ */
+test('variant identity ignores prose that never reaches the model', () => {
+  const spec = getVariant('legacy');
+  // The hash the current code produces, recomputed from the four fields that do reach the
+  // provider. A description reworded here must not disturb it.
+  const fromPreludeFields = sha256(JSON.stringify({
+    name: spec.name, tier: spec.tier, thinkSection: spec.thinkSection, reasonSection: spec.reasonSection,
+  }));
+  assert.equal(variantHash('legacy'), fromPreludeFields);
+  assert.notEqual(variantHash('legacy'), variantHash('none'), 'a different prelude must still change the hash');
+  assert.notEqual(variantHash('proposed'), variantHash('proposed-compressed'), 'a different tier must still change the hash');
+});
+
+test('a resume mismatch names the field that drifted', async () => {
+  const dir = oneFixtureDir();
+  const out = outPath(dir);
+  const base = { cwd: process.cwd(), fixtures: dir, out, provider: 'codex' as const, tier: 'fast' as const, variant: 'legacy' as const, repeats: 1, live: false, dryRun: true };
+  await runReasoningEvals(base);
+  // A bare "hash mismatch" sent a reader hunting through manifests by hand. The message must
+  // point at what moved — here the variant, which changes the prelude the model was shown.
+  await assert.rejects(() => runReasoningEvals({ ...base, variant: 'none' }), /variant: legacy -> none/);
+});
+
+test('a mismatch with no visible drift says the identity definition changed', async () => {
+  const dir = oneFixtureDir();
+  const out = outPath(dir);
+  const opts = { cwd: process.cwd(), fixtures: dir, out, provider: 'codex' as const, tier: 'fast' as const, variant: 'legacy' as const, repeats: 1, live: false, dryRun: true };
+  await runReasoningEvals(opts);
+  // Rewrite the stored hash only. Every recorded field still agrees, which is exactly what a
+  // seed field being added or removed looks like from the artifact's side.
+  const lines = fs.readFileSync(out, 'utf8').trim().split('\n');
+  const manifest = JSON.parse(lines[0]) as Record<string, unknown>;
+  manifest.manifestHash = 'stale-identity-definition';
+  fs.writeFileSync(out, [JSON.stringify(manifest), ...lines.slice(1)].join('\n') + '\n', 'utf8');
+  await assert.rejects(() => runReasoningEvals(opts), /identity definition changed since this artifact was written/);
 });
