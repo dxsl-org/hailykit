@@ -34,6 +34,14 @@ export interface ProviderAdapter {
   enforcedPolicy(requested: ToolPolicyName): ToolPolicyName;
   run(req: ProviderExecution): ToolResult | Promise<ToolResult>;
   parse(stdout: string): ParsedOutput;
+  /**
+   * Extra failure text a CLI kept out of its own streams. Optional, and only consulted when no
+   * answer could be parsed. Exists because the gemini CLI prints `"[object Object]"` as its
+   * error message and writes the real one — "you have exhausted your capacity, quota resets in
+   * 21h" — to a separate report file, so an exhausted quota was twice recorded as an opaque
+   * non-zero exit.
+   */
+  diagnose?(res: ToolResult): string | null;
 }
 
 const ADAPTERS: Record<EvalProvider, ProviderAdapter> = {

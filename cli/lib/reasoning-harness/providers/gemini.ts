@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { runTool, type ToolResult } from '../../spawn';
 import type { ToolPolicyName } from '../types';
 import { asRecord, emptyUsage, extractAnswer, numberField, safeJson } from './answer-json';
@@ -54,4 +56,30 @@ function stripPreamble(stdout: string): string {
   return start === -1 ? stdout : stdout.slice(start);
 }
 
-export const geminiAdapter: ProviderAdapter = { id: 'gemini', enforcedPolicy, run, parse };
+const MAX_REPORT_BYTES = 256 * 1024;
+
+/**
+ * Recover the real failure text. On error the CLI emits `"message": "[object Object]"` and prints
+ * `Full report available at: <path>.json`, with the actual cause only inside that file — which is
+ * how an exhausted quota reached an artifact as an unexplained non-zero exit.
+ *
+ * Only an absolute `.json` path is followed, only up to a size cap, and only the first useful
+ * `message` string is returned. The caller passes whatever comes back through the same secret
+ * scan as any other persisted note.
+ */
+function diagnose(res: ToolResult): string | null {
+  const match = /Full report available at:\s*(\S+\.json)/i.exec(`${res.stderr}\n${res.stdout}`);
+  const file = match?.[1];
+  if (!file || !path.isAbsolute(file)) return null;
+  try {
+    if (fs.statSync(file).size > MAX_REPORT_BYTES) return null;
+    const raw = fs.readFileSync(file, 'utf8');
+    for (const hit of raw.match(/"message"\s*:\s*"([^"]{1,300})"/g) ?? []) {
+      const text = /"message"\s*:\s*"([^"]{1,300})"/.exec(hit)?.[1];
+      if (text && text !== '[object Object]') return text;
+    }
+  } catch { /* the report is a courtesy, not a contract */ }
+  return null;
+}
+
+export const geminiAdapter: ProviderAdapter = { id: 'gemini', enforcedPolicy, run, parse, diagnose };

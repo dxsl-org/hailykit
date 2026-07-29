@@ -164,6 +164,45 @@ test('an exhausted quota is an auth_failure and its note names the real cause', 
   assert.equal(result.rows[0].baselineEligible, false);
 });
 
+test('a quota message hidden in a report file still classifies as auth_failure', async () => {
+  // The gemini CLI puts "[object Object]" in its own error message and writes the real cause to a
+  // separate report file it names on stderr. Twice, that recorded an exhausted quota as an opaque
+  // non-zero exit — a run nobody could diagnose from the artifact alone.
+  const dir = oneFixtureDir();
+  // Outside the fixture directory: anything ending in .json there is loaded as a question.
+  const report = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'gemini-report-')), 'error.json');
+  fs.writeFileSync(report, JSON.stringify({
+    error: { message: '[object Object]' },
+    detail: { message: 'You have exhausted your capacity on this model. Your quota will reset after 21h29m45s.' },
+  }), 'utf8');
+  const result = await runReasoningEvals({
+    cwd: process.cwd(), fixtures: dir, out: path.join(dir, 'out.ndjson'), provider: 'gemini', tier: 'ultra', variant: 'none', repeats: 1, live: true, dryRun: false,
+  }, {
+    runner: () => ({
+      ok: false, status: 1,
+      stdout: '{"session_id":"x","error":{"type":"Error","message":"[object Object]","code":1}}',
+      stderr: `Loaded cached credentials.\nError when talking to Gemini API Full report available at: ${report}`,
+    }),
+  });
+  assert.equal(result.rows[0].status, 'auth_failure');
+  assert.match(result.rows[0].note ?? '', /exhausted your capacity/);
+  assert.equal(result.rows[0].baselineEligible, false);
+});
+
+test('a report path that is relative or oversized is ignored rather than followed', async () => {
+  const dir = oneFixtureDir();
+  const result = await runReasoningEvals({
+    cwd: process.cwd(), fixtures: dir, out: path.join(dir, 'out.ndjson'), provider: 'gemini', tier: 'ultra', variant: 'none', repeats: 1, live: true, dryRun: false,
+  }, {
+    runner: () => ({
+      ok: false, status: 1, stdout: '{"error":{"message":"[object Object]"}}',
+      stderr: 'Full report available at: ./sneaky/relative.json',
+    }),
+  });
+  // No diagnostic to add, so it stays a non-zero exit rather than following a relative path.
+  assert.equal(result.rows[0].status, 'non_zero_exit');
+});
+
 test('resume retries an environment failure instead of baking it in as a measurement', async () => {
   const dir = oneFixtureDir();
   const out = path.join(dir, 'out.ndjson');

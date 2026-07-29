@@ -62,6 +62,30 @@ test('mode and offline-source identity are part of the immutable resume hash', a
   }), /resume manifest hash mismatch/);
 });
 
+test('a commit landing mid-run does not strand the partial artifact', async () => {
+  // commitSha used to sit in the resume identity, so any commit between two invocations threw
+  // `resume manifest hash mismatch` and discarded completed rows — it cost a finished 33-row
+  // measurement once. Identity now covers only what affects a score.
+  const dir = oneFixtureDir();
+  const out = outPath(dir);
+  const opts = {
+    cwd: process.cwd(), fixtures: dir, out, provider: 'ollama' as const, tier: 'fast' as const,
+    variant: 'none' as const, repeats: 1, live: true, dryRun: false, model: 'qwen2.5:3b',
+  };
+  const answer = '{"verdict":"fail","summary":"credentials are out of scope","evidence":{"scope_boundary":"credentials request is out of scope"},"escalation":{"requested":false,"justification":null},"rollback":{"required":false,"scope":[]}}';
+  const ok = { ok: true, status: 0, stdout: JSON.stringify({ model: 'qwen2.5:3b', response: answer }), stderr: '' };
+
+  const first = await runReasoningEvals(opts, { runner: () => ok });
+  assert.equal(first.rows[0].status, 'success');
+
+  // Same fixtures, same variant, different repo HEAD — resume must reuse the measured row.
+  let calls = 0;
+  const resumed = await runReasoningEvals({ ...opts, cwd: fs.mkdtempSync(path.join(os.tmpdir(), 'other-head-')) },
+    { runner: () => { calls++; return ok; } });
+  assert.equal(calls, 0, 'a measured row must survive a commit');
+  assert.equal(resumed.rows[0].status, 'success');
+});
+
 test('approved offline provenance can be baseline-eligible when model and policy match', async () => {
   const dir = oneFixtureDir();
   const out = outPath(dir);

@@ -68,8 +68,14 @@ function createManifest(opts: RunnerOptions, fixtures: ReasoningFixture[]): Runn
   const offlineSourceHash = opts.offlineScorePath ? sha256(`${path.resolve(opts.offlineScorePath)}:${sha256(fs.readFileSync(opts.offlineScorePath, 'utf8'))}`) : null;
   const expectedKeys = fixtures.flatMap((fixture) => Array.from({ length: opts.repeats }, (_, i) => `${fixture.id}#${i + 1}`));
   const promptDigest = sha256(promptTemplateHash(fixtures));
-  const seed = { provider: opts.provider, tier: opts.tier, requestedModel, variant: opts.variant, repeats: opts.repeats, fixtureHash, variantDigest, promptDigest, expectedKeys, executionMode, offlineSourceHash, approvedOfflineSource: opts.approvedOfflineSource ?? null, commitSha: gitSha(opts.cwd) };
-  return { v: 1, kind: 'manifest', provider: opts.provider, tier: opts.tier, requestedModel, variant: opts.variant, repeats: opts.repeats, commitSha: seed.commitSha, fixtureDir: opts.fixtures, fixtureIds: fixtures.map((fixture) => fixture.id), fixtureHash, variantHash: variantDigest, promptDigest, manifestHash: sha256(stableStringify(seed)), expectedKeys, createdAt: new Date().toISOString(), executionMode, offlineSourceHash, approvedOfflineSource: opts.approvedOfflineSource ?? null, live: opts.live, dryRun: opts.dryRun, offlineScorePath: opts.offlineScorePath ?? null };
+  // Identity is only what makes two rows comparable. `commitSha` is provenance, not identity:
+  // including it meant any commit landing mid-run stranded the partial artifact, which cost a
+  // completed 33-row measurement once. Every input that affects a score — questions, prompt
+  // template, variant text, model, execution mode, score source — is hashed here, and each row
+  // still carries its own commitSha so an artifact spanning commits stays visible.
+  const commitSha = gitSha(opts.cwd);
+  const seed = { provider: opts.provider, tier: opts.tier, requestedModel, variant: opts.variant, repeats: opts.repeats, fixtureHash, variantDigest, promptDigest, expectedKeys, executionMode, offlineSourceHash, approvedOfflineSource: opts.approvedOfflineSource ?? null };
+  return { v: 1, kind: 'manifest', provider: opts.provider, tier: opts.tier, requestedModel, variant: opts.variant, repeats: opts.repeats, commitSha, fixtureDir: opts.fixtures, fixtureIds: fixtures.map((fixture) => fixture.id), fixtureHash, variantHash: variantDigest, promptDigest, manifestHash: sha256(stableStringify(seed)), expectedKeys, createdAt: new Date().toISOString(), executionMode, offlineSourceHash, approvedOfflineSource: opts.approvedOfflineSource ?? null, live: opts.live, dryRun: opts.dryRun, offlineScorePath: opts.offlineScorePath ?? null };
 }
 
 async function resolveOutcome(key: string, fixture: ReasoningFixture, repeat: number, prompt: PromptBundle, manifest: RunnerManifest, opts: RunnerOptions, offlineMap: Map<string, OfflineScoreEntry>, deps: LiveProviderDeps) {

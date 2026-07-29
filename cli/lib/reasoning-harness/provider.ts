@@ -129,8 +129,12 @@ async function execute(fixture: ReasoningFixture, req: ProviderExecution, deps: 
   // stdout ahead of the parse misread valid answers as quota refusals.
   const parsed = adapter.parse(raw);
   if (!parsed.answer) {
-    if (looksAuthFailure(`${stderr}\n${raw}`)) return fail('auth_failure', `provider auth or quota refusal: ${excerpt(stderr || raw)}`);
-    return fail((res.status ?? 0) === 0 ? 'parse_failure' : 'non_zero_exit', `provider exited ${res.status} without parseable final JSON`, Buffer.byteLength(raw, 'utf8'));
+    // Only now consult the adapter's out-of-band diagnostic: a parsed answer needs no explaining,
+    // and following a path the provider printed is worth doing only on failure.
+    const extra = adapter.diagnose?.(res) ?? '';
+    const evidence = [stderr, raw, extra].filter(Boolean).join('\n');
+    if (looksAuthFailure(evidence)) return fail('auth_failure', `provider auth or quota refusal: ${excerpt(extra || evidence)}`);
+    return fail((res.status ?? 0) === 0 ? 'parse_failure' : 'non_zero_exit', `provider exited ${res.status} without parseable final JSON: ${excerpt(extra || evidence)}`, Buffer.byteLength(raw, 'utf8'));
   }
   try { parseAnswer(parsed.answer, fixture.prompt); } catch (error) { return fail('parse_failure', String((error as Error).message), Buffer.byteLength(parsed.answer, 'utf8')); }
   const base = { finalAnswer: parsed.answer, modelId: parsed.modelId, actualPolicy, usage: parsed.usage, latencyMs, outputBytes: Buffer.byteLength(parsed.answer, 'utf8') };
