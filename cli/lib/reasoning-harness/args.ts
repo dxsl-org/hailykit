@@ -9,7 +9,7 @@ export function parseRunnerArgs(argv: string[]): RunnerOptions {
     cwd: process.cwd(),
     fixtures: path.resolve(strArg(map.fixtures) ?? path.join('cli', 'tests', 'fixtures', 'reasoning-harness')),
     out: path.resolve(req(strArg(map.out), '--out is required')),
-    provider: reqEnum(strArg(map.provider) ?? 'codex', ['codex', 'gemini', 'ollama']),
+    provider: reqEnum(strArg(map.provider) ?? 'codex', ['claude', 'codex', 'gemini', 'ollama']),
     tier: reqEnum(strArg(map.tier) ?? getVariant(variant).tier, ['fast', 'medium', 'thinking', 'ultra']),
     variant,
     repeats: toInt(strArg(map.repeats) ?? '5', '--repeats'),

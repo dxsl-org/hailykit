@@ -1,5 +1,6 @@
 import type { ToolResult } from '../../spawn';
 import type { EvalProvider, EvalUsage, ToolPolicyName } from '../types';
+import { claudeAdapter } from './claude';
 import { codexAdapter } from './codex';
 import { geminiAdapter } from './gemini';
 import { ollamaAdapter } from './ollama';
@@ -45,6 +46,7 @@ export interface ProviderAdapter {
 }
 
 const ADAPTERS: Record<EvalProvider, ProviderAdapter> = {
+  claude: claudeAdapter,
   codex: codexAdapter,
   gemini: geminiAdapter,
   ollama: ollamaAdapter,
