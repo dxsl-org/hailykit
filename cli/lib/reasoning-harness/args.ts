@@ -4,7 +4,7 @@ import type { RunnerOptions } from './types';
 
 export function parseRunnerArgs(argv: string[]): RunnerOptions {
   const map = readArgs(argv);
-  const variant = reqEnum(strArg(map.variant) ?? 'legacy', ['none', 'legacy', 'ultra-baseline', 'proposed', 'proposed-compressed', 'full-injection', 'econ-only', 'full-minus-econ']);
+  const variant = reqEnum(strArg(map.variant) ?? 'legacy', ['none', 'legacy', 'keyword-only', 'ultra-baseline', 'proposed', 'proposed-compressed', 'full-injection', 'econ-only', 'full-minus-econ']);
   return {
     cwd: process.cwd(),
     fixtures: path.resolve(strArg(map.fixtures) ?? path.join('cli', 'tests', 'fixtures', 'reasoning-harness')),

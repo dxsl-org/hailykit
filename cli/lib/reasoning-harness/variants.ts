@@ -83,6 +83,17 @@ const VARIANTS: Record<HarnessVariant, VariantSpec> = {
     reasonSection: LEGACY_REASON,
     description: 'Current pre-Phase4 legacy think/reason wording.',
   },
+  // `legacy` carries the keyword and a reasoning instruction together, so a difference it
+  // produces cannot be attributed to either. This isolates the keyword: nothing but the
+  // trigger, no reasoning wording at all. Only the Claude family acts on it, so a cell run
+  // on any other provider measures a stray word.
+  'keyword-only': {
+    name: 'keyword-only',
+    tier: 'fast',
+    thinkSection: 'ultrathink',
+    reasonSection: '',
+    description: 'The ultrathink trigger alone, with no reasoning instruction attached.',
+  },
   'ultra-baseline': {
     name: 'ultra-baseline',
     tier: 'ultra',

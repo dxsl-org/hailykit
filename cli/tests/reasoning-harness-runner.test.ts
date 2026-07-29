@@ -7,6 +7,7 @@ import { fixtureDir, loadFixtures } from '../lib/reasoning-harness/fixtures';
 import { resolveRequestedModel } from '../lib/reasoning-harness/model';
 import { buildPromptBundle } from '../lib/reasoning-harness/provider';
 import { parseRunnerArgs, runReasoningEvals } from '../lib/reasoning-harness/runner';
+import { variantHash, variantPrelude } from '../lib/reasoning-harness/variants';
 
 function tmpDir(): string { return fs.mkdtempSync(path.join(os.tmpdir(), 'reasoning-runner-')); }
 function oneFixtureDir(fileName = 'framing-trap.json'): string {
@@ -190,4 +191,16 @@ test('protected prompt content and repeated trust phrases are rejected before pe
   });
   assert.equal(result.rows[0].status, 'scan_rejected');
   assert.equal(result.rows[0].baselineEligible, false);
+});
+
+/**
+ * The keyword-only variant exists to separate the `ultrathink` trigger from any reasoning
+ * wording. Appending an instruction to it would silently restore the confound the variant
+ * was added to remove, and the resulting cell would still be labelled `keyword-only`.
+ */
+test('keyword-only prelude carries the trigger and nothing else', () => {
+  assert.equal(variantPrelude('keyword-only'), 'ultrathink');
+  assert.match(variantPrelude('legacy'), /^ultrathink: /);
+  assert.notEqual(variantHash('keyword-only'), variantHash('legacy'));
+  assert.equal(variantPrelude('none'), '');
 });

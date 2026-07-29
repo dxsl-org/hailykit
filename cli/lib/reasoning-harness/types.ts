@@ -74,7 +74,7 @@ export interface EvaluationResult {
   failedChecks: string[];
 }
 
-export type HarnessVariant = 'none' | 'legacy' | 'ultra-baseline' | 'proposed' | 'proposed-compressed' | 'full-injection' | 'econ-only' | 'full-minus-econ';
+export type HarnessVariant = 'none' | 'legacy' | 'keyword-only' | 'ultra-baseline' | 'proposed' | 'proposed-compressed' | 'full-injection' | 'econ-only' | 'full-minus-econ';
 export type EvalProvider = 'claude' | 'codex' | 'gemini' | 'ollama';
 export type EvalTier = 'fast' | 'medium' | 'thinking' | 'ultra';
 export type RowStatus =
