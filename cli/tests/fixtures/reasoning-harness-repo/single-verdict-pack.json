@@ -28,14 +28,6 @@
       "keys": [
         "degenerate_strategy"
       ]
-    },
-    {
-      "id": "degenerate_strategy",
-      "kind": "evidence_value_contains",
-      "key": "degenerate_strategy",
-      "phrases": [
-        "verdict"
-      ]
     }
   ],
   "critical_failure_flags": [

@@ -13,6 +13,8 @@ export interface RunnerManifest {
   fixtureIds: string[];
   fixtureHash: string;
   variantHash: string;
+  /** Identity of the prompt template. Scores are comparable only within one value. */
+  promptDigest: string;
   manifestHash: string;
   expectedKeys: string[];
   createdAt: string;

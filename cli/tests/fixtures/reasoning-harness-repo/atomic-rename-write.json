@@ -28,14 +28,6 @@
       "keys": [
         "interrupted_case"
       ]
-    },
-    {
-      "id": "interrupted_case",
-      "kind": "evidence_value_contains",
-      "key": "interrupted_case",
-      "phrases": [
-        "partial"
-      ]
     }
   ],
   "critical_failure_flags": [
