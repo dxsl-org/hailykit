@@ -57,7 +57,7 @@ try {
     const cwd = data.cwd || process.cwd();
 
     // ── Check 0: Loop-guard tripwire (env-gated, audit-only) ─────────────────
-    // SECONDARY enforcement (phase-04 req 2) — active only when HL_LOOP_GUARD_ACTIVE=1
+    // SECONDARY enforcement — active only when HL_LOOP_GUARD_ACTIVE=1
     // (set by hc-optimize/hc-goal around their loop). The marker is agent-writable,
     // so this is a tripwire + audit log, not un-bypassable enforcement; the
     // regression-gate test-name-set shrinkage check is the PRIMARY guard and

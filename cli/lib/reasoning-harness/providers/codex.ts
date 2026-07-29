@@ -6,8 +6,11 @@ import type { ParsedOutput, ProviderAdapter, ProviderExecution } from './index';
 /**
  * Codex has no no-tool sandbox mode — `-s` accepts only read-only, workspace-write,
  * and danger-full-access. A `none` row is therefore enforced by rooting the read-only
- * sandbox at an empty directory outside the repo. Verified for the gemini CLI, still
- * unverified here: see the Phase 3 fix-round report's open-risk note.
+ * sandbox at an empty directory outside the repo.
+ *
+ * NOTE: the equivalent claim was probed directly on the gemini CLI (a read of a repo path came
+ * back denied) but never on codex, so codex `none` rows rest on the sandbox flag behaving as
+ * documented rather than on an observation.
  */
 function enforcedPolicy(requested: ToolPolicyName): ToolPolicyName {
   return requested === 'none' ? 'none' : 'read_only';

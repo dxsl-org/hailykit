@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { migrateSettings } from '../installer/merger';
 
-// Covers the Phase 2 installer migration that injects haily-audit.cjs into
+// Covers the installer migration that injects haily-audit.cjs into
 // upgraded (protected) settings.json — a plain `execFileSync`-on-cjs hook test
 // cannot see this, since it never touches settings.json at all. Fixtures pin
 // tracer/statusline as already migrated so only the audit-trail path is under

@@ -45,21 +45,21 @@ export interface OcrJobConfig {
   max_tier?: 'local' | 'flash' | 'pro';
   ocr_lang?: string[];
   long_edge_min?: number;
-  /** Gemini requests-per-minute throttle (consumed by phase 2's client). */
+  /** Gemini requests-per-minute throttle (consumed by the Gemini client). */
   rpm?: number;
   /** Named VLM adapters a tier can be routed to (see `OcrProviderEntry`). */
   providers?: Record<string, OcrProviderEntry>;
   /** Which named `providers` entry each tier resolves to (see `OcrTierProvider`). */
   tier_provider?: OcrTierProvider;
-  /** Forward-compat no-op today (phase 1 engine ignores unknown keys and
-   *  already resumes naturally from an existing manifest); phase 3's batch
-   *  runner reads this to decide retry-vs-skip semantics explicitly. */
+  /** Forward-compat no-op today (the sync engine ignores unknown keys and
+   *  already resumes naturally from an existing manifest); the batch runner
+   *  reads this to decide retry-vs-skip semantics explicitly. */
   resume?: boolean;
-  /** Phase 6: submit flagged pages as async Gemini Batch jobs (50% cost)
+  /** Submit flagged pages as async Gemini Batch jobs (50% cost)
    *  instead of calling flash/pro synchronously. Mutually exclusive with the
    *  sync escalation path per run — this flag wins when both could apply. */
   batch_api?: boolean;
-  /** Phase 6: poll/collect outstanding batch jobs for this input/output
+  /** Poll/collect outstanding batch jobs for this input/output
    *  instead of running the local+escalation pipeline at all. */
   collect?: boolean;
 }
@@ -139,7 +139,7 @@ export interface ManifestTotals {
   by_tier: { local: number; flash: number; pro: number };
 }
 
-/** One `manifest.batch_jobs[]` entry (phase 6, additive v1 field — see
+/** One `manifest.batch_jobs[]` entry (additive v1 field — see
  *  `manifest.py`'s `add_batch_job`/`update_batch_job`). `state` starts at
  *  `"submitted"`, moves to `"running"` while polling, and ends at
  *  `"collected"` (written) or `"failed"`/`"expired"` (pages returned to
@@ -167,8 +167,8 @@ export interface ManifestSummary {
   job: ManifestJobRecord;
   totals: ManifestTotals;
   pages: ManifestPage[];
-  /** Additive phase-6 field — absent on a manifest written before this
-   *  phase; always guard with `?? []`, never assume presence. */
+  /** Additive field — absent on any manifest written before batch jobs
+   *  existed; always guard with `?? []`, never assume presence. */
   batch_jobs?: ManifestBatchJob[];
 }
 
@@ -176,7 +176,7 @@ export interface ManifestSummary {
  *  `batch_collect.py`, `json.dumps` only — never hand-formatted). Optional
  *  fields beyond `ev` reflect that most event payloads aren't fully locked —
  *  treat anything past `ev` as best-effort data, never as a filesystem path
- *  or a format to parse further. Phase 6 adds `batch_submitted` (a job was
+ *  or a format to parse further. The batch path adds `batch_submitted` (a job was
  *  submitted), `batch_state` (poll result: running/failed/expired), and
  *  `batch_collected` (one page written from a completed job). */
 export interface ProgressEvent {

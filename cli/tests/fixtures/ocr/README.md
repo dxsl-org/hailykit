@@ -1,6 +1,6 @@
 # OCR fixtures
 
-Used by `cli/tools/ocr/` smoke tests (phase-01) and later VLM-escalation /
+Used by `cli/tools/ocr/` smoke tests and later VLM-escalation /
 batch-runner tests (phases 2-3).
 
 ## Present
@@ -25,7 +25,7 @@ batch-runner tests (phases 2-3).
   raw PDF syntax cannot produce authentic multi-column layout or table
   structure docling would recognize, and faking one would produce a
   misleading fixture rather than a useful one. Needed to validate the
-  phase-01 plan's Assumption #4 (per-page Markdown slicing preserves reading
+  the assumption that per-page Markdown slicing preserves reading
   order; page-spanning tables assign to their starting page) once docling is
   installed — see `cli/tools/ocr/local_tier.py` `page_markdown()`.
 - **Fixture with equations** for the formula-detection assumption (plan

@@ -4,8 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
 
-// Regression coverage for the path-doubling bug flagged in phase-01's Deviation Log
-// (.agents/260713-0257-weak-model-lift-fixes/phase-01-injection-path-repair.md):
+// Regression coverage for the path-doubling bug in plan-path injection:
 // buildReminderContext's Paths/Plan Context sections unconditionally joined baseDir
 // onto planCtx.reportsPath, but getReportsPath/resolvePlanPath already build
 // reportsPath as an absolute path (derived from process.cwd() or the resolved

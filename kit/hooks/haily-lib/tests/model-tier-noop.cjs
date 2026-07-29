@@ -81,7 +81,7 @@ test('ultrathink is added only when the session model is Claude family', () => {
   assert.ok(!other.includes('ultrathink'));
   assert.ok(!unknown.includes('ultrathink'));
 });
-test('the harness prescribes no output format (Phase 3 baseline regression)', () => {
+test('the harness prescribes no output format', () => {
   for (const tier of ['thinking', 'medium', 'fast']) {
     const text = buildReasoningHarness({ HL_MODEL_TIER: tier }, ON).join('\n').toLowerCase();
     assert.ok(!text.includes('confidence (high'), `tier ${tier} reintroduced a confidence format`);

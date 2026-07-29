@@ -5,11 +5,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 
-// Regression coverage for phase-03 (skill-triggered contextual rules, weak-model-lift
+// Regression coverage for skill-triggered contextual rules (weak-model-lift
 // wave): CONTEXTUAL_TRIGGERS in context.cjs used to match prompt keywords only, and
 // referenced three rule files (orchestration-protocol.md, team-coordination-rules.md,
 // review-audit-self-decision.md) that were never ported into kit/ — nothing installed,
-// so the feature injected nothing even after the injection-path repair in phase-01.
+// so the feature injected nothing even after the injection path itself was repaired.
 // This suite verifies: (1) the ported files exist and are real content, (2) typing a
 // skill slug (e.g. "/hc-review") triggers the same injection as a keyword, (3) a
 // single trigger entry whose pattern matches twice in one prompt still injects its
@@ -60,7 +60,7 @@ function cleanupSession(sessionId: string): void {
 }
 
 function uniqueSessionId(label: string): string {
-  return `phase3-${label}-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `ctxtrig-${label}-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 // Isolated project dir with real contextual files copied from kit/, mirroring what
