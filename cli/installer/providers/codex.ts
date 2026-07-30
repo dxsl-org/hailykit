@@ -54,29 +54,45 @@ function isCodexManagedSkillDir(skillDir: string): boolean {
   }
 }
 
-function isLegacyHailyKitSkillDir(skillDir: string, canonicalNames: Set<string>): boolean {
+function isLegacyHailyKitSkillDir(skillDir: string): boolean {
   try {
     const parsed = parseFrontmatter(
       fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf8'));
     if (parsed.metadata.author === 'HailyKit') return true;
-    const rawName = parsed.frontmatter.name ?? '';
+    // NOTE: colon-form names under HailyKit's historical prefixes (ha/hc/hd/hi/hl/hm/hs)
+    // existed only in pre-rename installs — Codex's own name constraint (^[a-z0-9-]+$)
+    // forbids them, so none can be user-authored. Ported skills carry a third-party
+    // author, and renamed/deleted skills have no canonical counterpart, so neither
+    // author nor a current-catalog lookup can identify them; the name form alone can.
     const separator = String.fromCharCode(58);
-    return rawName.includes(separator) &&
-      canonicalNames.has(rawName.replace(separator, '-')) &&
-      canonicalNames.has(path.basename(skillDir));
+    return new RegExp(`^h(a|c|d|i|l|m|s)${separator}`).test(parsed.frontmatter.name ?? '');
   } catch {
     return false;
   }
 }
 
-function removeLegacySkillDirs(skillsRoot: string, canonicalNames: Set<string>): number {
+function removeLegacySkillDirs(skillsRoot: string): number {
   if (!fs.existsSync(skillsRoot)) return 0;
   let removed = 0;
   for (const entry of fs.readdirSync(skillsRoot, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     const skillDir = path.join(skillsRoot, entry.name);
-    if (!isLegacyHailyKitSkillDir(skillDir, canonicalNames)) continue;
+    if (!isLegacyHailyKitSkillDir(skillDir)) continue;
     fs.rmSync(skillDir, { recursive: true, force: true });
+    removed++;
+  }
+  return removed;
+}
+
+/** Pre-full-dir installs generated these single-file digests in ~/.codex/;
+ * nothing regenerates them anymore, and their colon-form skill lists actively
+ * mislead the model. Returns how many existed and were removed. */
+function removeLegacyGeneratedFiles(providerDir: string): number {
+  let removed = 0;
+  for (const legacyFile of ['hailykit-skills.md', 'hailykit-rules.md']) {
+    const filePath = path.join(providerDir, legacyFile);
+    if (!fs.existsSync(filePath)) continue;
+    fs.rmSync(filePath, { force: true });
     removed++;
   }
   return removed;
@@ -163,8 +179,8 @@ export class CodexProvider extends BaseProvider {
     return path.join(path.dirname(path.resolve(providerDir)), '.agents', 'skills');
   }
 
-  private _removeLegacySkills(providerDir: string, canonicalNames: Set<string>): number {
-    return removeLegacySkillDirs(path.join(providerDir, 'skills'), canonicalNames);
+  private _removeLegacySkills(providerDir: string): number {
+    return removeLegacySkillDirs(path.join(providerDir, 'skills'));
   }
 
   // ── Skills ────────────────────────────────────────────────────────────────
@@ -185,6 +201,17 @@ export class CodexProvider extends BaseProvider {
    * @returns Number of skills installed.
    */
   installSkills(extractedClaudeDir: string, targetProviderDir: string): number {
+    // Legacy cleanup runs before the source guard — a zip without kit/skills/
+    // must still heal a machine carrying pre-rename artifacts.
+    const legacyRemoved = this._removeLegacySkills(targetProviderDir);
+    if (legacyRemoved > 0) {
+      console.log(`    Removed ${legacyRemoved} legacy HailyKit skill(s) from provider-local skills/`);
+    }
+    const digestsRemoved = removeLegacyGeneratedFiles(targetProviderDir);
+    if (digestsRemoved > 0) {
+      console.log(`    Removed ${digestsRemoved} legacy generated digest file(s)`);
+    }
+
     const srcSkillsDir = path.join(extractedClaudeDir, 'skills');
     if (!fs.existsSync(srcSkillsDir)) return 0;
 
@@ -235,10 +262,6 @@ export class CodexProvider extends BaseProvider {
       'utf8',
     );
 
-    const legacyRemoved = this._removeLegacySkills(targetProviderDir, installedSet);
-    if (legacyRemoved > 0) {
-      console.log(`    Removed ${legacyRemoved} legacy HailyKit skill(s) from provider-local skills/`);
-    }
     return installed.length;
   }
 
@@ -409,6 +432,14 @@ export class CodexProvider extends BaseProvider {
       let existing = fs.readFileSync(agentsMd, 'utf8');
       const isOldScaffold = existing.includes(OLD_SCAFFOLD_MARKER);
 
+      // Scaffold comments live OUTSIDE the sentinels, so a generation whose
+      // skills location moved leaves a stale pointer no block replacement
+      // touches — heal the known legacy variant on every existing-file branch.
+      existing = existing.replaceAll(
+        '<!-- Skills are in ~/.codex/skills/*/SKILL.md and regenerated on every upgrade. -->',
+        '<!-- Skills are in .agents/skills/ (project) or ~/.agents/skills/ (global). -->',
+      );
+
       if (existing.includes(SENTINEL_START) && !isOldScaffold) {
         // Current managed install — replace only the sentinel block.
         existing = existing.replace(
@@ -487,8 +518,14 @@ export class CodexProvider extends BaseProvider {
       fs.rmSync(skillDir, { recursive: true, force: true });
       count++;
     }
-    const legacyRemoved = this._removeLegacySkills(providerDir, new Set(manifestSkills));
+    const legacyRemoved = this._removeLegacySkills(providerDir);
     fs.rmSync(path.join(providerDir, SKILLS_MANIFEST), { force: true });
+    // Base's own digest sweep early-returns on a metaless legacy install —
+    // this call is the only path that cleans those, so it logs its removals.
+    const digestsRemoved = removeLegacyGeneratedFiles(providerDir);
+    if (digestsRemoved > 0) {
+      console.log(`    Removed ${digestsRemoved} legacy generated digest file(s)`);
+    }
 
     // Strip the managed [agents.X] registry block from config.toml — base uninstall
     // removes agents/ but would otherwise leave dangling config entries Codex warns on.
