@@ -3,10 +3,13 @@
 All notable changes to this project will be documented in this file.
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.14.12] (2026-07-30)
 
 ### 🐛 Fixes
 
+- codex: pre-rename install artifacts are purged on install and uninstall — colon-named legacy skills under the historical prefixes, the pre-full-dir `hailykit-skills.md`/`hailykit-rules.md` digests, and the stale AGENTS.md skills-location pointer. Machines carrying a May-era install were serving colon-form skill names with no skill references to the Codex model
+- hc-scout: persists its orientation map to the plan dir's `scout-report.md` (the file every reuse-first ladder globs) and gains its own reuse check, so chained workflows stop re-scouting from scratch; parallel Explore agents must scope every Glob/Grep to their assigned directory, ending N-fold repeated keyword greps; root files and docs are read once by the orchestrator instead of by every agent
+- hc-plan: merges onto a scout-authored `scout-report.md` instead of overwriting it, preserving the architecture classification and contract surface downstream reviews read
 - hooks: reverse tier lookup resolves a model mapped to several tiers to the highest one. A flat provider table (all four `gemini` tiers map to `gemini-2.5-pro`) previously classified the strongest available model as `fast`
 - hooks: the Claude-specific `ultrathink` keyword is gated on the session model resolving to the Claude family — tier alone also matches non-Claude models, which were receiving it
 - cross-review: drop `-a never` from the `codex exec` argv. It is not a valid flag, so every codex review leg failed with `unexpected argument`
