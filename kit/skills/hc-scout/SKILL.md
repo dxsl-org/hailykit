@@ -36,7 +36,7 @@ Splits the codebase into non-overlapping segments and launches one Explore subag
 | `--graph` | 60–120s | Cross-file dependency chains on large codebases (>200 files) |
 | `--deps` | 30–90s | Trace downstream consumers of a module across repos; flag architectural drift |
 
-Modes compose: `{skill:hc-scout} --quick --contracts src/auth` — fast contract extraction from a known module.
+Modes compose: `{skill:hc-scout} --quick --contracts src/auth` — fast contract extraction from a known module. For the reuse and persist gates in Process steps 1 and 6, the never-run/never-persist list wins over the default/`ext` allowance — any composed flag from that list disables reuse and persistence for the whole invocation.
 
 ## Constraints
 
@@ -44,17 +44,18 @@ Modes compose: `{skill:hc-scout} --quick --contracts src/auth` — fast contract
 
 > **Required — 3-minute cap:** Every parallel agent must return within 3 minutes. Log timeouts and continue with available results.
 
-> **Required — no directory overlap:** Partition assignments must be mutually exclusive — each agent owns an exclusive slice of the tree.
+> **Required — no directory overlap:** Partition assignments must be mutually exclusive — each agent owns an exclusive slice of the tree, and every Glob/Grep it runs sets `path` to one of its assigned directories (one scoped call per directory). An unscoped Grep searches the whole repo — N agents grepping the same keyword unscoped is N-fold duplicate work.
 
 > **Required — sequential below threshold:** Skip parallel spawning when the segment count is 2 or fewer — overhead exceeds benefit at that scale.
 
 ## Process
 
-1. **Extract targets** — parse the prompt for file types, symbol names, directories, or patterns to locate. When `--deps <module>` is present, load `references/flow-deps.md` and follow the 3-query fan-out protocol instead of standard segment partition.
-2. **Partition** — divide the codebase into non-overlapping segments; determine agent count.
-3. **Register tasks** — call `TaskList` to check for existing scout tasks; create one per agent via `TaskCreate` with scope in metadata. Fall back to `TodoWrite` when Task tools are absent. Log `✓ Registered [N] scout tasks ([internal|external] mode)`.
-4. **Spawn in parallel** — launch one Explore subagent per segment; set each to `in_progress` via `TaskUpdate` before spawning. Scope each prompt to the 200K token context window.
-5. **Aggregate** — after the 3-minute window, mark completed agents via `TaskUpdate`; note timed-out agents. Merge all findings into the output format below.
+1. **Reuse check** (default and `ext` modes only — `--quick`, `--contracts`, `--pack`, `--graph`, `--deps` produce differently-shaped output and always run) — if the session already holds a scout report covering the target, or the most recently modified `.agents/*/scout-report.md` covers the target's modules, reuse it: spawn agents only for the uncovered delta, or return the existing report when fully covered. Skip the `.agents` glob when the spawning skill already resolved its own reuse ladder (it passed recon context or rejected the on-disk report as not covering the target) — re-testing it here resurrects what the caller just ruled out. Log `✓ Reuse: [session recon | scout-report.md path | none]`.
+2. **Extract targets** — parse the prompt for file types, symbol names, directories, or patterns to locate. When `--deps <module>` is present, load `references/flow-deps.md` and follow the 3-query fan-out protocol instead of standard segment partition.
+3. **Partition** — divide the codebase into non-overlapping segments; determine agent count. Root-level files (`package.json`, `README`, config files) and `docs/`/`.agents/` belong to the orchestrator, never to a segment — the orchestrator answers output items 1 (Project Type) and 4 (Docs & In-Flight Plans) itself by reading those files directly, so no agent re-reads them.
+4. **Register tasks** — call `TaskList` to check for existing scout tasks; create one per agent via `TaskCreate` with scope in metadata. Fall back to `TodoWrite` when Task tools are absent. Log `✓ Registered [N] scout tasks ([internal|external] mode)`.
+5. **Spawn in parallel** — launch one Explore subagent per segment; set each to `in_progress` via `TaskUpdate` before spawning. Scope each prompt to the 200K token context window.
+6. **Aggregate & persist** — after the 3-minute window, mark completed agents via `TaskUpdate`; note timed-out agents. Merge all findings into the output format below. Persist only full discovery output (default and `ext` modes): write it to `scout-report.md` at the root of the active plan dir (`## Plan Context`) — not under `reports/`; downstream reuse ladders glob `.agents/*/scout-report.md` and only the dir root matches. Never overwrite a plan-authored `scout-report.md` (it carries Precedents and Blast Radius this orientation map lacks) — append a `## Scout Addendum` section instead, replacing any previous addendum rather than stacking a new one. When no plan is active, create a dir from the `## Naming` Plan-dir pattern (slug from the scout target) and write there. Output from `--quick`, `--contracts`, `--pack`, `--graph`, and `--deps` is never persisted to `scout-report.md` — it is not an orientation map and would poison downstream reuse.
 
 ## Output
 

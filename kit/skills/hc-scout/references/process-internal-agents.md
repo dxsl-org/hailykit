@@ -19,7 +19,11 @@ Quickly scout {DIRECTORY} for files related to: {USER_PROMPT}
 
 Instructions:
 - Search for relevant files matching the task
-- Use Glob/Grep for file discovery
+- Use Glob/Grep for file discovery — EVERY call sets path to one of your
+  assigned directories (one scoped call per directory); never search outside
+  them (sibling directories and repo root belong to other agents)
+- Run each keyword search once; vary the pattern only when the previous
+  search returned nothing useful — never repeat an identical search
 - List files with brief descriptions
 - Timeout: 3 minutes max
 - Skip if timeout reached
@@ -31,6 +35,8 @@ Report format:
 ## Patterns
 - Key patterns observed
 ```
+
+Every agent receives the same task keywords — the per-directory `path` scope is what keeps their searches disjoint. An unscoped Grep runs against the whole repo, so N agents would each scan every file for the same keyword: N-fold duplicate work and the single largest source of scout waste.
 
 ## Spawning Strategy
 
@@ -46,6 +52,7 @@ Split codebase logically:
 - Spawn all agents in single `Task` tool call
 - Each agent gets distinct directory scope
 - No overlap between agents
+- Root-level files (`package.json`, `README`, configs) and `docs/`/`.agents/` are never assigned to a segment — the orchestrator reads them directly for the report's Project Type and Docs & In-Flight Plans sections
 
 ## Example
 
@@ -71,12 +78,12 @@ Agent 6: Scout types/, interfaces/ for auth types
 
 When needing to read file content, use chunking to stay within context limits (<150K tokens safe zone).
 
-### Step 1: Get Line Counts
+### Get Line Counts
 ```bash
 wc -l path/to/file1.ts path/to/file2.ts path/to/file3.ts
 ```
 
-### Step 2: Calculate Chunks
+### Calculate Chunks
 - **Target:** ~500 lines per chunk (safe for most files)
 - **Max files per agent:** 3-5 small files OR 1 large file chunked
 
@@ -86,7 +93,7 @@ chunks = ceil(total_lines / 500)
 lines_per_chunk = ceil(total_lines / chunks)
 ```
 
-### Step 3: Spawn Parallel Bash Agents
+### Spawn Parallel Bash Agents
 
 **Small files (<500 lines each):**
 ```

@@ -119,4 +119,4 @@ Brief written summary (≤150 lines) covering:
 5. Blast Radius: modules and contracts at risk
 6. Inconsistencies or technical debt the plan should note but not fix
 
-Write this summary to `.agents/<plan-dir>/scout-report.md` before proceeding to Solution Design. Downstream skills (`{skill:hc-review}`, `{skill:hc-debug}`) read this file to skip re-scouting within the same working session.
+Write this summary to `.agents/<plan-dir>/scout-report.md` before proceeding to Solution Design. When a scout-authored report already sits at that path (`{skill:hc-scout}` persists its orientation map there), merge onto it — keep its Project Type, Patterns, and APIs/Contracts sections and add the items above — rather than replacing it; a full overwrite discards the architecture classification and contract surface that `{skill:hc-review}` and `{skill:hc-debug}` read the file for. Downstream skills read this file to skip re-scouting within the same working session.
