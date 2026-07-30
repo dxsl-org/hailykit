@@ -225,6 +225,131 @@ test('CodexProvider install removes only HailyKit-owned legacy skills', () => {
   assert.ok(fs.existsSync(path.join(root, '.agents', 'skills', 'hc-plan', 'SKILL.md')));
 });
 
+test('CodexProvider install removes colon-named legacy skills with no canonical counterpart', () => {
+  const root = tmp();
+  const source = path.join(root, 'kit');
+  fs.mkdirSync(path.join(source, 'skills'), { recursive: true });
+
+  const target = path.join(root, '.codex');
+  const separator = String.fromCharCode(58);
+  // Ported skill: third-party author, colon name, canonical name gone from the kit.
+  const portedLegacy = path.join(target, 'skills', 'hc-graphify');
+  fs.mkdirSync(portedLegacy, { recursive: true });
+  fs.writeFileSync(
+    path.join(portedLegacy, 'SKILL.md'),
+    `---\nname: hc${separator}graphify\nmetadata:\n  author: safishamsi\n---\n\nOld.`,
+  );
+  // Removed-prefix skill: no author metadata at all.
+  const removedPrefixLegacy = path.join(target, 'skills', 'hd-excalidraw');
+  fs.mkdirSync(removedPrefixLegacy, { recursive: true });
+  fs.writeFileSync(
+    path.join(removedPrefixLegacy, 'SKILL.md'),
+    `---\nname: hd${separator}excalidraw\n---\n\nOld.`,
+  );
+  // Non-HailyKit colon names must survive — the historical-prefix test scopes the removal.
+  const foreignColon = path.join(target, 'skills', 'acme-tool');
+  fs.mkdirSync(foreignColon, { recursive: true });
+  fs.writeFileSync(
+    path.join(foreignColon, 'SKILL.md'),
+    `---\nname: acme${separator}tool\n---\n\nKeep.`,
+  );
+  const foreignHPrefix = path.join(target, 'skills', 'hx-tool');
+  fs.mkdirSync(foreignHPrefix, { recursive: true });
+  fs.writeFileSync(
+    path.join(foreignHPrefix, 'SKILL.md'),
+    `---\nname: hx${separator}tool\n---\n\nKeep.`,
+  );
+
+  new CodexProvider().installSkills(source, target);
+
+  assert.ok(!fs.existsSync(portedLegacy), 'third-party-authored colon skill must be removed');
+  assert.ok(!fs.existsSync(removedPrefixLegacy), 'authorless colon skill must be removed');
+  assert.ok(fs.existsSync(foreignColon), 'non-HailyKit colon name must be preserved');
+  assert.ok(fs.existsSync(foreignHPrefix), 'h-prefix outside the historical set must be preserved');
+});
+
+test('CodexProvider install removes pre-full-dir generated digest files', () => {
+  const root = tmp();
+  const source = path.join(root, 'kit');
+  fs.mkdirSync(path.join(source, 'skills'), { recursive: true });
+
+  const target = path.join(root, '.codex');
+  fs.mkdirSync(target, { recursive: true });
+  fs.writeFileSync(path.join(target, 'hailykit-skills.md'), 'stale colon list');
+  fs.writeFileSync(path.join(target, 'hailykit-rules.md'), 'stale rules');
+
+  new CodexProvider().installSkills(source, target);
+
+  assert.ok(!fs.existsSync(path.join(target, 'hailykit-skills.md')));
+  assert.ok(!fs.existsSync(path.join(target, 'hailykit-rules.md')));
+});
+
+test('CodexProvider installRules rewrites the stale skills-location scaffold comment', () => {
+  const root = tmp();
+  const source = path.join(root, 'kit');
+  fs.mkdirSync(path.join(source, 'rules'), { recursive: true });
+  fs.writeFileSync(path.join(source, 'rules', 'coding.md'), '# Rules\n\nBody.');
+
+  const target = path.join(root, '.codex');
+  fs.mkdirSync(target, { recursive: true });
+  const staleComment = '<!-- Skills are in ~/.codex/skills/*/SKILL.md and regenerated on every upgrade. -->';
+  fs.writeFileSync(
+    path.join(target, 'AGENTS.md'),
+    [
+      '# Agent Instructions',
+      '',
+      staleComment,
+      '',
+      '<!-- hailykit-rules-start -->',
+      'old block',
+      '<!-- hailykit-rules-end -->',
+      '',
+    ].join('\n'),
+  );
+
+  new CodexProvider().installRules(source, target);
+
+  const updated = fs.readFileSync(path.join(target, 'AGENTS.md'), 'utf8');
+  assert.ok(!updated.includes(staleComment), 'stale pointer must be rewritten');
+  assert.ok(updated.includes('~/.agents/skills/'), 'new pointer must name the real location');
+  assert.ok(updated.includes('# Rules'), 'sentinel block must carry the new rules');
+});
+
+test('CodexProvider installRules heals the stale pointer on the append (no-sentinel) branch', () => {
+  const root = tmp();
+  const source = path.join(root, 'kit');
+  fs.mkdirSync(path.join(source, 'rules'), { recursive: true });
+  fs.writeFileSync(path.join(source, 'rules', 'coding.md'), '# Rules\n\nBody.');
+
+  const target = path.join(root, '.codex');
+  fs.mkdirSync(target, { recursive: true });
+  const staleComment = '<!-- Skills are in ~/.codex/skills/*/SKILL.md and regenerated on every upgrade. -->';
+  fs.writeFileSync(
+    path.join(target, 'AGENTS.md'),
+    `# My Instructions\n\n${staleComment}\n\nUser content, no sentinel block.\n`,
+  );
+
+  new CodexProvider().installRules(source, target);
+
+  const updated = fs.readFileSync(path.join(target, 'AGENTS.md'), 'utf8');
+  assert.ok(!updated.includes(staleComment), 'stale pointer must be rewritten on append too');
+  assert.ok(updated.includes('User content, no sentinel block.'), 'user content must be preserved');
+  assert.ok(updated.includes('hailykit-rules-start'), 'rules block must be appended');
+});
+
+test('CodexProvider uninstall removes legacy digest files even without install meta', () => {
+  const root = tmp();
+  const target = path.join(root, '.codex');
+  fs.mkdirSync(target, { recursive: true });
+  fs.writeFileSync(path.join(target, 'hailykit-skills.md'), 'stale colon list');
+  fs.writeFileSync(path.join(target, 'hailykit-rules.md'), 'stale rules');
+
+  new CodexProvider().uninstall(target);
+
+  assert.ok(!fs.existsSync(path.join(target, 'hailykit-skills.md')));
+  assert.ok(!fs.existsSync(path.join(target, 'hailykit-rules.md')));
+});
+
 test('CodexProvider uninstall is scope-aware and preserves user-owned prefixed skills', () => {
   const root = tmp();
   const source = path.join(root, 'kit');
