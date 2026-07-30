@@ -24,16 +24,19 @@ Combine tools: run `Glob` to locate candidates, then `Grep` to filter by content
 
 ## Parallel Explore Spawning
 
-Spawn one Explore subagent per logical segment. Each subagent receives an exclusive scope — no overlap between agents.
+Spawn one Explore subagent per logical segment. Each subagent receives an exclusive scope — no overlap between agents. Root-level files (`package.json`, `README`, configs) and `docs/`/`.agents/` are never assigned to a segment — the orchestrator reads them directly for the report's Project Type and Docs & In-Flight Plans sections.
 
 ```
 Task 1 (Explore): "Search src/auth/ and src/middleware/ for authentication patterns.
+  Scope every Glob/Grep call to one of those two directories.
   List every file that enforces access control with a one-line description."
 
 Task 2 (Explore): "Search src/api/ and src/routes/ for route definitions.
+  Scope every Glob/Grep call to one of those two directories.
   List all route files, HTTP methods, and whether they reference an auth guard."
 
 Task 3 (Explore): "Search src/db/ and src/models/ for schema definitions.
+  Scope every Glob/Grep call to one of those two directories.
   List table/collection names, primary keys, and any user/session-related fields."
 ```
 
@@ -41,7 +44,8 @@ Spawn all tasks in a single message to execute in parallel. Each agent uses Glob
 
 ## Prompt Guidelines
 
-- State the directory scope explicitly — agents must not wander outside their segment.
+- State the directory scope explicitly — agents must not wander outside their segment, and every Glob/Grep call must set `path` to one of the segment's directories, one scoped call per directory (an unscoped search hits the whole repo and duplicates every sibling agent's work).
+- Tell each agent to run a given keyword search once — vary the pattern only when the previous search came back empty.
 - Request file paths with one-line descriptions, not full file dumps.
 - Ask for relationships when relevant: "which files import X", "which routes call Y".
 - Set a clear output shape: bullet list of `path — description` entries.
@@ -55,12 +59,15 @@ Determine partitioning: the repo has `db/`, `migrations/`, `src/models/`, `confi
 
 ```
 Task 1 (Explore): "Search db/ and migrations/ for migration files.
+  Scope every Glob/Grep call to one of those two directories.
   For each file list: path, migration name, and the table/schema it affects."
 
 Task 2 (Explore): "Search src/models/ for schema definition files.
+  Scope every Glob/Grep call to src/models/.
   List each file, the model name, and its primary key field."
 
 Task 3 (Explore): "Search config/ for database configuration files.
+  Scope every Glob/Grep call to config/.
   List each file and which database or connection string it configures."
 ```
 
@@ -71,8 +78,8 @@ Merge results: deduplicate by path, cross-reference migration names against mode
 After all subagents complete:
 
 1. Collect path lists from each agent.
-2. Deduplicate — the same file may appear in adjacent segment results.
-3. Cross-reference: flag files mentioned by multiple agents (likely central to the task).
+2. Deduplicate defensively — a file appearing in two segment results means an agent searched outside its scope; note it, since recurring overlap signals the partition or prompt scoping needs tightening.
+3. Cross-reference: a file that one agent found and other agents' results point to (imports, route references, schema links) is likely central to the task.
 4. Fill gaps with targeted `Grep` or `Read` calls before writing the final scout report.
 
 ## Chunked File Reading
