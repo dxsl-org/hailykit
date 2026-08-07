@@ -1,0 +1,11 @@
+{
+  "fixtureId": "training-a",
+  "componentClass": "workflow",
+  "workflowStage": "build",
+  "provider": "codex",
+  "toolRegime": "read_only",
+  "difficulty": "medium",
+  "split": "public-training",
+  "fixtureHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "promptHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+}

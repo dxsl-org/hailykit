@@ -160,3 +160,9 @@ Session-level savings are always smaller than any single-class number above, bec
 ## Verify yourself
 
 The only fully honest test is an A/B: run comparable sessions with and without this change and compare your provider's own usage page. Re-run `node scripts/measure-kit-overhead.mjs` after any future kit edit to get current numbers — this page's table is a snapshot, not a live figure.
+
+## Benchmark tie-in
+
+The new effectiveness benchmark is the formal companion to this document: use `hailykit benchmark static` for source and installed-footprint snapshots, `hailykit benchmark hooks` for hook replay overhead, `hailykit benchmark plan` / `run` for live-equivalent workflow evidence, and `hailykit benchmark report` for normalized V2 artifacts. This keeps token-overhead observations in the same reporting surface as quality, safety, efficiency, and provenance metrics instead of treating them as a one-off script result.
+
+For decisions, read `quality` and `efficiency` separately. A footprint win is only descriptive if provider identity, live telemetry, or pair completeness is missing; the benchmark report encodes that distinction instead of collapsing everything into one score.

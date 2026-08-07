@@ -13,6 +13,7 @@ import { cmdPack } from './pack';
 import { cmdCrossReview } from './cross-review';
 import type { Stage } from '../lib/cross-review/types';
 import { cmdOcr } from './ocr';
+import { cmdBenchmark } from './benchmark';
 
 /**
  * Registry of native analysis commands (stats, and the Tier 1–3 tools added by
@@ -386,6 +387,32 @@ const ocrCommand: CommandSpec = {
   }),
 };
 
+const BENCHMARK_HELP = `
+hailykit benchmark <subcommand> — Provider-neutral benchmark surfaces for static, hook, workflow, and legacy reasoning artifacts
+
+Subcommands:
+  static [repo] [--base-ref <ref>] [--claude-snapshot <file>] [--codex-snapshot <file>] [--out <file>] [--json]
+  hooks [repo] [--out <file>] [--json]
+  plan <manifest.json> [--repo <path>] [--json]
+  run <manifest.json> [--responses <file> | --live --ack-budget] [--evidence <file>] [--repo <path>] [--out <file>] [--json]
+  compare <artifact.ndjson> [--holdout-manifest <file>] [--holdout-artifact <file>] [--provider-footprint-artifact <static.ndjson>] [--json]
+  report <artifact.ndjson> [--format md|json] [--out <file>] [decision options above] [--json]
+  import-reasoning <legacy.ndjson> [--out <file>] [--json]
+
+Notes:
+  Static generates real temporary Claude and Codex installs when snapshots are omitted.
+  Live execution requires both --live and --ack-budget plus manifest hard caps.
+  Synthetic/dry rows, missing holdout hashes, or incomplete provider footprints cannot GO.
+`.trim();
+
+const benchmarkCommand: CommandSpec = {
+  name: 'benchmark',
+  summary: 'Run benchmark import, static, hook, compare, and report workflows',
+  help: BENCHMARK_HELP,
+  valueFlags: ['base-ref', 'claude-snapshot', 'codex-snapshot', 'responses', 'evidence', 'repo', 'out', 'format', 'holdout-manifest', 'holdout-artifact', 'provider-footprint-artifact', 'min-pairs'],
+  run: (ctx) => cmdBenchmark(ctx),
+};
+
 export const COMMANDS: CommandSpec[] = [
   statsCommand,
   gitInsightsCommand,
@@ -400,6 +427,7 @@ export const COMMANDS: CommandSpec[] = [
   packCommand,
   crossReviewCommand,
   ocrCommand,
+  benchmarkCommand,
 ];
 
 /** Look up a registered command by name. */

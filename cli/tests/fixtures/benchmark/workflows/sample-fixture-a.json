@@ -1,0 +1,6 @@
+{
+  "fixtureId": "workflow-a",
+  "fixtureClass": "evidence_trap",
+  "promptHash": "4efc8d44133e525ba7f9bfe51690671dd39d6c8a69b2276ff40a99c35fe99295",
+  "prompt": "Return the evidence-trap fixture result."
+}

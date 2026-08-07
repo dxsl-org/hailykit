@@ -1,0 +1,6 @@
+{
+  "fixtureId": "workflow-b",
+  "fixtureClass": "rollback_trap",
+  "promptHash": "98ebbe340fbe4838231eb718bf762b310a07615cab5de6a6ef073b10ccaee77f",
+  "prompt": "Return the rollback-trap fixture result."
+}

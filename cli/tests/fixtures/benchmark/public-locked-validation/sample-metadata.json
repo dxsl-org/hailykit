@@ -1,0 +1,11 @@
+{
+  "fixtureId": "locked-a",
+  "componentClass": "workflow",
+  "workflowStage": "verify",
+  "provider": "codex",
+  "toolRegime": "read_only",
+  "difficulty": "hard",
+  "split": "public-locked-validation",
+  "fixtureHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "promptHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+}

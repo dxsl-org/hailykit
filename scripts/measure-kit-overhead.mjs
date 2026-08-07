@@ -122,3 +122,18 @@ console.log('');
 console.log(`kit/rules contains ${rulesSkillRefs} {skill:...} ref(s) and ${rulesAgentRefs} {agent:...} ref(s).`);
 console.log(`Claude install resolves {skill:hc-x} -> /hc-x, shrinking installed rules by ~${rulesRefShrink} more bytes (est., not included in the After column above, which measures source bytes).`);
 console.log(`{agent:...} refs (which expand, not shrink, on install) do not occur in kit/rules — they appear in skill reference docs instead, outside this measurement's scope.`);
+
+if (process.argv.includes('--inventory')) {
+  const agents = listMarkdown('kit/agents');
+  const hooks = existsSync(join(REPO_ROOT, 'kit/hooks'))
+    ? readdirSync(join(REPO_ROOT, 'kit/hooks')).filter((f) => f.endsWith('.cjs')).map((f) => join('kit/hooks', f))
+    : [];
+  console.log('');
+  console.log(JSON.stringify({
+    rules: rulesPaths,
+    standards: standardsPaths,
+    skills: skillDirs,
+    agents,
+    hooks,
+  }, null, 2));
+}

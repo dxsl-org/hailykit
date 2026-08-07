@@ -8,6 +8,7 @@ import type { ParsedOutput, ProviderAdapter, ProviderExecution } from './index';
  *  the enforcement boundary and must be reviewed when the CLI gains capabilities. */
 const DENIED_TOOLS = ['Bash', 'Read', 'Write', 'Edit', 'NotebookEdit', 'Glob', 'Grep',
   'WebFetch', 'WebSearch', 'Task'];
+const READ_ONLY_DENIED_TOOLS = ['Bash', 'Write', 'Edit', 'NotebookEdit', 'WebFetch', 'WebSearch', 'Task'];
 
 /**
  * Claude Code confines file tools to its working directory, so a `none` row is enforced by the
@@ -30,7 +31,7 @@ function enforcedPolicy(requested: ToolPolicyName): ToolPolicyName {
 function run(req: ProviderExecution): ToolResult {
   const args = ['-p', '--model', req.requestedModel, '--output-format', 'json',
     '--settings', '{}', '--strict-mcp-config'];
-  if (req.policy === 'none') args.push('--disallowedTools', ...DENIED_TOOLS);
+  args.push('--disallowedTools', ...(req.policy === 'none' ? DENIED_TOOLS : READ_ONLY_DENIED_TOOLS));
   return runTool('claude', args, {
     cwd: req.workspaceCwd,
     denyRoot: req.cwd,

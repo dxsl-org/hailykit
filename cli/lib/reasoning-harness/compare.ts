@@ -1,5 +1,7 @@
 import fs from 'node:fs';
-import type { RunnerManifest, RunnerRow } from './types';
+import { evaluateBenchmarkOutcome } from '../benchmark/identity';
+import { loadBenchmarkArtifact } from '../benchmark/legacy-reasoning';
+import type { BenchmarkManifest, BenchmarkObservation } from '../benchmark/types';
 
 export interface CellSummary {
   label: string;
@@ -23,6 +25,7 @@ export interface Comparison {
   fixtureHash: string;
   promptDigest: string;
   cells: CellSummary[];
+  decision?: { value: 'go' | 'no_go' | 'inconclusive'; reasons: string[] };
   /**
    * Per-model power check: rows needed per arm to read that model's variant gap at 80% power,
    * against the rows actually present. Grouped by model on purpose — the widest gap in a
@@ -61,8 +64,8 @@ export function compareCells(paths: string[]): Comparison {
 
   const [first] = loaded;
   for (const cell of loaded.slice(1)) {
-    if (cell.manifest.fixtureHash !== first.manifest.fixtureHash) {
-      throw new Error(`fixture identity differs: ${label(first)} scored ${first.manifest.fixtureHash.slice(0, 12)}, ${label(cell)} scored ${cell.manifest.fixtureHash.slice(0, 12)} — re-run one arm so both share a definition`);
+    if (cell.manifest.fixture.fixtureHash !== first.manifest.fixture.fixtureHash) {
+      throw new Error(`fixture identity differs: ${label(first)} scored ${first.manifest.fixture.fixtureHash.slice(0, 12)}, ${label(cell)} scored ${cell.manifest.fixture.fixtureHash.slice(0, 12)} — re-run one arm so both share a definition`);
     }
     const [a, b] = [promptDigest(cell.manifest), promptDigest(first.manifest)];
     if (a && b && a !== b) {
@@ -74,38 +77,37 @@ export function compareCells(paths: string[]): Comparison {
   for (const cell of cells) {
     if (!cell.measured) throw new Error(`${cell.label} measured no rows out of ${cell.rows} — every rate from it would describe the environment, not the model`);
   }
+  const decision = evaluateBenchmarkOutcome(first.manifest, loaded.flatMap((entry) => entry.rows));
   return {
-    fixtureHash: first.manifest.fixtureHash,
+    fixtureHash: first.manifest.fixture.fixtureHash,
     promptDigest: promptDigest(first.manifest) ?? 'unrecorded',
     cells,
     power: withinModelPower(cells),
     promptDigestVerified: loaded.every(({ manifest }) => Boolean(promptDigest(manifest))),
+    decision: { value: decision.decision, reasons: decision.reasons },
   };
 }
 
-function readCell(filePath: string): { manifest: RunnerManifest; rows: RunnerRow[] } {
-  const lines = fs.readFileSync(filePath, 'utf8').trim().split('\n').filter(Boolean);
-  const manifest = JSON.parse(lines[0]) as RunnerManifest;
-  if (manifest.kind !== 'manifest') throw new Error(`${filePath}: first line is not a manifest`);
-  const rows = lines.slice(1).map((l) => JSON.parse(l) as RunnerRow).filter((r) => r.kind === 'row');
-  return { manifest, rows };
+function readCell(filePath: string): { manifest: BenchmarkManifest; rows: BenchmarkObservation[] } {
+  const loaded = loadBenchmarkArtifact(fs.readFileSync(filePath, 'utf8'));
+  return { manifest: loaded.manifest, rows: loaded.observations };
 }
 
-function summarize(manifest: RunnerManifest, rows: RunnerRow[]): CellSummary {
-  const scored = rows.filter((r) => r.weightedScore !== null);
+function summarize(manifest: BenchmarkManifest, rows: BenchmarkObservation[]): CellSummary {
+  const scored = rows.filter((r) => r.metrics.outcomeScore !== null);
   // Measured rows only. This column is read as "how long are the answers", so a timed-out row
   // contributing a zero — or an error envelope contributing its own bytes — describes the
   // environment while looking like the model got terser.
-  const bytes = scored.map((r) => r.outputBytes).sort((a, b) => a - b);
+  const bytes = scored.map((r) => r.metrics.outputBytes ?? 0).sort((a, b) => a - b);
   return {
-    label: `${manifest.requestedModel}/${manifest.variant}`,
-    variant: manifest.variant,
+    label: `${manifest.requestedModel}/${manifest.fixture.variant ?? 'unknown'}`,
+    variant: manifest.fixture.variant ?? 'unknown',
     requestedModel: manifest.requestedModel,
     rows: rows.length,
     parsed: rows.filter((r) => r.status === 'success').length,
     measured: scored.length,
-    solved: scored.filter((r) => r.weightedScore === 1).length,
-    meanScore: scored.length ? scored.reduce((a, r) => a + (r.weightedScore ?? 0), 0) / scored.length : 0,
+    solved: scored.filter((r) => r.metrics.outcomeScore === 1).length,
+    meanScore: scored.length ? scored.reduce((a, r) => a + (r.metrics.outcomeScore ?? 0), 0) / scored.length : 0,
     medianOutputBytes: bytes.length ? bytes[Math.floor(bytes.length / 2)] : 0,
   };
 }
@@ -153,10 +155,10 @@ function rowsNeeded(p1: number, p2: number): number | null {
  * substituted with `manifestHash`: that value legitimately differs between two variants of the
  * same comparison, so using it as a stand-in made every valid pair look like a template change.
  */
-function promptDigest(manifest: RunnerManifest): string | null {
-  return (manifest as unknown as { promptDigest?: string }).promptDigest ?? null;
+function promptDigest(manifest: BenchmarkManifest): string | null {
+  return manifest.fixture.promptHash ?? null;
 }
 
-function label(cell: { manifest: RunnerManifest }): string {
-  return `${cell.manifest.requestedModel}/${cell.manifest.variant}`;
+function label(cell: { manifest: BenchmarkManifest }): string {
+  return `${cell.manifest.requestedModel}/${cell.manifest.fixture.variant ?? 'unknown'}`;
 }
