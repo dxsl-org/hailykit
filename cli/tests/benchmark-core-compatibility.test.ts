@@ -37,7 +37,7 @@ test('compare bridge reads V2 benchmark NDJSON without weakening legacy summarie
     fixture: { fixtureId: 'fixture-a', fixtureClass: null, fixtureHash: 'fixture-hash', promptHash: 'prompt-hash', treatmentHash: 'treatment-hash', variant: 'legacy' },
     provenance: 'live', createdAt: '2026-08-07T00:00:00.000Z', manifestHash: 'm-a', modelVerificationWaiver: false,
     marginRegistry: { metric: 'outcomeScore', threshold: 0.9, exploratoryBatches: 2, firstDecisionBatch: 3, frozen: true, frozenAt: '2026-08-07T00:00:00.000Z', identityHash: 'wrong' },
-    calibration: { completedLiveBatches: 3, firstDecisionBatch: 3 }, snapshot: null, legacy: { attemptedComplete: true, baselineEligible: true, commitSha: 'abc' },
+    calibration: { completedLiveBatches: 3, firstDecisionBatch: 3 }, snapshot: null, legacy: { attemptedComplete: true, baselineEligible: true, commitSha: 'abc', providerFootprintArtifactHash: null },
   };
   const second: BenchmarkManifest = { ...first, manifestHash: 'm-b', fixture: { ...first.fixture, variant: 'none' } };
   const row = (variant: 'legacy' | 'none', score: number): BenchmarkObservation => ({
@@ -46,7 +46,7 @@ test('compare bridge reads V2 benchmark NDJSON without weakening legacy summarie
     provenance: 'live', status: 'success', statusClass: 'measured', decisionEligible: false, decisionIneligibleReason: 'legacy comparison rows are not paired', pairId: null, blockId: null, arm: variant,
     pairStatus: 'unpaired', fixture: { ...first.fixture, variant }, manifestHash: variant === 'legacy' ? 'm-a' : 'm-b',
     metrics: { outcomeLabel: score ? 'pass' : 'fail', outcomeScore: score, wallMs: 10, ttftMs: null, outputBytes: 100, tokens: { inputTokens: null, outputTokens: null, totalTokens: null, costUsd: null, cacheReadTokens: null, cacheWriteTokens: null, reasoningTokens: null, costSource: 'unknown' }, contextOccupancy: null, contextCompactionBytes: null, toolCalls: null, toolErrors: null, toolRetries: null, approvals: null, subagentCount: null, subagentDepth: null, hookCalls: null, hookLatencyMs: null, hookContextBytes: null },
-    providerExtensions: {}, legacy: { baselineEligible: true, attemptedComplete: true, actualPolicy: 'none', policySatisfied: true, coverage: 1, hardChecksPassed: 1, hardChecksTotal: 1, finalAnswer: null, note: null, commitSha: 'abc' },
+    providerExtensions: {}, legacy: { baselineEligible: true, attemptedComplete: true, actualPolicy: 'none', policySatisfied: true, coverage: 1, hardChecksPassed: 1, hardChecksTotal: 1, finalAnswer: null, note: null, commitSha: 'abc', providerFootprintArtifactHash: null },
   });
   const a = path.join(dir, 'a.ndjson');
   const b = path.join(dir, 'b.ndjson');

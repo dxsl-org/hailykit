@@ -34,7 +34,7 @@ export function runOfflineHookBenchmark(repoRoot: string): HookBenchmarkArtifact
       fixture: { fixtureId: 'hook-replay-suite', fixtureClass: 'hook', fixtureHash: sha256(stableStringify(observations.map((row) => row.fixture.fixtureHash))), promptHash: sha256('hook-events-v2'), treatmentHash: manifestHash, variant: null },
       provenance: 'synthetic', createdAt: new Date().toISOString(), manifestHash, modelVerificationWaiver: false,
       marginRegistry: { metric: 'outcomeScore', threshold: 1, exploratoryBatches: 0, firstDecisionBatch: 1, frozen: false, frozenAt: null, identityHash: sha256('hook-replay-margin') },
-      calibration: { completedLiveBatches: 0, firstDecisionBatch: 1 }, snapshot: null, legacy: { attemptedComplete: null, baselineEligible: null, commitSha: null },
+      calibration: { completedLiveBatches: 0, firstDecisionBatch: 1 }, snapshot: null, legacy: { attemptedComplete: null, baselineEligible: null, commitSha: null, providerFootprintArtifactHash: null },
     };
     const rows = observations.map((row) => ({ ...row, manifestHash }));
     const failures = rows.filter((row) => row.metrics.outcomeScore === 0).length;

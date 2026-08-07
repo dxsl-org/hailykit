@@ -10,7 +10,9 @@ import { buildBenchmarkReport, type BenchmarkReport } from '../lib/benchmark/rep
 import { createBenchmarkReportContext } from '../lib/benchmark/report-context';
 import { collectStaticFootprint } from '../lib/benchmark/static-footprint';
 import { buildWorkflowManifestHash, loadWorkflowFixtures, resolveWorkflowManifest, type WorkflowTreatmentManifest } from '../lib/benchmark/treatment-manifest';
+import type { BenchmarkWorkflowBackend } from '../lib/benchmark/types';
 import type { BenchmarkEvent, BenchmarkObservation, BenchmarkOutcome } from '../lib/benchmark/types';
+import { assertCodexAppServerPreflight, runCodexAppServerBackend } from '../lib/benchmark/codex-app-server-backend';
 import { buildWorkflowBenchmarkManifest, runWorkflowBenchmark } from '../lib/benchmark/workflow-runner';
 import { assertWorkflowProviderPreflight, expectedWorkflowProviderConfigHash, runLiveWorkflowProvider } from '../lib/benchmark/workflow-provider';
 import { hashMarginIdentity } from '../lib/benchmark/identity';
@@ -72,13 +74,24 @@ function staticArtifact(ctx: BenchmarkCommandContext) {
 
 async function runArtifact(ctx: BenchmarkCommandContext) {
   const manifestPath = requiredPath(ctx, 1);
-  const manifest = readJson<WorkflowTreatmentManifest>(manifestPath);
+  const input = readJson<WorkflowTreatmentManifest>(manifestPath);
+  const manifest = applyBackendOverride(input, parseBackendOption(opt(ctx, 'backend')));
   const live = ctx.options.live === true;
   if (live && ctx.options['ack-budget'] !== true) throw new Error('live benchmark run requires --ack-budget');
   if (live !== manifest.liveEquivalent || (manifest.provenance === 'live') !== live) throw new Error('CLI --live must match manifest liveEquivalent and provenance=live');
-  if (live) assertWorkflowProviderPreflight(repo(ctx), resolveWorkflowManifest(repo(ctx), manifest));
+  const resolved = resolveWorkflowManifest(repo(ctx), manifest);
+  if (resolved.backend === 'codex_app_server' && !live) throw new Error('codex-app-server backend is available only for live workflow runs');
+  if (resolved.backend === 'codex_app_server' && resolved.provider !== 'codex') throw new Error('codex-app-server backend supports provider=codex only');
+  if (live) {
+    assertWorkflowProviderPreflight(repo(ctx), resolved);
+    if (resolved.backend === 'codex_app_server') await assertCodexAppServerPreflight(repo(ctx));
+  }
   const responses = live ? null : readJson<Record<string, unknown>>(requiredOption(ctx, 'responses'));
-  const artifact = await runWorkflowBenchmark(repo(ctx), manifest, { runTrial: live ? runLiveWorkflowProvider : (request) => syntheticResponse(responses!, request.fixture.fixtureId, request.pairId, request.arm) });
+  const artifact = await runWorkflowBenchmark(repo(ctx), manifest, {
+    runTrial: live
+      ? (resolved.backend === 'codex_app_server' ? runCodexAppServerBackend : runLiveWorkflowProvider)
+      : (request) => syntheticResponse(responses!, request.fixture.fixtureId, request.pairId, request.arm),
+  });
   const observations = applyBenchmarkEvidence(opt(ctx, 'evidence') ?? null, manifest, artifact.observations);
   const text = stringifyBenchmarkNdjson([artifact.manifest, ...observations]);
   const report = buildBenchmarkReport(text);
@@ -95,7 +108,10 @@ function syntheticResponse(rows: Record<string, unknown>, fixtureId: string, pai
 }
 
 function emitPlan(ctx: BenchmarkCommandContext): number {
-  const resolved = resolveWorkflowManifest(repo(ctx), readJson<WorkflowTreatmentManifest>(requiredPath(ctx, 1)));
+  const resolved = resolveWorkflowManifest(
+    repo(ctx),
+    applyBackendOverride(readJson<WorkflowTreatmentManifest>(requiredPath(ctx, 1)), parseBackendOption(opt(ctx, 'backend'))),
+  );
   const fixtures = loadWorkflowFixtures(resolved);
   const manifestHash = buildWorkflowManifestHash(resolved, fixtures);
   const benchmarkManifest = buildWorkflowBenchmarkManifest(resolved, fixtures, manifestHash, new Date().toISOString());
@@ -104,6 +120,7 @@ function emitPlan(ctx: BenchmarkCommandContext): number {
     {
       baseCommitSha: resolved.baseCommitSha,
       candidateCommitSha: resolved.candidateCommitSha,
+      backend: resolved.backend,
       projectedCalls: resolved.budget.projectedCalls,
       projectedSpendUsd: resolved.budget.projectedSpendUsd,
       liveEquivalent: resolved.liveEquivalent,
@@ -173,6 +190,18 @@ function readJson<T>(filePath: string): T {
 function opt(ctx: BenchmarkCommandContext, key: string): string | undefined {
   const value = ctx.options[key];
   return typeof value === 'string' && value.trim() ? value : undefined;
+}
+function parseBackendOption(value: string | undefined): BenchmarkWorkflowBackend | undefined {
+  if (!value) return undefined;
+  if (value === 'provider') return 'provider';
+  if (value === 'codex-app-server' || value === 'codex_app_server') return 'codex_app_server';
+  throw new Error('--backend must be provider or codex-app-server');
+}
+function applyBackendOverride(
+  manifest: WorkflowTreatmentManifest,
+  backend: BenchmarkWorkflowBackend | undefined,
+): WorkflowTreatmentManifest {
+  return backend ? { ...manifest, backend } : manifest;
 }
 function repo(ctx: BenchmarkCommandContext): string {
   const positional = ctx.positionals[0] === 'static' || ctx.positionals[0] === 'hooks'

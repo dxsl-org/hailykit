@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -15,10 +16,19 @@ function writeJson(filePath: string, value: unknown): void {
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
 }
 
+function initRepo(dir: string): void {
+  fs.writeFileSync(path.join(dir, 'treatment.md'), '# Treatment\n', 'utf8');
+  execFileSync('git', ['init'], { cwd: dir, stdio: 'ignore' });
+  execFileSync('git', ['config', 'user.email', 'benchmark@example.com'], { cwd: dir, stdio: 'ignore' });
+  execFileSync('git', ['config', 'user.name', 'Benchmark Command'], { cwd: dir, stdio: 'ignore' });
+  execFileSync('git', ['add', '.'], { cwd: dir, stdio: 'ignore' });
+  execFileSync('git', ['commit', '-m', 'init'], { cwd: dir, stdio: 'ignore' });
+}
+
 test('registry exposes benchmark with required value-flags', () => {
   const spec = findCommand('benchmark');
   assert.ok(spec);
-  for (const flag of ['base-ref', 'claude-snapshot', 'codex-snapshot', 'responses', 'evidence', 'repo', 'out', 'format', 'holdout-manifest', 'holdout-artifact', 'provider-footprint-artifact', 'min-pairs']) {
+  for (const flag of ['base-ref', 'backend', 'claude-snapshot', 'codex-snapshot', 'responses', 'evidence', 'repo', 'out', 'format', 'holdout-manifest', 'holdout-artifact', 'provider-footprint-artifact', 'min-pairs']) {
     assert.ok(spec!.valueFlags.includes(flag), `missing value-flag ${flag}`);
   }
 });
@@ -66,6 +76,58 @@ test('run rejects live-equivalent workflow manifest without acknowledged budget'
   });
   writeJson(path.join(dir, 'responses.json'), {});
   const code = await cmdBenchmark({ positionals: ['run', path.join(dir, 'manifest.json')], options: { responses: path.join(dir, 'responses.json'), json: true } });
+  assert.equal(code, 1);
+});
+
+test('run rejects codex-app-server backend for offline workflow runs', async () => {
+  const dir = makeTempDir('hl-bench-backend-offline-');
+  const fixtureRoot = path.join(dir, 'fixtures');
+  fs.mkdirSync(fixtureRoot);
+  writeJson(path.join(fixtureRoot, 'fixture.json'), {
+    fixtureId: 'f1',
+    fixtureClass: 'workflow',
+    promptHash: 'p1',
+  });
+  initRepo(dir);
+  writeJson(path.join(dir, 'manifest.json'), {
+    provider: 'codex', tier: 'fast', requestedModel: 'gpt-5.4-mini', policy: 'read_only', provenance: 'synthetic',
+    liveEquivalent: false, budgetAcknowledged: false, budget: { projectedCalls: 2, projectedSpendUsd: 0.5, maxCalls: 2, maxSpendUsd: 1, maxWallMs: 1000, maxOutputBytes: 1000 },
+    baseRef: 'HEAD', candidateRef: 'HEAD', fixtureRoot: path.relative(dir, fixtureRoot), fixturePaths: ['fixture.json'], repeats: 1, randomSeed: 1,
+    cliVersion: 'test', configSnapshotHash: 'cfg', componentClass: 'workflow', ablations: [], backend: 'provider',
+    marginRegistry: { metric: 'outcomeScore', threshold: 0.1, exploratoryBatches: 2, firstDecisionBatch: 3, frozen: false, frozenAt: null, identityHash: 'm1' },
+    calibration: { completedLiveBatches: 0, firstDecisionBatch: 3 }, evaluatorEvidenceHash: 'e1', treatmentFiles: { base: ['treatment.md'], candidate: ['treatment.md'] },
+  });
+  writeJson(path.join(dir, 'responses.json'), {});
+  const code = await cmdBenchmark({
+    positionals: ['run', path.join(dir, 'manifest.json')],
+    options: { backend: 'codex-app-server', responses: path.join(dir, 'responses.json'), json: true },
+  });
+  assert.equal(code, 1);
+});
+
+test('run rejects codex-app-server backend for non-codex providers', async () => {
+  const dir = makeTempDir('hl-bench-backend-claude-');
+  const fixtureRoot = path.join(dir, 'fixtures');
+  fs.mkdirSync(fixtureRoot);
+  writeJson(path.join(fixtureRoot, 'fixture.json'), {
+    fixtureId: 'f1',
+    fixtureClass: 'workflow',
+    promptHash: 'p1',
+    prompt: 'prompt',
+  });
+  initRepo(dir);
+  writeJson(path.join(dir, 'manifest.json'), {
+    provider: 'claude', tier: 'fast', requestedModel: 'claude-sonnet', policy: 'read_only', provenance: 'live',
+    liveEquivalent: true, budgetAcknowledged: true, budget: { projectedCalls: 2, projectedSpendUsd: 0.5, maxCalls: 2, maxSpendUsd: 1, maxWallMs: 1000, maxOutputBytes: 1000 },
+    baseRef: 'HEAD', candidateRef: 'HEAD', fixtureRoot: path.relative(dir, fixtureRoot), fixturePaths: ['fixture.json'], repeats: 1, randomSeed: 1,
+    cliVersion: 'test', configSnapshotHash: 'cfg', componentClass: 'workflow', ablations: [], backend: 'provider',
+    marginRegistry: { metric: 'outcomeScore', threshold: 0.1, exploratoryBatches: 2, firstDecisionBatch: 3, frozen: false, frozenAt: null, identityHash: 'm1' },
+    calibration: { completedLiveBatches: 0, firstDecisionBatch: 3 }, evaluatorEvidenceHash: 'e1', treatmentFiles: { base: ['treatment.md'], candidate: ['treatment.md'] },
+  });
+  const code = await cmdBenchmark({
+    positionals: ['run', path.join(dir, 'manifest.json')],
+    options: { backend: 'codex-app-server', live: true, 'ack-budget': true, json: true },
+  });
   assert.equal(code, 1);
 });
 

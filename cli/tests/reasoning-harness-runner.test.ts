@@ -37,6 +37,14 @@ function codexEvent(answer: string, model = resolveRequestedModel('codex', 'fast
   return [JSON.stringify({ type: 'response.created', response: { model } }), JSON.stringify({ type: 'response.completed', output: [{ content: [{ text: answer }] }], usage: { input_tokens: 12, output_tokens: 7, total_tokens: 19 } })].join('\n');
 }
 
+function codexTurnCompletedEvent(answer: string, model = resolveRequestedModel('codex', 'fast')): string {
+  return [
+    JSON.stringify({ type: 'response.created', response: { model } }),
+    JSON.stringify({ type: 'agent_message.delta', delta: answer }),
+    JSON.stringify({ type: 'turn.completed', usage: { input_tokens: 12, cached_input_tokens: 5, output_tokens: 7, reasoning_output_tokens: 3 } }),
+  ].join('\n');
+}
+
 test('parseRunnerArgs preserves repeated trust phrases', () => {
   const opts = parseRunnerArgs(['--out', 'tmp.ndjson', '--trust-phrase', 'alpha', '--trust-phrase', 'beta']);
   assert.deepEqual(opts.trustPhrases, ['alpha', 'beta']);
@@ -174,6 +182,23 @@ test('structured codex event parsing extracts answer, model, and usage without g
   assert.equal(result.rows[0].status, 'success');
   assert.equal(result.rows[0].modelId, resolveRequestedModel('codex', 'fast'));
   assert.equal(result.rows[0].usage.totalTokens, 19);
+});
+
+test('current codex turn.completed usage derives total without double-counting reasoning output', async () => {
+  const dir = oneFixtureDir('evidence-trap.json');
+  const result = await runReasoningEvals({
+    cwd: process.cwd(), fixtures: dir, out: outPath(dir), provider: 'codex', tier: 'fast', variant: 'legacy', repeats: 1, live: true, dryRun: false,
+  }, {
+    runner: (req) => ({
+      ok: true,
+      status: 0,
+      stdout: codexTurnCompletedEvent('{"verdict":"fail","summary":"retry failure is evidenced","evidence":{"snippet_line":"if (attempt < 3) return chargeAgain();","root_cause":"retry loop hides the payment failure"},"escalation":{"requested":false,"justification":null},"rollback":{"required":false,"scope":[]}}', req.requestedModel),
+      stderr: '',
+    }),
+  });
+  assert.equal(result.rows[0].status, 'success');
+  assert.equal(result.rows[0].modelId, resolveRequestedModel('codex', 'fast'));
+  assert.deepEqual(result.rows[0].usage, { inputTokens: 12, outputTokens: 7, totalTokens: 19, costUsd: null });
 });
 
 test('protected prompt content and repeated trust phrases are rejected before persistence', async () => {

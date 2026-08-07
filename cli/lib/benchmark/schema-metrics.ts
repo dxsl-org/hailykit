@@ -3,7 +3,7 @@ import { BENCHMARK_MODEL_SOURCES, BENCHMARK_OUTCOME_LABELS, BENCHMARK_PAIR_STATU
 
 const TOKEN_KEYS = ['inputTokens', 'outputTokens', 'totalTokens', 'costUsd', 'cacheReadTokens', 'cacheWriteTokens', 'reasoningTokens', 'costSource'] as const;
 const METRIC_KEYS = ['outcomeLabel', 'outcomeScore', 'wallMs', 'ttftMs', 'outputBytes', 'tokens', 'contextOccupancy', 'contextCompactionBytes', 'toolCalls', 'toolErrors', 'toolRetries', 'approvals', 'subagentCount', 'subagentDepth', 'hookCalls', 'hookLatencyMs', 'hookContextBytes'] as const;
-const LEGACY_KEYS = ['baselineEligible', 'attemptedComplete', 'actualPolicy', 'policySatisfied', 'coverage', 'hardChecksPassed', 'hardChecksTotal', 'finalAnswer', 'note', 'commitSha'] as const;
+const LEGACY_KEYS = ['baselineEligible', 'attemptedComplete', 'actualPolicy', 'policySatisfied', 'coverage', 'hardChecksPassed', 'hardChecksTotal', 'finalAnswer', 'note', 'commitSha', 'providerFootprintArtifactHash'] as const;
 const OUTCOME_KEYS = ['v', 'kind', 'source', 'decision', 'reasons', 'observedMeanScore', 'threshold', 'comparedRows'] as const;
 
 export function validateMetrics(value: unknown): BenchmarkMetrics {
@@ -50,6 +50,9 @@ export function validateObservationLegacy(value: unknown): BenchmarkLegacyFields
     finalAnswer: optString(record.finalAnswer, 'legacy.finalAnswer'),
     note: optString(record.note, 'legacy.note'),
     commitSha: optString(record.commitSha, 'legacy.commitSha'),
+    providerFootprintArtifactHash: record.providerFootprintArtifactHash === null || record.providerFootprintArtifactHash === undefined
+      ? null
+      : reqString(record.providerFootprintArtifactHash, 'legacy.providerFootprintArtifactHash'),
   };
 }
 

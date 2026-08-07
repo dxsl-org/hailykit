@@ -34,7 +34,7 @@ export function collectStaticFootprint(input: { repoRoot: string; baseRef?: stri
     fixture: createFixtureMetadata({ fixtureId: 'static-footprint', fixtureClass: 'static-footprint', fixtureHash: sha256(`static-footprint:${providerFootprintStatus}`), promptHash: sha256(input.baseRef ?? 'HEAD'), treatmentHash: sha256(manifestHash) }),
     provenance: 'synthetic', createdAt: new Date().toISOString(), manifestHash, modelVerificationWaiver: true,
     marginRegistry: { metric: 'outcomeScore', threshold: 1, exploratoryBatches: 0, firstDecisionBatch: 1, frozen: false, frozenAt: null, identityHash: sha256('static-footprint') },
-    calibration: { completedLiveBatches: 0, firstDecisionBatch: 1 }, snapshot: null, legacy: { attemptedComplete: null, baselineEligible: null, commitSha: null },
+    calibration: { completedLiveBatches: 0, firstDecisionBatch: 1 }, snapshot: null, legacy: { attemptedComplete: null, baselineEligible: null, commitSha: null, providerFootprintArtifactHash: null },
   };
   const outcome: BenchmarkOutcome = { v: 2, kind: 'benchmark_outcome', source: 'static', decision: 'inconclusive', reasons: ['static footprint is descriptive only', `provider footprint status: ${providerFootprintStatus}`], observedMeanScore: null, threshold: null, comparedRows: observations.length };
   return { manifest, observations: observations.map((entry) => ({ ...entry, manifestHash })), outcome };
@@ -75,7 +75,7 @@ function buildObservation(relativePath: string, componentClass: StaticComponentC
     manifestHash: '',
     metrics: { outcomeLabel: 'not_measured', outcomeScore: null, wallMs: null, ttftMs: null, outputBytes: meta.rawBytes, tokens: { inputTokens: null, outputTokens: null, totalTokens: Math.round(meta.rawBytes / BYTES_PER_TOKEN_EST), costUsd: null, cacheReadTokens: null, cacheWriteTokens: null, reasoningTokens: null, costSource: 'derived' }, contextOccupancy: null, contextCompactionBytes: null, toolCalls: null, toolErrors: null, toolRetries: null, approvals: null, subagentCount: null, subagentDepth: null, hookCalls: null, hookLatencyMs: null, hookContextBytes: null },
     providerExtensions: { static: fullMeta },
-    legacy: { baselineEligible: null, attemptedComplete: null, actualPolicy: null, policySatisfied: null, coverage: null, hardChecksPassed: null, hardChecksTotal: null, finalAnswer: null, note: null, commitSha: null },
+    legacy: { baselineEligible: null, attemptedComplete: null, actualPolicy: null, policySatisfied: null, coverage: null, hardChecksPassed: null, hardChecksTotal: null, finalAnswer: null, note: null, commitSha: null, providerFootprintArtifactHash: null },
   };
 }
 

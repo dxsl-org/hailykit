@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { buildWorkflowManifestHash, loadWorkflowFixtures, resolveWorkflowManifest, type WorkflowTreatmentManifest } from '../lib/benchmark/treatment-manifest';
 import { scheduleWorkflowPairs } from '../lib/benchmark/scheduler';
-import { createWorkflowBudgetState, consumeWorkflowBudget, validateWorkflowLiveBudget } from '../lib/benchmark/live-budget';
+import { assertCanStartWorkflowCall, createWorkflowBudgetState, consumeWorkflowBudget, validateWorkflowLiveBudget } from '../lib/benchmark/live-budget';
 import { runWorkflowBenchmark } from '../lib/benchmark/workflow-runner';
 import type { BenchmarkProviderResponse } from '../lib/benchmark/provider-contract';
 
@@ -88,9 +88,11 @@ test('workflow manifest identity changes when config, budget, or fixture set cha
   const first = buildWorkflowManifestHash(base, fixtures);
   const second = buildWorkflowManifestHash(resolveWorkflowManifest(repoRoot, manifest(repoRoot, fixtureRoot, { configSnapshotHash: 'different' })), fixtures);
   const third = buildWorkflowManifestHash(resolveWorkflowManifest(repoRoot, manifest(repoRoot, fixtureRoot, { budget: { ...manifest(repoRoot, fixtureRoot).budget, maxSpendUsd: 11 } })), fixtures);
+  const backend = buildWorkflowManifestHash(resolveWorkflowManifest(repoRoot, manifest(repoRoot, fixtureRoot, { backend: 'codex_app_server' })), fixtures);
   const identityOnly = buildWorkflowManifestHash(resolveWorkflowManifest(repoRoot, manifest(repoRoot, fixtureRoot, { marginRegistry: { ...manifest(repoRoot, fixtureRoot).marginRegistry, identityHash: 'replacement' } })), fixtures);
   assert.notEqual(first, second);
   assert.notEqual(first, third);
+  assert.notEqual(first, backend);
   assert.equal(first, identityOnly);
 });
 
@@ -113,9 +115,17 @@ test('budget refuses a projected spend above the acknowledged maximum', () => {
   assert.throws(() => validateWorkflowLiveBudget({ projectedCalls: 1, projectedSpendUsd: 2, maxCalls: 1, maxSpendUsd: 1, maxWallMs: 10, maxOutputBytes: 10 }), /projected live spend exceeds maxSpendUsd/);
 });
 
+test('budget refuses another call when spend, wall, or output reserve is exhausted', () => {
+  const budget = { projectedCalls: 2, projectedSpendUsd: 1, maxCalls: 2, maxSpendUsd: 1, maxWallMs: 10, maxOutputBytes: 10 };
+  assert.throws(() => assertCanStartWorkflowCall({ spentCalls: 1, spentUsd: 0.6, spentWallMs: 1, spentOutputBytes: 1 }, budget), /spend reserve/);
+  assert.throws(() => assertCanStartWorkflowCall({ spentCalls: 1, spentUsd: 0, spentWallMs: 10, spentOutputBytes: 1 }, budget), /maxWallMs is exhausted/);
+  assert.throws(() => assertCanStartWorkflowCall({ spentCalls: 1, spentUsd: 0, spentWallMs: 1, spentOutputBytes: 10 }, budget), /maxOutputBytes is exhausted/);
+});
+
 test('workflow benchmark rejects workspace_write, dirty trees, symlinked roots, and oversized schedules', async () => {
   const { repoRoot, fixtureRoot } = initWorkflowRepo();
   assert.throws(() => resolveWorkflowManifest(repoRoot, manifest(repoRoot, fixtureRoot, { policy: 'workspace_write' })), /read_only only/);
+  assert.throws(() => resolveWorkflowManifest(repoRoot, manifest(repoRoot, fixtureRoot, { requestedModel: 'safe&echo injected' })), /unsafe characters/);
   assert.throws(() => resolveWorkflowManifest(repoRoot, manifest(repoRoot, fixtureRoot, { repeats: 300 })), /between 1 and 256/);
   const linkPath = path.join(repoRoot, 'fixtures-link');
   fs.symlinkSync(fixtureRoot, linkPath, 'junction');
@@ -143,6 +153,36 @@ test('workflow benchmark emits paired observations for both arms', async () => {
   assert.ok(result.observations.every((entry) => !entry.decisionEligible));
   assert.equal(seenCwds.size, 2);
   assert.ok(result.observations.every((entry) => entry.legacy.commitSha));
+});
+
+test('codex app-server backend consumes projected reserve without fabricating observed cost', async () => {
+  const { repoRoot, fixtureRoot } = initWorkflowRepo();
+  const result = await runWorkflowBenchmark(repoRoot, manifest(repoRoot, fixtureRoot, {
+    backend: 'codex_app_server',
+    budget: { projectedCalls: 8, projectedSpendUsd: 4, maxCalls: 8, maxSpendUsd: 10, maxWallMs: 1000, maxOutputBytes: 1000 },
+  }), {
+    runTrial: () => ({
+      ...response(),
+      backend: 'codex_app_server',
+      surface: 'app_server',
+      modelVerificationSource: 'thread_start_exact',
+      rawOutput: 'final answer',
+      metrics: {
+        ...response().metrics,
+        outputBytes: 0,
+        tokens: { ...response().metrics.tokens, costUsd: null, costSource: 'unknown' },
+      },
+    }),
+  });
+  assert.equal(result.observations.length, 8);
+  assert.ok(result.observations.every((entry) => entry.backend === 'codex_app_server'));
+  assert.ok(result.observations.every((entry) => entry.modelVerificationSource === 'thread_start_exact'));
+  assert.ok(result.observations.every((entry) => entry.metrics.tokens.costUsd === null));
+  assert.ok(result.observations.every((entry) => entry.legacy.finalAnswer === 'final answer'));
+  assert.ok(result.observations.every((entry) => {
+    const workflow = entry.providerExtensions.workflow as Record<string, unknown>;
+    return workflow.projectedSpendReserveUsd === 0.5;
+  }));
 });
 
 test('workflow treatment is loaded from each pinned commit and bound to each arm', async () => {
@@ -195,4 +235,8 @@ test('workflow runner rejects live/budget drift, path escape, unknown fields, an
   execFileSync('git', ['commit', '-m', 'restore fixture'], { cwd: repoRoot, stdio: 'ignore' });
   const mismatch = await runWorkflowBenchmark(repoRoot, manifest(repoRoot, fixtureRoot), { runTrial: () => ({ ...response(), provider: 'claude' }) });
   assert.ok(mismatch.observations.every((entry) => entry.pairStatus === 'missing_pair'));
+  const backendMismatch = await runWorkflowBenchmark(repoRoot, manifest(repoRoot, fixtureRoot, { backend: 'codex_app_server' }), {
+    runTrial: () => ({ ...response(), backend: 'provider', surface: 'provider' }),
+  });
+  assert.ok(backendMismatch.observations.every((entry) => entry.pairStatus === 'missing_pair'));
 });

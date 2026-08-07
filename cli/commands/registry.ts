@@ -393,8 +393,8 @@ hailykit benchmark <subcommand> — Provider-neutral benchmark surfaces for stat
 Subcommands:
   static [repo] [--base-ref <ref>] [--claude-snapshot <file>] [--codex-snapshot <file>] [--out <file>] [--json]
   hooks [repo] [--out <file>] [--json]
-  plan <manifest.json> [--repo <path>] [--json]
-  run <manifest.json> [--responses <file> | --live --ack-budget] [--evidence <file>] [--repo <path>] [--out <file>] [--json]
+  plan <manifest.json> [--backend <provider|codex-app-server>] [--repo <path>] [--json]
+  run <manifest.json> [--backend <provider|codex-app-server>] [--responses <file> | --live --ack-budget] [--evidence <file>] [--repo <path>] [--out <file>] [--json]
   compare <artifact.ndjson> [--holdout-manifest <file>] [--holdout-artifact <file>] [--provider-footprint-artifact <static.ndjson>] [--json]
   report <artifact.ndjson> [--format md|json] [--out <file>] [decision options above] [--json]
   import-reasoning <legacy.ndjson> [--out <file>] [--json]
@@ -402,6 +402,7 @@ Subcommands:
 Notes:
   Static generates real temporary Claude and Codex installs when snapshots are omitted.
   Live execution requires both --live and --ack-budget plus manifest hard caps.
+  Workflow backend defaults to provider; codex-app-server is live-only and Codex-only.
   Synthetic/dry rows, missing holdout hashes, or incomplete provider footprints cannot GO.
 `.trim();
 
@@ -409,7 +410,7 @@ const benchmarkCommand: CommandSpec = {
   name: 'benchmark',
   summary: 'Run benchmark import, static, hook, compare, and report workflows',
   help: BENCHMARK_HELP,
-  valueFlags: ['base-ref', 'claude-snapshot', 'codex-snapshot', 'responses', 'evidence', 'repo', 'out', 'format', 'holdout-manifest', 'holdout-artifact', 'provider-footprint-artifact', 'min-pairs'],
+  valueFlags: ['base-ref', 'backend', 'claude-snapshot', 'codex-snapshot', 'responses', 'evidence', 'repo', 'out', 'format', 'holdout-manifest', 'holdout-artifact', 'provider-footprint-artifact', 'min-pairs'],
   run: (ctx) => cmdBenchmark(ctx),
 };
 

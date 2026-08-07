@@ -1,5 +1,5 @@
 import type { EvalProvider, EvalTier, ToolPolicyName } from '../reasoning-harness/types';
-import type { BenchmarkMeasuredProviderMetrics, BenchmarkModelVerificationSource, BenchmarkProvider } from './types';
+import type { BenchmarkMeasuredProviderMetrics, BenchmarkModelVerificationSource, BenchmarkProvider, BenchmarkWorkflowBackend } from './types';
 
 export interface BenchmarkProviderRequest {
   provider: BenchmarkProvider;
@@ -13,7 +13,8 @@ export interface BenchmarkProviderRequest {
 
 export interface BenchmarkProviderResponse {
   provider: EvalProvider;
-  surface: 'provider';
+  backend?: BenchmarkWorkflowBackend;
+  surface: 'provider' | 'app_server';
   actualModel: string | null;
   modelSatisfied: boolean;
   modelVerified: boolean;
@@ -21,6 +22,7 @@ export interface BenchmarkProviderResponse {
   policy: ToolPolicyName;
   policySatisfied: boolean;
   metrics: BenchmarkMeasuredProviderMetrics;
+  providerExtensions?: Record<string, unknown>;
   rawOutput: string | null;
   note: string | null;
 }

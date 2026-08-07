@@ -59,6 +59,12 @@ export function createWorkflowBudgetState(): WorkflowBudgetState {
 
 export function assertCanStartWorkflowCall(state: WorkflowBudgetState, budget: WorkflowLiveBudget): void {
   if (state.spentCalls + 1 > budget.maxCalls) throw new Error('live budget maxCalls would be exceeded');
+  if (state.spentWallMs >= budget.maxWallMs) throw new Error('live budget maxWallMs is exhausted');
+  if (state.spentOutputBytes >= budget.maxOutputBytes) throw new Error('live budget maxOutputBytes is exhausted');
+  if (budget.maxSpendUsd !== null) {
+    const reserve = budget.projectedSpendUsd === null ? 0 : budget.projectedSpendUsd / budget.projectedCalls;
+    if (budget.maxSpendUsd - state.spentUsd < reserve) throw new Error('live budget lacks the projected per-call spend reserve');
+  }
 }
 
 export function consumeWorkflowBudget(state: WorkflowBudgetState, budget: WorkflowLiveBudget, usage: WorkflowBudgetUsage, failClosed: boolean): WorkflowBudgetState {

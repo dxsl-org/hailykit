@@ -11,12 +11,12 @@ export function createBenchmarkReportContext(options: Record<string, string | bo
   return {
     holdoutManifest: holdoutPath ? validatePrivateHoldoutManifest(readJson(holdoutPath)) : null,
     holdoutArtifactText: holdoutArtifactPath ? fs.readFileSync(path.resolve(holdoutArtifactPath), 'utf8') : null,
-    providerFootprint: footprintPath ? providerFootprintFromArtifact(footprintPath) : undefined,
+    providerFootprintArtifactHash: footprintPath ? providerFootprintArtifactHash(footprintPath) : null,
     minimumEffectivePairs: positiveInt(stringOption(options, 'min-pairs'), 5),
   };
 }
 
-function providerFootprintFromArtifact(filePath: string): 'complete' | 'inconclusive' {
+function providerFootprintArtifactHash(filePath: string): string {
   const artifact = loadBenchmarkArtifact(fs.readFileSync(path.resolve(filePath), 'utf8'));
   if (artifact.manifest.source !== 'static') throw new Error('provider footprint artifact must be a static benchmark artifact');
   const providers = new Set(artifact.observations.flatMap((row) => {
@@ -24,7 +24,8 @@ function providerFootprintFromArtifact(filePath: string): 'complete' | 'inconclu
     const provider = value && typeof value === 'object' ? (value as Record<string, unknown>).provider : null;
     return provider === 'claude' || provider === 'codex' ? [provider] : [];
   }));
-  return providers.has('claude') && providers.has('codex') ? 'complete' : 'inconclusive';
+  if (!providers.has('claude') || !providers.has('codex')) throw new Error('provider footprint artifact does not cover both Claude and Codex');
+  return artifact.manifest.manifestHash;
 }
 
 function readJson(filePath: string): unknown {

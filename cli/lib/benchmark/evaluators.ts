@@ -87,6 +87,17 @@ export function applyObservationEvaluation(observation: BenchmarkObservation, ev
 }
 
 function missing(required: string[], observed: string[]): string[] { const found = new Set(observed); return required.filter((entry) => !found.has(entry)); }
-function contained(root: string, candidate: string): boolean { const normalizedRoot = root.replace(/\\/g, '/').replace(/\/$/, ''); const normalized = candidate.replace(/\\/g, '/'); return normalized === normalizedRoot || normalized.startsWith(`${normalizedRoot}/`); }
+function contained(root: string, candidate: string): boolean {
+  const normalizedRoot = safeRelativeEvidencePath(root);
+  const normalizedCandidate = safeRelativeEvidencePath(candidate);
+  if (!normalizedRoot || !normalizedCandidate) return false;
+  return normalizedCandidate === normalizedRoot || normalizedCandidate.startsWith(`${normalizedRoot}/`);
+}
+function safeRelativeEvidencePath(value: string): string | null {
+  const normalized = value.replace(/\\/g, '/').replace(/\/$/, '');
+  if (!normalized || normalized.startsWith('/') || /^[A-Za-z]:\//.test(normalized)) return null;
+  if (normalized.split('/').some((segment) => segment === '..' || segment === '.')) return null;
+  return normalized;
+}
 function nullableBoolean(value: unknown, name: string): boolean | null { return value === null ? null : reqBoolean(value, name); }
 function stringArray(value: unknown, name: string): string[] { if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) throw new Error(`${name} must be a string array`); return value as string[]; }

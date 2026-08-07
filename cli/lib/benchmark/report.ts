@@ -8,7 +8,7 @@ import type { BenchmarkObservation } from './types';
 export interface BenchmarkReportContext {
   holdoutManifest?: PrivateHoldoutManifest | null;
   holdoutArtifactText?: string | null;
-  providerFootprint?: 'complete' | 'inconclusive';
+  providerFootprintArtifactHash?: string | null;
   minimumEffectivePairs?: number;
 }
 export interface BenchmarkReport {
@@ -34,7 +34,9 @@ export function buildBenchmarkReport(text: string, context: BenchmarkReportConte
   const criticalFlagCount = evaluations.reduce((sum, entry) => sum + entry.criticalFlags.length, 0);
   const judgeRequired = !evaluationCoverageComplete || evaluations.some((entry) => !entry.deterministicComplete);
   const judgeCalibrated = evaluationCoverageComplete && (!judgeRequired || evaluations.filter((entry) => !entry.deterministicComplete).every((entry) => entry.judgeEvidence === 'calibrated'));
-  const providerFootprint = context.providerFootprint ?? inferProviderFootprint(observations);
+  const providerFootprint = manifest.legacy.providerFootprintArtifactHash && context.providerFootprintArtifactHash === manifest.legacy.providerFootprintArtifactHash
+    ? 'complete'
+    : 'inconclusive';
   const calibrationComplete = manifest.calibration.completedLiveBatches >= manifest.calibration.firstDecisionBatch;
   const marginIdentityValid = manifest.marginRegistry.identityHash === hashMarginIdentity(manifest);
   const observedHoldoutHash = context.holdoutManifest && context.holdoutArtifactText
@@ -85,6 +87,7 @@ function validatePrivateHoldoutArtifact(text: string, expected: PrivateHoldoutMa
   if (artifact.manifest.source !== 'benchmark_v2') throw new Error('private holdout artifact must use benchmark_v2');
   if (!['live', 'offline-score'].includes(artifact.manifest.provenance)) throw new Error('private holdout artifact provenance is not decision-grade');
   if (artifact.manifest.fixture.fixtureHash !== expected.fixtureSetHash) throw new Error('private holdout artifact fixture set does not match manifest');
+  for (const row of artifact.observations) assertSafeHoldoutExtensions(row.providerExtensions);
   const fixtureIds = new Set(artifact.observations.map((row) => row.fixtureId));
   if (fixtureIds.size !== expected.promptCount) throw new Error('private holdout artifact prompt count does not match manifest');
   if (!artifact.observations.length || !artifact.observations.every(isPrivateHoldoutEvaluation)) {
@@ -106,6 +109,36 @@ function assertNoRawPromptFields(value: unknown): void {
     assertNoRawPromptFields(child);
   }
 }
+function assertSafeHoldoutExtensions(extensions: Record<string, unknown>): void {
+  assertAllowedKeys(extensions, ['evaluation', 'outputDigest', 'workflow', 'appServer'], 'private holdout extensions');
+  if (extensions.outputDigest !== undefined && !isHash(extensions.outputDigest)) throw new Error('private holdout outputDigest must be a hash');
+  if (extensions.evaluation) {
+    const evaluation = objectValue(extensions.evaluation, 'private holdout evaluation');
+    assertAllowedKeys(evaluation, ['deterministicComplete', 'criticalFlags', 'failedChecks', 'scopeDrift', 'unnecessaryWork', 'judgeEvidence', 'fixtureSplit', 'fixtureMetadataHash'], 'private holdout evaluation');
+  }
+  if (extensions.workflow) {
+    const workflow = objectValue(extensions.workflow, 'private holdout workflow');
+    assertAllowedKeys(workflow, ['baseCommitSha', 'candidateCommitSha', 'budget', 'evaluatorEvidenceHash', 'createdAt', 'componentClass', 'cliVersion', 'configSnapshotHash', 'ablations', 'backend', 'treatmentBytes', 'treatmentDigest', 'treatmentFiles', 'treatmentFileCount', 'ablationCount', 'projectedSpendReserveUsd'], 'private holdout workflow');
+    for (const key of ['baseCommitSha', 'candidateCommitSha', 'evaluatorEvidenceHash', 'configSnapshotHash', 'treatmentDigest']) {
+      if (workflow[key] !== undefined && !isHash(workflow[key])) throw new Error(`private holdout workflow.${key} must be a hash`);
+    }
+    if (typeof workflow.componentClass !== 'string' || !/^[A-Za-z0-9._/-]{1,64}$/.test(workflow.componentClass)) throw new Error('private holdout componentClass is invalid');
+    if (typeof workflow.cliVersion !== 'string' || !/^[A-Za-z0-9._() +:-]{1,80}$/.test(workflow.cliVersion)) throw new Error('private holdout cliVersion is invalid');
+  }
+  if (extensions.appServer) {
+    const appServer = objectValue(extensions.appServer, 'private holdout appServer');
+    assertAllowedKeys(appServer, ['modelProvider', 'protocol', 'contextCompactions'], 'private holdout appServer');
+  }
+}
+function assertAllowedKeys(record: Record<string, unknown>, allowed: string[], name: string): void {
+  const unexpected = Object.keys(record).filter((key) => !allowed.includes(key));
+  if (unexpected.length) throw new Error(`${name} contains unapproved fields: ${unexpected.join(', ')}`);
+}
+function objectValue(value: unknown, name: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${name} must be an object`);
+  return value as Record<string, unknown>;
+}
+function isHash(value: unknown): boolean { return typeof value === 'string' && /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i.test(value); }
 export function escapeReportText(value: unknown): string { return String(value ?? '').replace(/\u001b\[[0-9;]*m/g, '').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/[`*_#[\]|]/g, '\\$&'); }
 function yesNo(value: boolean): string { return value ? 'yes' : 'no'; }
 function format(value: number | null): string { return value === null ? 'n/a' : Number(value.toFixed(4)).toString(); }

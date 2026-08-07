@@ -1,6 +1,6 @@
 import { runTool, type ToolResult } from '../../spawn';
-import type { EvalUsage, ToolPolicyName } from '../types';
-import { emptyUsage, extractAnswer, isAnswer, numberField, safeJson, walkable } from './answer-json';
+import type { ToolPolicyName } from '../types';
+import { parseCodexJsonOutput } from './codex-json';
 import type { ParsedOutput, ProviderAdapter, ProviderExecution } from './index';
 
 /**
@@ -36,50 +36,12 @@ function run(req: ProviderExecution): ToolResult {
 
 /** Parse `--json` NDJSON events. The last event carrying each field wins. */
 function parse(stdout: string): ParsedOutput {
-  const events = stdout.split('\n').map((line) => line.trim()).filter((line) => line.startsWith('{'))
-    .flatMap((line) => { const parsed = safeJson(line); return parsed ? [parsed] : []; })
-    .reverse();
+  const parsed = parseCodexJsonOutput(stdout);
   return {
-    answer: firstOf(events, findAnswer),
-    modelId: firstOf(events, findModel),
-    usage: firstOf(events, findUsage) ?? emptyUsage(),
+    answer: parsed.answer,
+    modelId: parsed.modelId,
+    usage: parsed.usage,
   };
-}
-
-function firstOf<T>(events: unknown[], pick: (value: unknown) => T | null): T | null {
-  for (const event of events) { const found = pick(event); if (found) return found; }
-  return null;
-}
-
-function findAnswer(value: unknown): string | null {
-  if (isAnswer(value)) return JSON.stringify(value);
-  if (typeof value === 'string') return extractAnswer(value);
-  const record = walkable(value);
-  if (!record) return null;
-  for (const child of Object.values(record)) { const found = findAnswer(child); if (found) return found; }
-  return null;
-}
-
-function findModel(value: unknown): string | null {
-  const record = walkable(value);
-  if (!record) return null;
-  if (typeof record.model === 'string' && record.model.trim()) return record.model.trim();
-  for (const child of Object.values(record)) { const found = findModel(child); if (found) return found; }
-  return null;
-}
-
-function findUsage(value: unknown): EvalUsage | null {
-  const record = walkable(value);
-  if (!record) return null;
-  const usage: EvalUsage = {
-    inputTokens: numberField(record, ['input_tokens', 'inputTokens']),
-    outputTokens: numberField(record, ['output_tokens', 'outputTokens']),
-    totalTokens: numberField(record, ['total_tokens', 'totalTokens']),
-    costUsd: numberField(record, ['cost_usd', 'costUsd']),
-  };
-  if (usage.totalTokens !== null || usage.costUsd !== null) return usage;
-  for (const child of Object.values(record)) { const found = findUsage(child); if (found) return found; }
-  return null;
 }
 
 export const codexAdapter: ProviderAdapter = { id: 'codex', enforcedPolicy, run, parse };

@@ -92,6 +92,15 @@ CLI `run <tool> --input '{...}'`
 
 `ToolContext` (`{ sessionId, cwd, sharedState: Map, logger, signal: AbortSignal }`) is threaded as a parameter — never a global — so native and external tools see the same contract.
 
+## Benchmark backends
+
+The benchmark subsystem now has two Codex live backends with different evidence surfaces:
+
+- `provider` — the default path, which reuses the existing CLI adapter and parses Codex `exec --json` output. Current Codex JSONL reports `turn.completed.usage` with `input_tokens`, `cached_input_tokens`, `output_tokens`, and `reasoning_output_tokens`; model identity and USD cost remain null unless a provider surface emits them explicitly.
+- `codex_app_server` — live-only and Codex-only. It negotiates a fresh Codex App Server session per trial, starts a new thread per arm/repeat, and aggregates streamed `thread/tokenUsage/updated`, item lifecycle, context-compaction, approval, and turn-completion events. This backend never reuses the caller's current interactive thread.
+
+Both backends preserve unknown telemetry as null instead of fabricating it. `codex_app_server` can measure TTFT, output bytes, token breakdowns, tool activity, approvals, and context-occupancy from streamed events; it does not infer observed USD cost, cache-write bytes, or compaction bytes unless the server emits them directly.
+
 ## Skill Catalog (`kit/`) structure
 
 The `kit/` directory is a distributable snapshot of the skill catalog, versioned independently. It contains:

@@ -21,7 +21,7 @@ function manifest(overrides: Partial<BenchmarkManifest> = {}): BenchmarkManifest
     marginRegistry: { metric: 'outcomeScore', threshold: 0.9, exploratoryBatches: 2, firstDecisionBatch: 3, frozen: true, frozenAt: '2026-08-07T00:00:00.000Z', identityHash: 'identity-hash' },
     calibration: { completedLiveBatches: 3, firstDecisionBatch: 3 },
     snapshot: null,
-    legacy: { attemptedComplete: true, baselineEligible: true, commitSha: 'abc123' },
+    legacy: { attemptedComplete: true, baselineEligible: true, commitSha: 'abc123', providerFootprintArtifactHash: null },
     ...overrides,
   };
 }
@@ -65,6 +65,7 @@ function observation(metrics: Record<string, unknown>): string {
       finalAnswer: null,
       note: null,
       commitSha: 'abc123',
+      providerFootprintArtifactHash: null,
     },
   });
 }

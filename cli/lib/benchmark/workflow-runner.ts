@@ -2,7 +2,7 @@ import { assertCanStartWorkflowCall, assertProjectedWorkflowCalls, assertWorkflo
 import type { BenchmarkProviderResponse } from './provider-contract';
 import { scheduleWorkflowPairs, type ScheduledWorkflowArm, type WorkflowArm } from './scheduler';
 import { buildWorkflowManifestHash, loadWorkflowFixtures, resolveWorkflowManifest, type ResolvedWorkflowManifest, type WorkflowFixtureRecord, type WorkflowTreatmentManifest } from './treatment-manifest';
-import type { BenchmarkObservation } from './types';
+import type { BenchmarkObservation, BenchmarkWorkflowBackend } from './types';
 import type { BenchmarkManifest } from './types';
 import { sha256, stableStringify } from '../reasoning-harness/hash';
 import { hashMarginIdentity } from './identity';
@@ -11,6 +11,7 @@ import { finalizeWorkflowPairs, makeWorkflowFailureObservation, makeWorkflowObse
 import { buildWorkflowTreatmentPrompt, combineTreatmentAndFixture, type WorkflowTreatmentPrompt } from './workflow-treatment';
 
 export interface WorkflowTrialRequest {
+  backend?: BenchmarkWorkflowBackend;
   manifest: ResolvedWorkflowManifest;
   fixture: WorkflowFixtureRecord;
   arm: WorkflowArm;
@@ -71,9 +72,9 @@ async function executeSchedule(
       if (!deps.runTrial) throw new Error('workflow benchmark runTrial dependency is required');
       assertCanStartWorkflowCall(state, manifest.budget);
       const treatment = treatments[scheduledArm.arm];
-      const response = await deps.runTrial({ manifest, fixture, arm: scheduledArm.arm, pairId: scheduledArm.pairId, blockId: scheduledArm.blockId, cwd: armCwd[scheduledArm.arm], prompt: combineTreatmentAndFixture(treatment, fixture.prompt), treatment: { bytes: treatment.bytes, digest: treatment.digest, files: treatment.files }, remainingBudget: remainingBudget(state, manifest) });
+      const response = await deps.runTrial({ backend: manifest.backend, manifest, fixture, arm: scheduledArm.arm, pairId: scheduledArm.pairId, blockId: scheduledArm.blockId, cwd: armCwd[scheduledArm.arm], prompt: combineTreatmentAndFixture(treatment, fixture.prompt), treatment: { bytes: treatment.bytes, digest: treatment.digest, files: treatment.files }, remainingBudget: remainingBudget(state, manifest) });
       const validated = validateWorkflowProviderResponse(response, manifest);
-      state = consumeWorkflowBudget(state, manifest.budget, usageFromResponse(validated), manifest.liveEquivalent);
+      state = consumeWorkflowBudget(state, manifest.budget, usageFromResponse(manifest, validated), manifest.liveEquivalent);
       rows.push(makeWorkflowObservation(manifest, fixture, scheduledArm, manifestHash, validated, deps.now?.() ?? new Date().toISOString(), { bytes: treatment.bytes, digest: treatment.digest, files: treatment.files }));
     } catch (error) {
       const reason = errorMessage(error);
@@ -93,18 +94,21 @@ function remainingBudget(state: WorkflowBudgetState, manifest: ResolvedWorkflowM
   };
 }
 
-function usageFromResponse(response: BenchmarkProviderResponse) {
-  return { calls: 1, costUsd: response.metrics.tokens.costUsd, wallMs: response.metrics.wallMs, outputBytes: response.metrics.outputBytes };
+function usageFromResponse(manifest: ResolvedWorkflowManifest, response: BenchmarkProviderResponse) {
+  const reservedCostUsd = manifest.backend === 'codex_app_server' && manifest.budget.projectedSpendUsd !== null
+    ? manifest.budget.projectedSpendUsd / manifest.budget.projectedCalls
+    : response.metrics.tokens.costUsd;
+  return { calls: 1, costUsd: reservedCostUsd, wallMs: response.metrics.wallMs, outputBytes: response.metrics.outputBytes };
 }
 function errorMessage(error: unknown): string { return error instanceof Error ? error.message.slice(0, 240) : String(error).slice(0, 240); }
 function isBudgetFailure(reason: string): boolean { return /budget|maxCalls|maxSpendUsd|maxWallMs|maxOutputBytes|requires known/i.test(reason); }
 
 export function buildWorkflowBenchmarkManifest(manifest: ResolvedWorkflowManifest, fixtures: WorkflowFixtureRecord[], manifestHash: string, createdAt: string): BenchmarkManifest {
   return {
-    v: 2, kind: 'benchmark_manifest', source: 'benchmark_v2', provider: manifest.provider, providerLabel: manifest.provider, tier: manifest.tier,
+    v: 2, kind: 'benchmark_manifest', source: 'benchmark_v2', backend: manifest.backend, provider: manifest.provider, providerLabel: manifest.provider, tier: manifest.tier,
     requestedModel: manifest.requestedModel,
     fixture: { fixtureId: 'workflow-suite', fixtureClass: manifest.componentClass, fixtureHash: sha256(stableStringify(fixtures.map((fixture) => fixture.fixtureHash))), promptHash: sha256(stableStringify(fixtures.map((fixture) => fixture.promptHash))), treatmentHash: manifestHash, variant: null },
     provenance: manifest.provenance, createdAt, manifestHash, modelVerificationWaiver: false, marginRegistry: manifest.marginRegistry,
-    calibration: manifest.calibration, snapshot: null, legacy: { attemptedComplete: null, baselineEligible: null, commitSha: manifest.candidateCommitSha },
+    calibration: manifest.calibration, snapshot: null, legacy: { attemptedComplete: null, baselineEligible: null, commitSha: manifest.candidateCommitSha, providerFootprintArtifactHash: manifest.providerFootprintArtifactHash },
   };
 }

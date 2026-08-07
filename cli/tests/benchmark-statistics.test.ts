@@ -14,7 +14,7 @@ function row(pairId: string, arm: 'base' | 'candidate', score: number, tokens: n
     decisionEligible: options.eligible ?? true, decisionIneligibleReason: null, pairId, blockId: pairId, arm, pairStatus: options.pairStatus ?? 'paired',
     fixture: { fixtureId, fixtureClass: 'workflow', fixtureHash: `fh:${fixtureId}`, promptHash: `ph:${fixtureId}`, treatmentHash: 'th', variant: null }, manifestHash: 'manifest',
     metrics: { outcomeLabel: score === 1 ? 'pass' : 'fail', outcomeScore: score, wallMs: 10, ttftMs: null, outputBytes: 20, tokens: { inputTokens: 1, outputTokens: 2, totalTokens: tokens, costUsd: 0.1, cacheReadTokens: null, cacheWriteTokens: null, reasoningTokens: null, costSource: 'provider' }, contextOccupancy: null, contextCompactionBytes: null, toolCalls: 0, toolErrors: 0, toolRetries: 0, approvals: 0, subagentCount: 0, subagentDepth: 0, hookCalls: 0, hookLatencyMs: null, hookContextBytes: null },
-    providerExtensions: { outputDigest: options.output ?? `${pairId}:${arm}` }, legacy: { baselineEligible: null, attemptedComplete: true, actualPolicy: 'read_only', policySatisfied: true, coverage: null, hardChecksPassed: null, hardChecksTotal: null, finalAnswer: null, note: null, commitSha: 'abc' },
+    providerExtensions: { outputDigest: options.output ?? `${pairId}:${arm}` }, legacy: { baselineEligible: null, attemptedComplete: true, actualPolicy: 'read_only', policySatisfied: true, coverage: null, hardChecksPassed: null, hardChecksTotal: null, finalAnswer: null, note: null, commitSha: 'abc', providerFootprintArtifactHash: null },
   };
 }
 function pairs(values: Array<[number, number, number, number]>): BenchmarkObservation[] {

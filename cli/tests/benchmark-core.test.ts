@@ -37,7 +37,7 @@ function manifest(overrides: Partial<BenchmarkManifest> = {}): BenchmarkManifest
     marginRegistry: { metric: 'outcomeScore', threshold: 0.9, exploratoryBatches: 2, firstDecisionBatch: 3, frozen: true, frozenAt: '2026-08-07T00:00:00.000Z', identityHash: '' },
     calibration: { completedLiveBatches: 3, firstDecisionBatch: 3 },
     snapshot: null,
-    legacy: { attemptedComplete: true, baselineEligible: true, commitSha: 'abc123' },
+    legacy: { attemptedComplete: true, baselineEligible: true, commitSha: 'abc123', providerFootprintArtifactHash: null },
   };
   base.marginRegistry.identityHash = hashMarginIdentity(base);
   return { ...base, ...overrides };
@@ -101,6 +101,7 @@ function observation(overrides: Partial<BenchmarkObservation> = {}): BenchmarkOb
       finalAnswer: null,
       note: null,
       commitSha: 'abc123',
+      providerFootprintArtifactHash: null,
     },
     ...overrides,
   };
@@ -109,6 +110,17 @@ function observation(overrides: Partial<BenchmarkObservation> = {}): BenchmarkOb
 test('schema rejects unknown fields and invalid dry-run eligibility', () => {
   assert.throws(() => validateBenchmarkObservation({ ...observation(), extraField: true }), /unknown fields/);
   assert.throws(() => validateBenchmarkObservation({ ...observation(), provenance: 'dry-run', decisionEligible: true }), /decision-eligible/);
+});
+
+test('schema keeps old fixtures valid without backend and accepts app-server verification fields', () => {
+  const parsedLegacyShape = validateBenchmarkObservation(observation());
+  assert.equal(parsedLegacyShape.backend, null);
+  const parsedAppServer = validateBenchmarkObservation(observation({
+    backend: 'codex_app_server',
+    modelVerificationSource: 'thread_start_exact',
+  }));
+  assert.equal(parsedAppServer.backend, 'codex_app_server');
+  assert.equal(parsedAppServer.modelVerificationSource, 'thread_start_exact');
 });
 
 test('legacy importer preserves eligibility and identity hashes without fabricating usage', () => {

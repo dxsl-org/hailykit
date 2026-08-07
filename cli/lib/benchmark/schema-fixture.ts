@@ -1,13 +1,14 @@
 import { validateInstalledArtifactSnapshot } from './artifact-snapshot';
 import type { BenchmarkCalibrationState, BenchmarkFixtureMetadata, BenchmarkManifest, BenchmarkMarginRegistry, BenchmarkProvider } from './types';
 import { BENCHMARK_PROVIDERS, BENCHMARK_SOURCES, BENCHMARK_TIERS, BENCHMARK_VARIANTS, assertKeys, asRecord, optEnum, optString, reqBoolean, reqEnum, reqInt, reqIsoDate, reqNonNegative, reqString } from './schema-helpers';
+import type { BenchmarkWorkflowBackend } from './types';
 
 const LEGACY_PROVIDER_LABELS = ['claude', 'codex', 'gemini', 'ollama'] as const;
 
 const FIXTURE_KEYS = ['fixtureId', 'fixtureClass', 'fixtureHash', 'promptHash', 'treatmentHash', 'variant'] as const;
 const MARGIN_KEYS = ['metric', 'threshold', 'exploratoryBatches', 'firstDecisionBatch', 'frozen', 'frozenAt', 'identityHash'] as const;
 const CALIBRATION_KEYS = ['completedLiveBatches', 'firstDecisionBatch'] as const;
-const LEGACY_MANIFEST_KEYS = ['attemptedComplete', 'baselineEligible', 'commitSha'] as const;
+const LEGACY_MANIFEST_KEYS = ['attemptedComplete', 'baselineEligible', 'commitSha', 'providerFootprintArtifactHash'] as const;
 
 export function validateManifestFixture(value: unknown): BenchmarkFixtureMetadata {
   const record = asRecord(value, 'fixture');
@@ -58,6 +59,7 @@ export function validateLegacyManifestFields(value: unknown): BenchmarkManifest[
     attemptedComplete: record.attemptedComplete === null ? null : reqBoolean(record.attemptedComplete, 'legacy.attemptedComplete'),
     baselineEligible: record.baselineEligible === null ? null : reqBoolean(record.baselineEligible, 'legacy.baselineEligible'),
     commitSha: optString(record.commitSha, 'legacy.commitSha'),
+    providerFootprintArtifactHash: optString(record.providerFootprintArtifactHash, 'legacy.providerFootprintArtifactHash'),
   };
 }
 
@@ -89,4 +91,10 @@ export function validateTier(value: unknown, name: string): BenchmarkManifest['t
 
 export function validateSnapshot(value: unknown): BenchmarkManifest['snapshot'] {
   return value === null ? null : validateInstalledArtifactSnapshot(value);
+}
+
+export function validateBackend(value: unknown, name: string): BenchmarkWorkflowBackend | null {
+  return value === undefined || value === null
+    ? null
+    : reqEnum(value, ['provider', 'codex_app_server'] as const, name);
 }

@@ -61,7 +61,7 @@ function convertManifest(manifest: RunnerManifest, observations: BenchmarkObserv
     marginRegistry: { metric: 'outcomeScore', threshold: 1, exploratoryBatches: 2, firstDecisionBatch: 3, frozen: false, frozenAt: null, identityHash: 'legacy-unfrozen' },
     calibration: { completedLiveBatches: 0, firstDecisionBatch: 3 },
     snapshot: null,
-    legacy: { attemptedComplete, baselineEligible, commitSha: manifest.commitSha },
+    legacy: { attemptedComplete, baselineEligible, commitSha: manifest.commitSha, providerFootprintArtifactHash: null },
   };
 }
 
@@ -138,6 +138,7 @@ function convertRow(rawManifest: RunnerManifest, manifest: BenchmarkManifest, ro
       finalAnswer: row.finalAnswer,
       note: row.note,
       commitSha: row.commitSha,
+      providerFootprintArtifactHash: null,
     },
   };
 }

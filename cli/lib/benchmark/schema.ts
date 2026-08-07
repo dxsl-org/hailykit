@@ -1,10 +1,10 @@
 import type { BenchmarkEvent, BenchmarkManifest, BenchmarkObservation } from './types';
 import { BENCHMARK_STATUSES, assertKeys, asRecord, optString, reqBoolean, reqEnum, reqInt, reqIsoDate, reqLiteral, reqString } from './schema-helpers';
-import { validateCalibration, validateLegacyManifestFields, validateManifestFixture, validateMarginRegistry, validateProvider, validateSnapshot, validateSourceDescriptor, validateTier } from './schema-fixture';
+import { validateBackend, validateCalibration, validateLegacyManifestFields, validateManifestFixture, validateMarginRegistry, validateProvider, validateSnapshot, validateSourceDescriptor, validateTier } from './schema-fixture';
 import { validateBenchmarkOutcome, validateMetrics, validateObservationEnums, validateObservationLegacy } from './schema-metrics';
 
-const MANIFEST_KEYS = ['v', 'kind', 'source', 'provider', 'providerLabel', 'tier', 'requestedModel', 'fixture', 'provenance', 'createdAt', 'manifestHash', 'modelVerificationWaiver', 'marginRegistry', 'calibration', 'snapshot', 'legacy'] as const;
-const OBS_KEYS = ['v', 'kind', 'source', 'key', 'fixtureId', 'repeat', 'provider', 'providerLabel', 'requestedModel', 'actualModel', 'modelSatisfied', 'modelVerified', 'modelVerificationSource', 'provenance', 'status', 'statusClass', 'decisionEligible', 'decisionIneligibleReason', 'pairId', 'blockId', 'arm', 'pairStatus', 'fixture', 'manifestHash', 'metrics', 'providerExtensions', 'legacy'] as const;
+const MANIFEST_KEYS = ['v', 'kind', 'source', 'backend', 'provider', 'providerLabel', 'tier', 'requestedModel', 'fixture', 'provenance', 'createdAt', 'manifestHash', 'modelVerificationWaiver', 'marginRegistry', 'calibration', 'snapshot', 'legacy'] as const;
+const OBS_KEYS = ['v', 'kind', 'source', 'backend', 'key', 'fixtureId', 'repeat', 'provider', 'providerLabel', 'requestedModel', 'actualModel', 'modelSatisfied', 'modelVerified', 'modelVerificationSource', 'provenance', 'status', 'statusClass', 'decisionEligible', 'decisionIneligibleReason', 'pairId', 'blockId', 'arm', 'pairStatus', 'fixture', 'manifestHash', 'metrics', 'providerExtensions', 'legacy'] as const;
 
 export function validateBenchmarkEvent(value: unknown): BenchmarkEvent {
   const record = asRecord(value, 'benchmark event');
@@ -26,6 +26,7 @@ export function validateBenchmarkManifest(value: unknown): BenchmarkManifest {
     v: reqLiteral(record.v, 2, 'benchmark manifest.v'),
     kind: reqLiteral(record.kind, 'benchmark_manifest', 'benchmark manifest.kind'),
     source,
+    backend: validateBackend(record.backend, 'benchmark manifest.backend'),
     provider,
     providerLabel,
     tier: validateTier(record.tier, 'benchmark manifest.tier'),
@@ -59,6 +60,7 @@ export function validateBenchmarkObservation(value: unknown): BenchmarkObservati
     v: reqLiteral(record.v, 2, 'benchmark observation.v'),
     kind: reqLiteral(record.kind, 'benchmark_observation', 'benchmark observation.kind'),
     source,
+    backend: validateBackend(record.backend, 'benchmark observation.backend'),
     key: reqString(record.key, 'benchmark observation.key'),
     fixtureId,
     repeat: reqInt(record.repeat, 'benchmark observation.repeat', 1),

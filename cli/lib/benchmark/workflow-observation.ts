@@ -1,4 +1,4 @@
-import { resolveModelVerification, type BenchmarkProviderResponse } from './provider-contract';
+import type { BenchmarkProviderResponse } from './provider-contract';
 import { validateMeasuredProviderMetrics } from './schema-metrics';
 import type { ScheduledWorkflowArm } from './scheduler';
 import type { ResolvedWorkflowManifest, WorkflowFixtureRecord } from './treatment-manifest';
@@ -7,20 +7,35 @@ import type { BenchmarkMetrics, BenchmarkObservation, BenchmarkStatus } from './
 export function validateWorkflowProviderResponse(response: BenchmarkProviderResponse, manifest: ResolvedWorkflowManifest): BenchmarkProviderResponse {
   if (!response || typeof response !== 'object') throw new Error('workflow provider returned no response');
   if (response.provider !== manifest.provider) throw new Error(`workflow provider mismatch: expected ${manifest.provider}, got ${response.provider}`);
+  if ((response.backend ?? 'provider') !== manifest.backend) throw new Error(`workflow backend mismatch: expected ${manifest.backend}, got ${response.backend ?? 'provider'}`);
+  if (manifest.backend === 'codex_app_server' && response.surface !== 'app_server') throw new Error('workflow app-server backend returned a non-app-server surface');
+  if (manifest.backend === 'provider' && response.surface !== 'provider') throw new Error('workflow provider backend returned a non-provider surface');
   if (response.policy !== manifest.policy || !response.policySatisfied) throw new Error('workflow provider did not enforce the declared read_only policy');
   const metrics = validateMeasuredProviderMetrics(response.metrics as unknown as Record<string, unknown>);
   return { ...response, metrics };
 }
 
 export function makeWorkflowObservation(manifest: ResolvedWorkflowManifest, fixture: WorkflowFixtureRecord, arm: ScheduledWorkflowArm, manifestHash: string, response: BenchmarkProviderResponse, createdAt: string, treatment: { bytes: number; digest: string; files: string[] }): BenchmarkObservation {
-  const model = resolveModelVerification(response.provider, manifest.requestedModel, response.actualModel, false);
-  if (response.actualModel !== null && !model.modelSatisfied) throw new Error(`workflow model mismatch: expected ${manifest.requestedModel}, got ${response.actualModel}`);
+  if (response.actualModel !== null && !response.modelSatisfied) throw new Error(`workflow model mismatch: expected ${manifest.requestedModel}, got ${response.actualModel}`);
   return baseObservation(manifest, fixture, arm, manifestHash, {
-    actualModel: model.actualModel, modelSatisfied: model.modelSatisfied, modelVerified: model.modelVerified,
-    modelVerificationSource: model.modelVerificationSource, status: 'success', statusClass: 'measured',
+    actualModel: response.actualModel, modelSatisfied: response.modelSatisfied, modelVerified: response.modelVerified,
+    modelVerificationSource: response.modelVerificationSource, status: 'success', statusClass: 'measured',
     metrics: { outcomeLabel: 'not_measured', outcomeScore: null, ...response.metrics },
     reason: 'raw workflow observation awaits deterministic evaluation', response,
-    extensions: { createdAt, componentClass: manifest.componentClass, cliVersion: manifest.cliVersion, configSnapshotHash: manifest.configSnapshotHash, ablations: manifest.ablations, treatmentBytes: treatment.bytes, treatmentDigest: treatment.digest, treatmentFiles: treatment.files },
+    extensions: {
+      createdAt,
+      componentClass: manifest.componentClass,
+      cliVersion: manifest.cliVersion,
+      configSnapshotHash: manifest.configSnapshotHash,
+      ablations: manifest.ablations,
+      backend: manifest.backend,
+      treatmentBytes: treatment.bytes,
+      treatmentDigest: treatment.digest,
+      treatmentFiles: treatment.files,
+      projectedSpendReserveUsd: manifest.backend === 'codex_app_server' && manifest.budget.projectedSpendUsd !== null
+        ? manifest.budget.projectedSpendUsd / manifest.budget.projectedCalls
+        : null,
+    },
   });
 }
 
@@ -47,15 +62,15 @@ function baseObservation(manifest: ResolvedWorkflowManifest, fixture: WorkflowFi
   status: BenchmarkStatus; statusClass: BenchmarkObservation['statusClass']; metrics: BenchmarkMetrics; reason: string; response: BenchmarkProviderResponse | null; extensions: Record<string, unknown>;
 }): BenchmarkObservation {
   return {
-    v: 2, kind: 'benchmark_observation', source: 'benchmark_v2', key: `${fixture.fixtureId}#${arm.repeat}#${arm.arm}`, fixtureId: fixture.fixtureId, repeat: arm.repeat,
+    v: 2, kind: 'benchmark_observation', source: 'benchmark_v2', backend: manifest.backend, key: `${fixture.fixtureId}#${arm.repeat}#${arm.arm}`, fixtureId: fixture.fixtureId, repeat: arm.repeat,
     provider: manifest.provider, providerLabel: manifest.provider, requestedModel: manifest.requestedModel, actualModel: state.actualModel,
     modelSatisfied: state.modelSatisfied, modelVerified: state.modelVerified, modelVerificationSource: state.modelVerificationSource,
     provenance: manifest.provenance, status: state.status, statusClass: state.statusClass, decisionEligible: false, decisionIneligibleReason: state.reason,
     pairId: arm.pairId, blockId: arm.blockId, arm: arm.arm, pairStatus: 'missing_pair',
     fixture: { fixtureId: fixture.fixtureId, fixtureClass: fixture.fixtureClass, fixtureHash: fixture.fixtureHash, promptHash: fixture.promptHash, treatmentHash: manifestHash, variant: null }, manifestHash,
     metrics: state.metrics,
-    providerExtensions: { workflow: { baseCommitSha: manifest.baseCommitSha, candidateCommitSha: manifest.candidateCommitSha, budget: manifest.budget, evaluatorEvidenceHash: manifest.evaluatorEvidenceHash, ...state.extensions } },
-    legacy: { baselineEligible: null, attemptedComplete: state.statusClass === 'measured', actualPolicy: state.response?.policy ?? 'read_only', policySatisfied: state.response?.policySatisfied ?? false, coverage: null, hardChecksPassed: null, hardChecksTotal: null, finalAnswer: state.response?.rawOutput ?? null, note: state.response?.note ?? state.reason, commitSha: arm.arm === 'base' ? manifest.baseCommitSha : manifest.candidateCommitSha },
+    providerExtensions: { ...(state.response?.providerExtensions ?? {}), workflow: { baseCommitSha: manifest.baseCommitSha, candidateCommitSha: manifest.candidateCommitSha, budget: manifest.budget, evaluatorEvidenceHash: manifest.evaluatorEvidenceHash, ...state.extensions } },
+    legacy: { baselineEligible: null, attemptedComplete: state.statusClass === 'measured', actualPolicy: state.response?.policy ?? 'read_only', policySatisfied: state.response?.policySatisfied ?? false, coverage: null, hardChecksPassed: null, hardChecksTotal: null, finalAnswer: state.response?.rawOutput ?? null, note: state.response?.note ?? state.reason, commitSha: arm.arm === 'base' ? manifest.baseCommitSha : manifest.candidateCommitSha, providerFootprintArtifactHash: null },
   };
 }
 

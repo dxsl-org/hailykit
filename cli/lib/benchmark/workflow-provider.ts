@@ -1,4 +1,5 @@
 import { getAdapter, type ProviderExecution } from '../reasoning-harness/providers';
+import { parseCodexJsonOutput } from '../reasoning-harness/providers/codex-json';
 import { sha256, stableStringify } from '../reasoning-harness/hash';
 import { runTool } from '../spawn';
 import type { ToolResult } from '../spawn';
@@ -7,14 +8,17 @@ import type { WorkflowTrialRequest } from './workflow-runner';
 import type { ResolvedWorkflowManifest } from './treatment-manifest';
 
 type ProviderPreflightManifest = Pick<ResolvedWorkflowManifest,
-  'provider' | 'tier' | 'requestedModel' | 'policy' | 'cliVersion' | 'configSnapshotHash'>;
+  'provider' | 'backend' | 'tier' | 'requestedModel' | 'policy' | 'cliVersion' | 'configSnapshotHash'>;
 
 export function expectedWorkflowProviderConfigHash(manifest: ProviderPreflightManifest): string {
-  const providerConfig = manifest.provider === 'codex'
-    ? { approval: 'never', sandbox: 'read-only', userConfig: 'ignored', rules: 'ignored', session: 'ephemeral' }
+  const providerConfig = manifest.backend === 'codex_app_server'
+    ? { approval: 'never', sandbox: 'read-only', session: 'ephemeral', transport: 'app-server-stdio', config: '{}' }
+    : manifest.provider === 'codex'
+      ? { approval: 'never', sandbox: 'read-only', userConfig: 'ignored', rules: 'ignored', session: 'ephemeral' }
     : { settings: '{}', strictMcpConfig: true, deniedCapabilities: ['shell', 'write', 'web', 'subagent'] };
   return sha256(stableStringify({
     provider: manifest.provider,
+    backend: manifest.backend,
     tier: manifest.tier,
     requestedModel: manifest.requestedModel,
     policy: manifest.policy,
@@ -48,7 +52,8 @@ export async function runLiveWorkflowProvider(request: WorkflowTrialRequest): Pr
   const outputBytes = Buffer.byteLength(result.stdout, 'utf8');
   if (outputBytes > request.remainingBudget.outputBytes) throw new Error('live budget maxOutputBytes exceeded by provider response');
   const parsed = adapter.parse(result.stdout);
-  const extended = extractExtendedUsage(result.stdout);
+  const codex = request.manifest.provider === 'codex' ? parseCodexJsonOutput(result.stdout) : null;
+  const extended = codex ?? extractExtendedUsage(result.stdout);
   const events = extractEventMetrics(result.stdout, request.manifest.provider);
   return {
     provider: request.manifest.provider, surface: 'provider', actualModel: parsed.modelId,
@@ -57,7 +62,13 @@ export async function runLiveWorkflowProvider(request: WorkflowTrialRequest): Pr
     policy, policySatisfied: true, rawOutput: result.stdout, note: null,
     metrics: {
       wallMs, ttftMs: null, outputBytes,
-      tokens: { ...parsed.usage, ...extended, costSource: parsed.usage.totalTokens !== null || parsed.usage.costUsd !== null || extended.reasoningTokens !== null ? 'provider' : 'unknown' },
+      tokens: {
+        ...parsed.usage,
+        cacheReadTokens: extended.cacheReadTokens,
+        cacheWriteTokens: extended.cacheWriteTokens,
+        reasoningTokens: extended.reasoningTokens,
+        costSource: codex?.hasProviderCost || parsed.usage.costUsd !== null ? 'provider' : 'unknown',
+      },
       contextOccupancy: null, contextCompactionBytes: null, toolCalls: events.toolCalls, toolErrors: events.toolErrors, toolRetries: null,
       approvals: 0, subagentCount: events.subagentCount, subagentDepth: events.subagentDepth, hookCalls: null, hookLatencyMs: null, hookContextBytes: null,
     },
@@ -78,7 +89,7 @@ function extractExtendedUsage(stdout: string): { cacheReadTokens: number | null;
   return {
     cacheReadTokens: findNumber(records, ['cache_read_input_tokens', 'cached_input_tokens', 'cacheReadTokens']),
     cacheWriteTokens: findNumber(records, ['cache_creation_input_tokens', 'cache_write_input_tokens', 'cacheWriteTokens']),
-    reasoningTokens: findNumber(records, ['reasoning_tokens', 'reasoningTokens']),
+    reasoningTokens: findNumber(records, ['reasoning_output_tokens', 'reasoning_tokens', 'reasoningTokens']),
   };
 }
 function findNumber(values: unknown[], keys: string[]): number | null { for (const value of [...values].reverse()) { const found = walkNumber(value, keys); if (found !== null) return found; } return null; }

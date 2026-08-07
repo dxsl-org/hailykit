@@ -7,9 +7,10 @@ export type BenchmarkStatus = RowStatus;
 export type BenchmarkStatusClass = 'measured' | 'unmeasured';
 export type BenchmarkOutcomeLabel = 'pass' | 'fail' | 'inconclusive' | 'not_measured';
 export type BenchmarkPairStatus = 'paired' | 'missing_pair' | 'identity_mismatch' | 'unpaired';
-export type BenchmarkModelVerificationSource = 'provider_echo' | 'manifest_waiver' | 'legacy_missing' | 'unknown';
+export type BenchmarkModelVerificationSource = 'provider_echo' | 'manifest_waiver' | 'legacy_missing' | 'thread_start_exact' | 'unknown';
 export type BenchmarkDecision = 'go' | 'no_go' | 'inconclusive';
 export type BenchmarkProviderLabel = EvalProvider | 'static' | 'hook';
+export type BenchmarkWorkflowBackend = 'provider' | 'codex_app_server';
 
 export interface BenchmarkFixtureMetadata {
   fixtureId: string;
@@ -103,12 +104,14 @@ export interface BenchmarkLegacyFields {
   finalAnswer: string | null;
   note: string | null;
   commitSha: string | null;
+  providerFootprintArtifactHash: string | null;
 }
 
 export interface BenchmarkManifest {
   v: 2;
   kind: 'benchmark_manifest';
   source: BenchmarkSource;
+  backend?: BenchmarkWorkflowBackend | null;
   provider: BenchmarkProvider | null;
   providerLabel: BenchmarkProviderLabel;
   tier: EvalTier;
@@ -121,13 +124,14 @@ export interface BenchmarkManifest {
   marginRegistry: BenchmarkMarginRegistry;
   calibration: BenchmarkCalibrationState;
   snapshot: InstalledArtifactSnapshot | null;
-  legacy: Pick<BenchmarkLegacyFields, 'attemptedComplete' | 'baselineEligible' | 'commitSha'>;
+  legacy: Pick<BenchmarkLegacyFields, 'attemptedComplete' | 'baselineEligible' | 'commitSha' | 'providerFootprintArtifactHash'>;
 }
 
 export interface BenchmarkObservation {
   v: 2;
   kind: 'benchmark_observation';
   source: BenchmarkSource;
+  backend?: BenchmarkWorkflowBackend | null;
   key: string;
   fixtureId: string;
   repeat: number;
