@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.14.13] (2026-08-07)
+
+### 🚀 Improvements
+
+- benchmark: add provider-neutral effectiveness measurement surfaces
+- codex: add isolated App Server workflow backend
+- reports: bind evidence to backend and artifact identity
+
+### 🐛 Fixes
+
+- codex: parse current CLI token usage correctly
+- benchmark: preserve unknown cost without fabricating telemetry
+- runtime: bound App Server cleanup and output
+
+### 🧪 Experimental
+
+- evals: support calibration-first live Codex comparisons
+
 ## [1.14.12] (2026-07-30)
 
 ### 🐛 Fixes
