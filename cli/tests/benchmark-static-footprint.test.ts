@@ -37,6 +37,10 @@ function snapshot(rootDir: string, entries: Record<string, string>): InstalledAr
   };
 }
 
+function snapshotRoot(provider: string): string {
+  return fs.mkdtempSync(path.join(os.tmpdir(), `benchmark-${provider}-snapshot-`));
+}
+
 function staticMeta(row: BenchmarkObservation): Record<string, unknown> {
   return row.providerExtensions.static as Record<string, unknown>;
 }
@@ -61,8 +65,8 @@ test('collector emits V2 static observations and treats CRLF-only changes as zer
   const artifact = collectStaticFootprint({
     repoRoot: repo,
     baseRef: 'HEAD',
-    claudeSnapshot: snapshot('C:\\temp\\claude', { 'rules/haily-coding.md': 'alpha', 'hooks/wrapper.js': 'beta' }),
-    codexSnapshot: snapshot('C:\\temp\\codex', { 'rules/haily-coding.md': 'gamma' }),
+    claudeSnapshot: snapshot(snapshotRoot('claude'), { 'rules/haily-coding.md': 'alpha', 'hooks/wrapper.js': 'beta' }),
+    codexSnapshot: snapshot(snapshotRoot('codex'), { 'rules/haily-coding.md': 'gamma' }),
   });
   const text = stringifyBenchmarkNdjson([artifact.manifest, ...artifact.observations, artifact.outcome]);
   assert.equal(parseBenchmarkNdjson(text).length, artifact.observations.length + 2);
@@ -99,15 +103,15 @@ test('collector rejects dotfile secrets, snapshot path escape, bad sha, duplicat
     /secret-like path is forbidden/,
   );
   assert.throws(
-    () => collectStaticFootprint({ repoRoot: repo, codexSnapshot: snapshot('C:\\temp\\codex', { '../escape.txt': 'bad' }) }),
+    () => collectStaticFootprint({ repoRoot: repo, codexSnapshot: snapshot(snapshotRoot('codex'), { '../escape.txt': 'bad' }) }),
     /invalid relative path/,
   );
   assert.throws(
-    () => collectStaticFootprint({ repoRoot: repo, claudeSnapshot: { rootDir: 'C:\\temp\\claude', createdAt: '2026-08-07T00:00:00.000Z', entries: [{ path: 'rules/a.md', sha256: 'bad', bytes: 1 }] } }),
+    () => collectStaticFootprint({ repoRoot: repo, claudeSnapshot: { rootDir: snapshotRoot('claude'), createdAt: '2026-08-07T00:00:00.000Z', entries: [{ path: 'rules/a.md', sha256: 'bad', bytes: 1 }] } }),
     /64 hex characters/,
   );
   assert.throws(
-    () => collectStaticFootprint({ repoRoot: repo, claudeSnapshot: { rootDir: 'C:\\temp\\claude', createdAt: '2026-08-07T00:00:00.000Z', entries: [{ path: 'rules/a.md', sha256: sha256('a'), bytes: 1 }, { path: 'rules/a.md', sha256: sha256('b'), bytes: 1 }] } }),
+    () => collectStaticFootprint({ repoRoot: repo, claudeSnapshot: { rootDir: snapshotRoot('claude'), createdAt: '2026-08-07T00:00:00.000Z', entries: [{ path: 'rules/a.md', sha256: sha256('a'), bytes: 1 }, { path: 'rules/a.md', sha256: sha256('b'), bytes: 1 }] } }),
     /duplicate path/,
   );
   const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'benchmark-static-outside-'));

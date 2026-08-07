@@ -5,6 +5,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.14.14] (2026-08-07)
+
+### 🐛 Fixes
+
+- tests: use platform-native absolute snapshot paths
+- tests: isolate symlink checks from dirty-tree checks
+
 ## [1.14.13] (2026-08-07)
 
 ### 🚀 Improvements

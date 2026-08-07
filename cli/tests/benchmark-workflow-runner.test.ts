@@ -129,6 +129,8 @@ test('workflow benchmark rejects workspace_write, dirty trees, symlinked roots, 
   assert.throws(() => resolveWorkflowManifest(repoRoot, manifest(repoRoot, fixtureRoot, { repeats: 300 })), /between 1 and 256/);
   const linkPath = path.join(repoRoot, 'fixtures-link');
   fs.symlinkSync(fixtureRoot, linkPath, 'junction');
+  execFileSync('git', ['add', '-f', 'fixtures-link'], { cwd: repoRoot, stdio: 'ignore' });
+  execFileSync('git', ['commit', '-m', 'track symlink fixture root'], { cwd: repoRoot, stdio: 'ignore' });
   assert.throws(() => resolveWorkflowManifest(repoRoot, manifest(repoRoot, linkPath)), /symlink/);
   fs.writeFileSync(path.join(repoRoot, 'dirty.txt'), 'dirty\n', 'utf8');
   assert.throws(() => resolveWorkflowManifest(repoRoot, manifest(repoRoot, fixtureRoot)), /dirty source trees/);
