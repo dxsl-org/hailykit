@@ -36,9 +36,7 @@ T6 = TaskCreate(subject="Code review",           activeForm="Reviewing code",   
 
 ### Step 2: Scout Codebase
 `TaskUpdate(T2, status="in_progress")`
-Reuse session recon or `.agents/*/scout-report.md` first (SKILL.md Process step 1 ladder); otherwise use `{skill:hc-scout} --quick` or parallel `Explore` subagents to find issue locations.
-
-See `references/parallel-exploration.md` for patterns.
+Reuse session/explicit recon first, then active-plan artifacts, then root-level prior scout reports only when no active plan exists (SKILL.md Process step 1 ladder); otherwise use `{skill:hc-scout} --quick` to find issue locations. Escalate to full `{skill:hc-scout}` only when the log evidence still spans unknown modules after the quick pass.
 
 `TaskUpdate(T2, status="completed")`
 

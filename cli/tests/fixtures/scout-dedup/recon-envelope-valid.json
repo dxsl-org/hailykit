@@ -1,0 +1,16 @@
+{
+  "targetDigest": "auth:src/auth",
+  "sourceKind": "session",
+  "sourceRef": ".agents/260808-1742-scout-deduplication/scout-report.md",
+  "mode": "quick",
+  "freshness": "observed",
+  "repoHead": "1234567890abcdef1234567890abcdef12345678",
+  "dirtyScopeFingerprint": "clean",
+  "coveredPaths": ["src/auth"],
+  "excludedPaths": ["dist"],
+  "ownedPaths": ["src/auth"],
+  "gaps": [],
+  "routeHint": "reuse",
+  "complete": true,
+  "createdAt": "2026-08-08T18:15:00.000Z"
+}

@@ -161,6 +161,14 @@ Manifests: `metadata.json` (`version`, `deletions[]`) drives stale-file cleanup;
 - **Tool manifest** (engine): `tool.json` sidecar per tool dir — `{ id, name, description, version, kind: "native"|"external", entry?, command?, args? }`. Language-agnostic so polyglot tools declare metadata the same way.
 - **Catalog metadata** (installer): `metadata.json` with `deletions[]` (unchanged contract from old hailykit).
 
+## Static validation gates
+
+The repository keeps prose-heavy workflow contracts deterministic with two complementary gates:
+
+- Scout callers resolve current-session context, then the active plan's `context-snippets.json.reconEnvelope`, then its root `scout-report.md`. `ReconEnvelope` records freshness, covered/gap paths, exclusive ownership, and the next route (`reuse`, `quick`, or parallel discovery); stale or prior-plan context is hint-only.
+- `scripts/check-skill-cross-refs.js` remains the catalog integrity gate for skill refs, agent model tiers, model-map tiers, and References-table paths, and now also enforces scout-dedup policy against shipped markdown plus deterministic fixtures under `cli/tests/fixtures/scout-dedup/`.
+- `cli/tests/scout-dedup-policy.test.ts` and `cli/tests/scout-dedup-fixtures.test.ts` lock the scout reuse contract in `node:test`: fixture README + `reconEnvelope` metadata, direct-Explore rejection in caller Scout steps, root-only `scout-report.md` persistence, and workflow-chain scout budgets such as `hc-new → hc-plan → hc-docs init`.
+
 ## Design principles
 
 - **Never throw across the executor boundary** — uniform `ToolResult`.

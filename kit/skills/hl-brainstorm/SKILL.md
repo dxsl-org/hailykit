@@ -47,7 +47,7 @@ Default: analyze problem → auto-select persona + edge dimensions → targeted 
 
 ## Constraints
 
-> **Required — recon-first, reuse-first (full mode only):** When no persona flag and problem requires codebase context, obtain recon before proposing — but never re-derive what already exists. Resolve in order: session context already holds a scout report or recon summary covering the topic's modules → reuse it; else glob `.agents/*/scout-report.md` and reuse the most recently modified one that covers the topic's modules; else scan with `{skill:hc-scout} --quick` (a 3–6 bullet orientation never needs a full repo partition). Report 3–6 bullets, then proceed.
+> **Required — recon-first, reuse-first (full mode only):** When no persona flag and problem requires codebase context, obtain recon before proposing — but never re-derive what already exists. Resolve in order: session context already holds a scout report or recon summary covering the topic's modules → reuse it; else use the active plan's root `scout-report.md`; else, only when no active plan exists, reuse the most relevant root-level `.agents/*/scout-report.md`; else scan with `{skill:hc-scout} --quick` (a 3–6 bullet orientation never needs a full repo partition). Report 3–6 bullets, then proceed.
 
 > **Required — no implementation:** Do not write code or invoke implementation skills until the user has approved a design.
 

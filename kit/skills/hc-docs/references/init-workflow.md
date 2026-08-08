@@ -1,11 +1,17 @@
 # Init Workflow
 
-## Phase 1: Parallel Codebase Scouting
+## Phase 1: Codebase Recon Reuse + Delta Scout
 
-1. Scan the codebase and calculate the number of files with LOC in each directory (skip credentials, cache or external modules directories, such as `.claude`, `.opencode`, `.git`, `tests`, `node_modules`, `__pycache__`, `secrets`, etc.)
+1. Scan the codebase and calculate the number of files with LOC in each directory (skip credentials, cache or external modules directories, such as `.claude`, `.opencode`, `.git`, `tests`, `node_modules`, `__pycache__`, `secrets`, etc.). If the caller already passed verified inventory or recon, reuse it instead of recomputing broad coverage.
 2. Target directories **that actually exist** - adapt to project structure, don't hardcode paths
-3. Activate `{skill:hc-scout}` skill to explore the code base and return detailed summary reports to the main agent
-4. Merge scout reports into context summary
+3. Resolve prior recon in this order:
+   - explicit verified handoff or ReconEnvelope from the caller
+   - active-plan `context-snippets.json.reconEnvelope`
+   - active-plan root `scout-report.md`
+   - only when no active plan exists, the most relevant root-level `.agents/*/scout-report.md`
+   - nested legacy `reports/scout-report.md` is `prior` context only; it cannot suppress a needed scout
+4. Activate `{skill:hc-scout}` only for uncovered gaps in the docs surface. Prefer `{skill:hc-scout} --quick` when the missing coverage is narrow; use full `{skill:hc-scout}` only when the docs boundary still spans unknown modules after reuse.
+5. Merge reused recon plus any delta-scout findings into the context summary
 
 ## Phase 2: Documentation Creation (haily-docs-writer Agent)
 
@@ -23,7 +29,7 @@ Pass the gathered context to haily-docs-writer agent to create initial documenta
 - `docs/deployment-guide.md` [optional]: Deployment/runtime operations if the project has a deploy surface
 - `docs/design-guidelines.md` [optional]: Design system or UX rules if the project has a UI surface
 
-Preserve the scout findings, inventory, detected commands, and explanatory why in the handoff. Do not ask the writer to create `docs/README.md`, `docs/codebase-summary.md`, or a duplicated narrative overview.
+Preserve the reused scout findings, any delta-scout findings, inventory, detected commands, and explanatory why in the handoff. Do not ask the writer to create `docs/README.md`, `docs/codebase-summary.md`, or a duplicated narrative overview.
 
 ## Phase 3: Size Check (Post-Generation)
 

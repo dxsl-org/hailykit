@@ -63,7 +63,7 @@ Auto-routing selects the workflow reference from symptom type (see Usage). When 
 
 ## Process
 
-1. **Scout** (mandatory, reuse-first) — resolve recon down the ladder; first hit wins: (a) session context already holds a scout report or recon covering the symptom's modules → reuse it; (b) `.agents/*/scout-report.md` from the active plan covers them → read it; (c) otherwise launch 2–3 parallel `Explore` subagents (or `{skill:hc-scout} --quick`) scoped to the symptom: affected files, direct callers, related tests, recent commits. Full-mode `{skill:hc-scout}` only when the symptom genuinely spans unknown modules. Read `./docs` if the project is unfamiliar. Log `✓ Scout: [N] files, [M] deps, [K] tests | reused [source]`
+1. **Scout** (mandatory, reuse-first) — resolve recon down the ladder; first hit wins: (a) session context or explicit recon already covers the symptom's modules → reuse it; (b) active-plan `context-snippets.json.reconEnvelope` or root `scout-report.md` covers them → read it; (c) when no active plan exists, the most relevant root-level `.agents/*/scout-report.md` covers them → read it; (d) otherwise route one scoped request through `{skill:hc-scout}` — prefer `--quick` for affected files, direct callers, related tests, and recent commits; escalate to full `{skill:hc-scout}` only when the symptom genuinely spans unknown modules after the quick pass. Under `--quick`, keep this lookup narrowed to incident touchpoints only. Read `./docs` if the project is unfamiliar. Log `✓ Scout: [N] files, [M] deps, [K] tests | reused [source]`
 
 2. **Diagnose** (mandatory) — capture exact pre-fix state: error messages, stack traces, failing test output — this becomes the Verify baseline. Activate `{skill:hc-debug}` for systematic root-cause tracing. Form and test hypotheses against codebase evidence. If two or more hypotheses fail, activate `{skill:hl-reasoning}`. **Under `--deep`:** invoke `{skill:hc-debug} --deep` instead — its hypothesis panel replaces single-stream tracing (see `{skill:hc-debug}` `references/hypothesis-panel.md`; do not duplicate the protocol here). Produce a diagnosis report: confirmed root cause, evidence chain, affected scope. See `references/diagnosis-protocol.md`. Log `✓ Diagnose: Root cause: [summary], Scope: [N files]`
 
@@ -139,7 +139,7 @@ Core:
 - `references/complexity-assessment.md` — Simple / Moderate / Complex classification
 - `references/task-orchestration.md` — Claude Task creation patterns
 - `references/skill-activation-matrix.md` — when to activate each skill/subagent
-- `references/parallel-exploration.md` — parallel Explore and Bash patterns
+- `references/parallel-exploration.md` — hypothesis-falsification fan-out and Bash verification patterns
 - `references/workflow-artifacts.md` — 5 JSON artifacts required before finalize
 
 Per-complexity:

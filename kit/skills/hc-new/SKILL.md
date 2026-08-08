@@ -127,7 +127,7 @@ Handled by `{skill:hc-cook}`:
 
 **Docs:** Activate `{skill:hc-docs} init` as the canonical docs/rules generator. To avoid re-inference, pass the requirements/scope, approved stack, detected commands, plan/checkpoint state, constraints, and verified entrypoints, packages, APIs/CLI, env/deployment/config, and design assets. Root `README.md` alone may briefly describe strengths/differentiation; keep other outputs operational.
 
-`{skill:hc-docs} init` owns root `README.md`, root `AGENTS.md`, one-line `CLAUDE.md`/`GEMINI.md`, and the operational `docs/*` set. It must preserve its own scout, inventory, size, accuracy, and grep-based verification workflow.
+`{skill:hc-docs} init` owns root `README.md`, root `AGENTS.md`, one-line `CLAUDE.md`/`GEMINI.md`, and the operational `docs/*` set. It must preserve handed-off verified recon first, then active-plan-first scout reuse, inventory, size, accuracy, and grep-based verification workflow.
 
 Use `haily-project-manager` subagent to update `./docs/project-roadmap.md`, sync plan status, and mark completed phases complete.
 

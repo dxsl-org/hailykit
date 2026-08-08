@@ -1,11 +1,12 @@
 # Update Workflow
 
-## Phase 1: Parallel Codebase Scouting
+## Phase 1: Codebase Recon Reuse + Delta Scout
 
 1. Scan the codebase and calculate the number of files with LOC in each directory (skip `.claude`, `.opencode`, `.git`, `tests`, `node_modules`, `__pycache__`, `secrets`, etc.)
 2. Target directories **that actually exist** - adapt to project structure
-3. Reuse-first: if the session already holds a scout report or recon covering the changed modules, or `.agents/*/scout-report.md` from an active plan does, use it. Otherwise activate `{skill:hc-scout}` to explore the codebase and return summary reports
-4. Merge scout reports into context summary
+3. Reuse-first: resolve prior recon in this order — session/explicit recon already covering the changed modules; active-plan `context-snippets.json.reconEnvelope`; active-plan root `scout-report.md`; only when no active plan exists, the most relevant root-level `.agents/*/scout-report.md`. Nested legacy `reports/scout-report.md` is `prior` context only; it cannot suppress a needed scout.
+4. Activate `{skill:hc-scout}` only for uncovered gaps. Prefer `{skill:hc-scout} --quick` when the missing coverage is narrow; use full `{skill:hc-scout}` only when the docs boundary still spans unknown modules after reuse.
+5. Merge reused recon plus any delta-scout findings into the context summary
 
 ## Phase 1.5: Documentation Inventory
 
@@ -19,7 +20,7 @@ No reader agents — `haily-docs-writer` reads every doc it edits anyway, so a p
 
 **CRITICAL:** You MUST spawn `haily-docs-writer` agent via Task tool with merged scout reports and the doc inventory.
 
-Pass the gathered context to haily-docs-writer. Update only affected operational docs under the output policy in `init-workflow.md`; preserve detected commands, requirements, decisions and why, architecture boundaries, standards, and progress. Root `README.md` alone may keep one brief opening project narrative. Do not recreate `docs/README.md`, `docs/codebase-summary.md`, or a narrative project overview unless the user requests an existing compatibility stub.
+Pass the gathered context to haily-docs-writer. Update only affected operational docs under the output policy in `init-workflow.md`; preserve detected commands, requirements, decisions and why, architecture boundaries, standards, progress, and any reused-vs-delta scout distinction that matters for freshness. Root `README.md` alone may keep one brief opening project narrative. Do not recreate `docs/README.md`, `docs/codebase-summary.md`, or a narrative project overview unless the user requests an existing compatibility stub.
 
 ## Additional requests
 <additional_requests>

@@ -21,17 +21,9 @@ T6 = TaskCreate(subject="Finalize",               activeForm="Finalizing",      
 `TaskUpdate(T1, status="in_progress")`
 
 **Mandatory skill chain:**
-1. Reuse-first (SKILL.md Process step 1 ladder — session recon, then `.agents/*/scout-report.md`); otherwise activate `{skill:hc-scout} --quick` OR launch 2-3 parallel `Explore` subagents scoped to the symptom.
+1. Reuse-first (SKILL.md Process step 1 ladder — session/explicit recon, then active-plan artifacts, then root-level prior scout reports only when no active plan exists); otherwise activate `{skill:hc-scout} --quick` scoped to the symptom. Escalate to full `{skill:hc-scout}` only when the module boundary is still unknown after the quick pass.
 2. Map: affected files, module boundaries, dependencies, related tests, recent git changes.
-
-**Pattern:** In SINGLE message, launch 2-3 Explore agents:
-```
-Task("Explore", "Find [area1] files related to issue", "Scout area1")
-Task("Explore", "Find [area2] patterns/usage", "Scout area2")
-Task("Explore", "Find [area3] tests/dependencies", "Scout area3")
-```
-
-See `references/parallel-exploration.md` for patterns.
+Parallel `Explore` remains a Step 2 tool for hypothesis falsification, not Step 1 scouting.
 
 `TaskUpdate(T1, status="completed")`
 **Output:** `✓ Step 1: Scouted [N] areas - [M] files, [K] tests found`
@@ -108,7 +100,7 @@ See `references/review-cycle.md` for mode-specific handling.
 
 | Step | Skills/Subagents |
 |------|------------------|
-| 1 | `{skill:hc-scout}` OR parallel `Explore` subagents |
+| 1 | `{skill:hc-scout}` (`--quick` first, full mode only for unknown-module spread) |
 | 2 | `{skill:hc-debug}`, `{skill:hl-reasoning}`, `haily-debugger` subagent, parallel `Explore`, (`{skill:hl-brainstorm}` auto) |
 | 3 | `{skill:hl-brainstorm}` (if stuck), `{skill:hl-reasoning}` (complex logic) |
 | 4 | `haily-tester` subagent, parallel `Bash` verification |

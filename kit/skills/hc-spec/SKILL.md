@@ -46,7 +46,7 @@ Drafts a formal specification from a task or plan, presents it for approval, and
 
 ## Process
 
-1. **Recon** — reuse session recon or `.agents/*/scout-report.md` when it covers the relevant modules (typical when invoked via `{skill:hc-cook} --spec`); otherwise spawn a quick Explore agent. Identify adjacent contracts, existing error-handling patterns, and prior decisions in `.agents/` or `docs/decisions/`. Log `✓ Recon: [N] findings | reused [source]`.
+1. **Recon** — reuse session recon first, then active-plan `context-snippets.json.reconEnvelope`, then active-plan root `scout-report.md`, then — only when no active plan exists — the most relevant root-level `.agents/*/scout-report.md`. Otherwise route one scoped `{skill:hc-scout} --quick` lookup. Identify adjacent contracts, existing error-handling patterns, and prior decisions in `.agents/` or `docs/decisions/`. Log `✓ Recon: [N] findings | reused [source]`.
 
 2. **Draft** — write a spec doc (see § Output) covering: functional requirements in EARS notation, edge cases, out-of-scope items, testable acceptance criteria with stable `AC-N` ids, and open questions. Under `--quick`, skip EARS patterns and edge-case enumeration — see § --quick Mode.
 

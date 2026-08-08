@@ -17,9 +17,11 @@
 
 const { readFileSync, readdirSync, lstatSync, existsSync } = require('fs');
 const path = require('path');
+const { validateReconEnvelope } = require(path.join(__dirname, '..', 'kit', 'hooks', 'haily-artifact', 'recon-envelope.cjs'));
 
 const repoRoot = path.resolve(__dirname, '..');
 const claudeDir = path.join(repoRoot, 'kit');
+const SCOUT_FIXTURE_DIR = path.join(repoRoot, 'cli', 'tests', 'fixtures', 'scout-dedup');
 const SCAN_SKIP_DIRS = new Set([
   '.agents', '.git', '.reference', '.test-build', 'dist', 'node_modules', 'release',
 ]);
@@ -224,6 +226,136 @@ const VALID_MODEL_TIERS = new Set(['fast', 'medium', 'thinking', 'ultra']);
 
 // Tiers allowed in kit/model-map.json — same set as agent tiers.
 const VALID_MAP_TIERS = VALID_MODEL_TIERS;
+const SCOUT_CALLER_EXPLORE_EXEMPT = new Set([
+  'kit/skills/hc-scout/',
+  'kit/agents/explore.md',
+  'kit/skills/hc-fix/references/diagnosis-protocol.md',
+  'kit/skills/hc-fix/references/parallel-exploration.md',
+]);
+const REQUIRED_SCOUT_FIXTURE_FILES = [
+  'README.md',
+  'recon-envelope-valid.json',
+  'recon-envelope-invalid-overlap.json',
+];
+
+function normalizeNewlines(value) {
+  return value.replace(/\r\n/g, '\n');
+}
+
+function normalizePolicyText(value) {
+  return normalizeNewlines(value).replace(/\s+/g, ' ').trim();
+}
+
+function lineNumberAt(content, index) {
+  return normalizeNewlines(content).slice(0, index).split('\n').length;
+}
+
+function pushProblem(list, file, problem) {
+  list.push({ file, problem });
+}
+
+function isScoutExploreExempt(file) {
+  const normalized = file.replace(/\\/g, '/');
+  for (const prefix of SCOUT_CALLER_EXPLORE_EXEMPT) {
+    if (prefix.endsWith('/')) {
+      if (normalized.startsWith(prefix)) return true;
+      continue;
+    }
+    if (normalized === prefix) return true;
+  }
+  return false;
+}
+
+function readFixtureJson(fileName) {
+  return JSON.parse(readFileSync(path.join(SCOUT_FIXTURE_DIR, fileName), 'utf8'));
+}
+
+function checkScoutFixtureFiles() {
+  const problems = [];
+  for (const file of REQUIRED_SCOUT_FIXTURE_FILES) {
+    if (!existsSync(path.join(SCOUT_FIXTURE_DIR, file))) {
+      pushProblem(problems, path.relative(repoRoot, SCOUT_FIXTURE_DIR), `scout fixture is missing: ${file}`);
+    }
+  }
+  if (problems.length) return problems;
+
+  const fixtureReadme = readFileSync(path.join(SCOUT_FIXTURE_DIR, 'README.md'), 'utf8');
+  if (!/root `scout-report\.md`/.test(fixtureReadme)
+    || !/Scout Addendum/.test(fixtureReadme)
+    || !/reconEnvelope/.test(fixtureReadme)
+    || !/instead of overwriting the (?:whole report|plan-authored report)/.test(fixtureReadme)) {
+    pushProblem(problems, path.relative(repoRoot, path.join(SCOUT_FIXTURE_DIR, 'README.md')), 'fixture README must document root scout-report.md persistence, Scout Addendum replacement, and reconEnvelope metadata');
+  }
+
+  try {
+    const validIssues = validateReconEnvelope(readFixtureJson('recon-envelope-valid.json'));
+    if (validIssues.length) {
+      pushProblem(problems, path.relative(repoRoot, path.join(SCOUT_FIXTURE_DIR, 'recon-envelope-valid.json')), `valid fixture failed reconEnvelope validation: ${validIssues[0].path} ${validIssues[0].message}`);
+    }
+  } catch (err) {
+    pushProblem(problems, path.relative(repoRoot, path.join(SCOUT_FIXTURE_DIR, 'recon-envelope-valid.json')), `valid fixture is unreadable: ${err.message}`);
+  }
+
+  try {
+    const invalidIssues = validateReconEnvelope(readFixtureJson('recon-envelope-invalid-overlap.json'));
+    if (!invalidIssues.some((issue) => issue.path === 'ownedPaths')) {
+      pushProblem(problems, path.relative(repoRoot, path.join(SCOUT_FIXTURE_DIR, 'recon-envelope-invalid-overlap.json')), 'invalid overlap fixture must fail ownedPaths validation');
+    }
+  } catch (err) {
+    pushProblem(problems, path.relative(repoRoot, path.join(SCOUT_FIXTURE_DIR, 'recon-envelope-invalid-overlap.json')), `invalid overlap fixture is unreadable: ${err.message}`);
+  }
+
+  return problems;
+}
+
+function scanScoutPolicyEntries(entries) {
+  const problems = [];
+  const directExplore = /\b(?:parallel\s+`?Explore`?\s+(?:subagents?|agents?)|launch(?:ing)?\s+\d(?:-\d)?\s+parallel\s+`?Explore`?\s+subagents?)\b/gi;
+  const nestedReportsPersist = /\b(?:write|persist|save|store|create|append|replace|merge)\b[\s\S]{0,120}reports\/scout-report\.md|reports\/scout-report\.md[\s\S]{0,120}\b(?:write|persist|save|store|create|append|replace|merge)\b/gi;
+  const nonFullModePersist = /(?:--quick|--contracts|--pack|--graph|--deps)[\s\S]{0,160}\b(?:write|persist|save|store|append|replace)\b[\s\S]{0,120}scout-report\.md|\b(?:write|persist|save|store|append|replace)\b[\s\S]{0,160}(?:--quick|--contracts|--pack|--graph|--deps)[\s\S]{0,120}scout-report\.md|\b(?:write|persist|save|store|append|replace)\b[\s\S]{0,120}scout-report\.md[\s\S]{0,160}(?:--quick|--contracts|--pack|--graph|--deps)/gi;
+  const negated = /\b(?:never|do not|don't|must not|cannot|can't|is not|are not|no longer|without)\b/i;
+  const hypothesisContext = /\bhypoth(?:esis|eses)\b|Step 2|Diagnos/i;
+
+  for (const { file, content } of entries) {
+    const normalized = normalizeNewlines(content);
+    const rel = file.replace(/\\/g, '/');
+
+    for (const match of normalized.matchAll(nestedReportsPersist)) {
+      if (!negated.test(normalizePolicyText(match[0]))) {
+        pushProblem(problems, rel, `scout policy: nested reports/scout-report.md persistence is forbidden (line ${lineNumberAt(normalized, match.index)})`);
+      }
+    }
+
+    for (const match of normalized.matchAll(nonFullModePersist)) {
+      if (!negated.test(normalizePolicyText(match[0]))) {
+        pushProblem(problems, rel, `scout policy: non-full scout output must not persist to scout-report.md (line ${lineNumberAt(normalized, match.index)})`);
+      }
+    }
+
+    for (const match of normalized.matchAll(directExplore)) {
+      if (isScoutExploreExempt(rel) || negated.test(normalizePolicyText(match[0])) || /\{skill:hc-scout\}/.test(match[0])) continue;
+      const lineStart = normalized.lastIndexOf('\n', match.index) + 1;
+      const nextBreak = normalized.indexOf('\n', match.index + match[0].length);
+      const lineEnd = nextBreak === -1 ? normalized.length : nextBreak;
+      if (hypothesisContext.test(normalized.slice(lineStart, lineEnd))) continue;
+      pushProblem(problems, rel, `scout policy: callers must route through {skill:hc-scout}, not direct Explore orchestration (line ${lineNumberAt(normalized, match.index)})`);
+    }
+  }
+
+  return problems;
+}
+
+function checkScoutPolicy() {
+  const markdownFiles = findFiles(claudeDir, (entry) => entry.endsWith('.md'));
+  const entries = markdownFiles.map((filePath) => ({
+    file: path.relative(repoRoot, filePath),
+    content: readFileSync(filePath, 'utf8'),
+  }));
+  return [
+    ...scanScoutPolicyEntries(entries),
+    ...checkScoutFixtureFiles(),
+  ];
+}
 
 /**
  * Validates that every kit/agents/*.md declares `model:` with a valid tier.
@@ -504,14 +636,39 @@ function main() {
     console.error('');
   }
 
+  const scoutPolicyProblems = checkScoutPolicy();
+  if (scoutPolicyProblems.length > 0) {
+    hasErrors = true;
+    console.error('[X] Scout dedup policy problem(s):');
+    for (const { file, problem } of scoutPolicyProblems) {
+      console.error(`  - ${file}: ${problem}`);
+    }
+    console.error('');
+  }
+
   if (!hasErrors) {
     const refCount = allRefs.length;
     const skillCount = registry.size;
-    console.log(`[OK] skill-cross-refs: ${skillCount} skill(s) registered, ${refCount} reference(s) checked (prefixes: hl/hc/hs) — all valid. Agent model tiers + model-map.json + flag vocabulary + References-table paths valid.`);
+    console.log(`[OK] skill-cross-refs: ${skillCount} skill(s) registered, ${refCount} reference(s) checked (prefixes: hl/hc/hs) — all valid. Agent model tiers + model-map.json + flag vocabulary + References-table paths + scout dedup policy valid.`);
     process.exit(0);
   }
 
   process.exit(1);
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  buildSkillRegistry,
+  collectCkReferences,
+  collectMalformedSkillRefs,
+  checkAgentModelTiers,
+  checkModelMapJson,
+  checkFlagVocabulary,
+  checkReferencesTablePaths,
+  scanScoutPolicyEntries,
+  checkScoutFixtureFiles,
+  checkScoutPolicy,
+};

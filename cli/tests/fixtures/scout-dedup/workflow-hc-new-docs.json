@@ -1,0 +1,40 @@
+{
+  "workflowId": "hc-new-plan-docs",
+  "chain": ["hc-new", "hc-plan", "hc-docs init"],
+  "routeEvents": [
+    {
+      "step": "hc-plan",
+      "routeDecision": "full-scout",
+      "source": "unknown-modules",
+      "metrics": {
+        "fullScoutCount": 1,
+        "reuseHitCount": 0,
+        "quickDeltaCount": 0,
+        "directExploreScoutCount": 0,
+        "nestedReportWrites": 0,
+        "packFallbackCount": 0
+      }
+    },
+    {
+      "step": "hc-docs init",
+      "routeDecision": "reuse-verified-handoff+quick-delta",
+      "source": "verified-handoff",
+      "metrics": {
+        "fullScoutCount": 0,
+        "reuseHitCount": 1,
+        "quickDeltaCount": 1,
+        "directExploreScoutCount": 0,
+        "nestedReportWrites": 0,
+        "packFallbackCount": 0
+      }
+    }
+  ],
+  "expected": {
+    "maxFullScoutCount": 1,
+    "minReuseHitCount": 1,
+    "maxQuickDeltaCount": 1,
+    "maxDirectExploreScoutCount": 0,
+    "maxNestedReportWrites": 0,
+    "maxPackFallbackCount": 0
+  }
+}

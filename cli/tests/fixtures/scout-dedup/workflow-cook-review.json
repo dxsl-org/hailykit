@@ -1,0 +1,40 @@
+{
+  "workflowId": "hc-cook-review",
+  "chain": ["hc-cook", "hc-review"],
+  "routeEvents": [
+    {
+      "step": "hc-cook",
+      "routeDecision": "full-scout",
+      "source": "task-boundary-unknown",
+      "metrics": {
+        "fullScoutCount": 1,
+        "reuseHitCount": 0,
+        "quickDeltaCount": 0,
+        "directExploreScoutCount": 0,
+        "nestedReportWrites": 0,
+        "packFallbackCount": 0
+      }
+    },
+    {
+      "step": "hc-review",
+      "routeDecision": "reuse-active-plan-scout-report",
+      "source": "active-plan",
+      "metrics": {
+        "fullScoutCount": 0,
+        "reuseHitCount": 1,
+        "quickDeltaCount": 0,
+        "directExploreScoutCount": 0,
+        "nestedReportWrites": 0,
+        "packFallbackCount": 0
+      }
+    }
+  ],
+  "expected": {
+    "maxFullScoutCount": 1,
+    "minReuseHitCount": 1,
+    "maxQuickDeltaCount": 0,
+    "maxDirectExploreScoutCount": 0,
+    "maxNestedReportWrites": 0,
+    "maxPackFallbackCount": 0
+  }
+}

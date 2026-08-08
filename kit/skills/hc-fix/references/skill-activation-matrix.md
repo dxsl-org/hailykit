@@ -6,7 +6,7 @@ When to activate each skill and tool during fixing workflows.
 
 | Skill/Tool | Step | Reason |
 |------------|------|--------|
-| Reuse-first recon, else `{skill:hc-scout} --quick` OR parallel `Explore` | Step 1 | Understand codebase context before diagnosing (SKILL Process step 1 ladder) |
+| Reuse-first recon, else `{skill:hc-scout} --quick` (full mode only for unknown-module spread) | Step 1 | Understand codebase context before diagnosing without duplicating scout orchestration |
 | `{skill:hc-debug}` | Step 2 | Systematic root cause investigation |
 | `{skill:hl-reasoning}` | Step 2 | Structured hypothesis formation — NO guessing |
 
@@ -42,7 +42,7 @@ Skip Tasks for Quick workflow (< 3 steps). See `references/task-orchestration.md
 | Subagent | Activate When |
 |----------|---------------|
 | `haily-debugger` | Root cause unclear, need deep investigation (Step 2) |
-| `Explore` (parallel) | Scout multiple areas simultaneously (Step 1), test hypotheses (Step 2) |
+| `Explore` (parallel) | Test hypotheses in Step 2 against codebase evidence |
 | `Bash` (parallel) | Verify implementation: typecheck, lint, build, test (Step 5) |
 | `haily-researcher` | External docs needed, latest best practices (Deep only) |
 | `haily-planner` | Complex fix needs breakdown, multiple phases (Deep only) |
@@ -59,9 +59,9 @@ See `references/parallel-exploration.md` for detailed patterns.
 
 | When | Parallel Strategy |
 |------|-------------------|
-| Scouting (Step 1) | 2-3 `Explore` agents on different areas |
+| Scouting (Step 1) | One scoped `{skill:hc-scout}` request; scout owns internal partitioning if needed |
 | Testing hypotheses (Step 2) | 2-3 `Explore` agents per hypothesis |
-| Multi-module fix | `Explore` each module in parallel |
+| Multi-module fix | Full `{skill:hc-scout}` once, then parallelize implementation or hypothesis checks only after scope is mapped |
 | After implementation (Step 5) | `Bash` agents: typecheck + lint + build + test |
 | 2+ independent issues | Task trees + `haily-implementor` agents per issue |
 
@@ -70,7 +70,7 @@ See `references/parallel-exploration.md` for detailed patterns.
 | Workflow | Skills Activated |
 |----------|------------------|
 | Quick | `{skill:hc-scout}` (minimal), `{skill:hc-debug}`, `{skill:hl-reasoning}`, `{skill:hc-review}`, parallel `Bash` verification |
-| Standard | Above + Tasks, `{skill:hl-brainstorm}` (auto), `{skill:hl-log}`, `haily-tester`, parallel `Explore` |
+| Standard | Above + Tasks, `{skill:hl-brainstorm}` (auto), `{skill:hl-log}`, `haily-tester`, parallel `Explore` for Step 2 hypotheses only |
 | Deep | All above + `{skill:hl-brainstorm}`, `{skill:hl-context-engineering}`, `haily-researcher`, `haily-planner` |
 | Parallel | Per-issue Task trees + `{skill:hl-log}` + `haily-implementor` agents + coordination via `TaskList` |
 
@@ -79,7 +79,7 @@ See `references/parallel-exploration.md` for detailed patterns.
 | Step | Mandatory Chain |
 |------|----------------|
 | Step 0: Mode | `AskUserQuestion` (unless auto/quick detected) |
-| Step 1: Scout | `{skill:hc-scout}` OR 2-3 parallel `Explore` → map files, deps, tests |
+| Step 1: Scout | `{skill:hc-scout}` (`--quick` first, full mode only for unknown-module spread) → map files, deps, tests |
 | Step 2: Diagnose | Capture pre-fix state → `{skill:hc-debug}` → `{skill:hl-reasoning}` → parallel `Explore` hypotheses → (`{skill:hl-brainstorm}` if 2+ fail) |
 | Step 3: Assess | Classify complexity → create Tasks (moderate+) |
 | Step 4: Fix | Implement per workflow → follow root cause |

@@ -58,7 +58,7 @@ Give it a goal; it plans, implements, reviews, and commits each phase until done
 
 1. **Route** — parse flags; assess goal: if fuzzy, apply clarify-or-assume rule; if no actionable outcome, halt with one sentence explaining what is missing. Open run ledger at `.agents/<plan-dir>/run-ledger.md`; set budget caps. Capture baseline test results for the regression gate (see `references/regression-gate.md`). Log `✓ Route: goal locked — mode=[interactive|auto], budget=[N phases / X tool-calls]`.
 
-2. **Recon** — spawn Explore agent; capture project type, framework, relevant modules, in-flight plans in `.agents/`. Log `✓ Recon: [N] findings`.
+2. **Recon** — route one scoped discovery request through `{skill:hc-scout}`; reuse current-session or active-plan recon first, and request only uncovered paths. Capture project type, framework, relevant modules, and in-flight plans in `.agents/`. Log `✓ Recon: [N] findings`.
 
 3. **Plan** — delegate to `{skill:hc-plan} --auto "<goal>"` (append `--deep` verbatim when set) → produces `plan.md` + `phase-NN-*.md` with `tier` and `dependencies` fields per phase. Build Stage Graph from `dependencies` fields.
    - **Checkpoint (Plan exit):** present plan summary (phase count, parallel-eligible). User: Approve / Revise / Abort. [skip: `--auto`]

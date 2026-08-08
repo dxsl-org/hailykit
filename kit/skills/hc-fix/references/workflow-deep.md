@@ -23,16 +23,9 @@ T9 = TaskCreate(subject="Finalize & docs",               activeForm="Finalizing"
 ### Step 1: Scout Codebase (parallel with Steps 2+3)
 `TaskUpdate(T1, status="in_progress")`
 
-**Mandatory (reuse-first — SKILL.md Process step 1 ladder):** reuse session recon or `.agents/*/scout-report.md` when it covers the failure's modules; otherwise activate `{skill:hc-scout}` or launch 2-3 `Explore` subagents in parallel:
-```
-Task("Explore", "Find error origin and affected components", "Trace error")
-Task("Explore", "Find module boundaries and dependencies", "Map deps")
-Task("Explore", "Find related tests and similar patterns", "Find patterns")
-```
+**Mandatory (reuse-first — SKILL.md Process step 1 ladder):** reuse session/explicit recon first, then active-plan artifacts, then root-level prior scout reports only when no active plan exists; otherwise activate `{skill:hc-scout}` once with all scout aspects in one prompt. Prefer `--quick` only when the failing boundary is already known; use full `{skill:hc-scout}` when unknown modules still span the failure.
 
 Map: all affected files, module boundaries, call chains, test coverage gaps.
-
-See `references/parallel-exploration.md` for patterns.
 
 `TaskUpdate(T1, status="completed")`
 **Output:** `✓ Step 1: Scouted - [N] files, system impact: [scope]`
@@ -139,7 +132,7 @@ See `references/review-cycle.md` for mode-specific handling.
 
 | Step | Skills/Subagents |
 |------|------------------|
-| 1 | `{skill:hc-scout}` OR parallel `Explore` subagents |
+| 1 | `{skill:hc-scout}` (single scoped request; internal partitioning if needed) |
 | 2 | `{skill:hc-debug}`, `{skill:hl-reasoning}`, parallel `Explore`, (`{skill:hl-brainstorm}` auto) |
 | 3 | `haily-researcher` (runs parallel with steps 1+2) |
 | 4 | `{skill:hl-brainstorm}` |

@@ -1,0 +1,16 @@
+{
+  "targetDigest": "auth:src",
+  "sourceKind": "scout-report",
+  "sourceRef": ".agents/260808-1742-scout-deduplication/scout-report.md",
+  "mode": "full",
+  "freshness": "same-plan",
+  "repoHead": "1234567890abcdef1234567890abcdef12345678",
+  "dirtyScopeFingerprint": "dirty:src",
+  "coveredPaths": ["src"],
+  "excludedPaths": [],
+  "ownedPaths": ["src", "src/auth"],
+  "gaps": [],
+  "routeHint": "parallel",
+  "complete": true,
+  "createdAt": "2026-08-08T18:15:00.000Z"
+}

@@ -90,7 +90,7 @@ Stages 2 and 3 spawn in parallel (one message) once Stage 1 passes; Stage 4's YA
 
 ## Constraints
 
-> **Required — recon-first, reuse-first:** Before reviewing, obtain blast-radius context (affected files beyond the diff, data flow paths) — but never re-derive what already exists. Resolve via the Scout ladder (Process step 2): session context → plan artifact → inline trace → `{skill:hc-scout} --quick`. Full-mode `{skill:hc-scout}` is never spawned for diff reviews; codebase and codebase-parallel modes run scout internally.
+> **Required — recon-first, reuse-first:** Before reviewing, obtain blast-radius context (affected files beyond the diff, data flow paths) — but never re-derive what already exists. Resolve via the Scout ladder (Process step 2): session context → active-plan artifact → prior root-level scout artifact only when no active plan exists → inline trace → `{skill:hc-scout} --quick`. Full-mode `{skill:hc-scout}` is never spawned for diff reviews; codebase and codebase-parallel modes run scout internally.
 
 > **Required — evidence-before-claims:** Run the verification command and read full output before declaring any finding fixed or the review complete. A finding cites what was OBSERVED at `file:line`; a claim carried from plan text, a scout report, or a prior review is PRIOR until grep-verified and never becomes OBSERVED by being restated. See `docs/engineering-standards.md` → Claim Provenance.
 
@@ -103,9 +103,10 @@ Stages 2 and 3 spawn in parallel (one message) once Stage 1 passes; Stage 4's YA
 
 2. **Scout** — obtain blast-radius context for the diff. Resolve down the ladder; first hit wins, later rungs never run:
    1. **Session context** — the conversation already holds a scout report or recon summary covering the changed modules (typical when review follows `{skill:hc-cook}` or `{skill:hc-plan}` in the same session). Reuse it. Log `✓ Scout: reused session recon`
-   2. **Plan artifact** — glob `.agents/*/scout-report.md`; if the most recently modified one covers the changed modules, use it. Log `✓ Scout: used scout-report.md from [path]`
-   3. **Inline trace** — the Stage 3 scope gate would skip (all its conditions hold, including no new dependencies and none of its never-skip overrides — `references/review-adversarial.md` § Scope Gate): grep importers of the changed files in the main loop; no subagent. Log `✓ Scout: inline trace ([N] consumers)`
-   4. **Spawn** — `{skill:hc-scout} --quick` with the edge-case prompt (`references/process-edge-cases.md`), scoped to the changed files: consumers, data flows, boundary conditions, blast radius. Log `✓ Scout: [N] findings`
+   2. **Active-plan artifact** — if the active plan's root `scout-report.md` covers the changed modules, use it. Log `✓ Scout: used active-plan scout-report.md from [path]`
+   3. **Prior artifact** — when no active plan exists, glob root-level `.agents/*/scout-report.md`; if the most relevant one covers the changed modules, use it. Nested legacy `reports/scout-report.md` is `prior` context only and does not outrank an active plan. Log `✓ Scout: used prior scout-report.md from [path]`
+   4. **Inline trace** — the Stage 3 scope gate would skip (all its conditions hold, including no new dependencies and none of its never-skip overrides — `references/review-adversarial.md` § Scope Gate): grep importers of the changed files in the main loop; no subagent. Log `✓ Scout: inline trace ([N] consumers)`
+   5. **Spawn** — `{skill:hc-scout} --quick` with the edge-case prompt (`references/process-edge-cases.md`), scoped to the changed files: consumers, data flows, boundary conditions, blast radius. Log `✓ Scout: [N] findings`
 
    Never spawn full-mode `{skill:hc-scout}` here — repo-wide partition scouting belongs to codebase modes, which run it internally.
    - Skip entirely: `codebase` / `codebase parallel` modes (scout runs internally); `--ui` mode (pattern-matched files are the scope); `--quick` mode (quality checklist needs no blast radius)

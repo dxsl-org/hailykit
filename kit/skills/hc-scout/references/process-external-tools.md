@@ -28,14 +28,20 @@ Spawn one Explore subagent per logical segment. Each subagent receives an exclus
 
 ```
 Task 1 (Explore): "Search src/auth/ and src/middleware/ for authentication patterns.
+  Owned paths: src/auth/, src/middleware/.
+  Gaps: missing auth guard call sites under those paths.
   Scope every Glob/Grep call to one of those two directories.
   List every file that enforces access control with a one-line description."
 
 Task 2 (Explore): "Search src/api/ and src/routes/ for route definitions.
+  Owned paths: src/api/, src/routes/.
+  Gaps: unresolved route files and auth usage under those paths.
   Scope every Glob/Grep call to one of those two directories.
   List all route files, HTTP methods, and whether they reference an auth guard."
 
 Task 3 (Explore): "Search src/db/ and src/models/ for schema definitions.
+  Owned paths: src/db/, src/models/.
+  Gaps: unresolved user/session schema files under those paths.
   Scope every Glob/Grep call to one of those two directories.
   List table/collection names, primary keys, and any user/session-related fields."
 ```
@@ -45,6 +51,7 @@ Spawn all tasks in a single message to execute in parallel. Each agent uses Glob
 ## Prompt Guidelines
 
 - State the directory scope explicitly — agents must not wander outside their segment, and every Glob/Grep call must set `path` to one of the segment's directories, one scoped call per directory (an unscoped search hits the whole repo and duplicates every sibling agent's work).
+- Include `ownedPaths` and `gaps` in the prompt so the agent knows both its exclusive search boundary and what prior recon still left unresolved.
 - Tell each agent to run a given keyword search once — vary the pattern only when the previous search came back empty.
 - Request file paths with one-line descriptions, not full file dumps.
 - Ask for relationships when relevant: "which files import X", "which routes call Y".
@@ -59,14 +66,20 @@ Determine partitioning: the repo has `db/`, `migrations/`, `src/models/`, `confi
 
 ```
 Task 1 (Explore): "Search db/ and migrations/ for migration files.
+  Owned paths: db/, migrations/.
+  Gaps: unresolved migration ownership and modified schema names under those paths.
   Scope every Glob/Grep call to one of those two directories.
   For each file list: path, migration name, and the table/schema it affects."
 
 Task 2 (Explore): "Search src/models/ for schema definition files.
+  Owned paths: src/models/.
+  Gaps: unresolved model primary keys and migration matches.
   Scope every Glob/Grep call to src/models/.
   List each file, the model name, and its primary key field."
 
 Task 3 (Explore): "Search config/ for database configuration files.
+  Owned paths: config/.
+  Gaps: unresolved database targets and connection definitions.
   Scope every Glob/Grep call to config/.
   List each file and which database or connection string it configures."
 ```

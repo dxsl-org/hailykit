@@ -18,6 +18,8 @@ subagent_type: "Explore"
 Quickly scout {DIRECTORY} for files related to: {USER_PROMPT}
 
 Instructions:
+- Owned paths: {OWNED_PATHS}
+- Known gaps from prior recon: {GAPS}
 - Search for relevant files matching the task
 - Use Glob/Grep for file discovery — EVERY call sets path to one of your
   assigned directories (one scoped call per directory); never search outside
@@ -36,7 +38,7 @@ Report format:
 - Key patterns observed
 ```
 
-Every agent receives the same task keywords — the per-directory `path` scope is what keeps their searches disjoint. An unscoped Grep runs against the whole repo, so N agents would each scan every file for the same keyword: N-fold duplicate work and the single largest source of scout waste.
+Every agent receives the same task keywords plus explicit `ownedPaths` and `gaps` — the per-directory `path` scope is what keeps their searches disjoint. An unscoped Grep runs against the whole repo, so N agents would each scan every file for the same keyword: N-fold duplicate work and the single largest source of scout waste.
 
 ## Spawning Strategy
 
@@ -51,6 +53,7 @@ Split codebase logically:
 ### Parallel Execution
 - Spawn all agents in single `Task` tool call
 - Each agent gets distinct directory scope
+- Each agent gets the uncovered gaps for its scope only
 - No overlap between agents
 - Root-level files (`package.json`, `README`, configs) and `docs/`/`.agents/` are never assigned to a segment — the orchestrator reads them directly for the report's Project Type and Docs & In-Flight Plans sections
 

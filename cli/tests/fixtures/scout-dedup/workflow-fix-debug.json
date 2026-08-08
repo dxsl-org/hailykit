@@ -1,0 +1,41 @@
+{
+  "workflowId": "hc-fix-debug",
+  "chain": ["hc-fix", "hc-debug"],
+  "routeEvents": [
+    {
+      "step": "hc-fix",
+      "routeDecision": "quick-scout",
+      "source": "incident-touchpoints",
+      "metrics": {
+        "fullScoutCount": 0,
+        "reuseHitCount": 0,
+        "quickDeltaCount": 1,
+        "directExploreScoutCount": 0,
+        "nestedReportWrites": 0,
+        "packFallbackCount": 0
+      }
+    },
+    {
+      "step": "hc-debug",
+      "routeDecision": "reuse-session-recon",
+      "source": "session-recon",
+      "metrics": {
+        "fullScoutCount": 0,
+        "reuseHitCount": 1,
+        "quickDeltaCount": 0,
+        "directExploreScoutCount": 0,
+        "nestedReportWrites": 0,
+        "packFallbackCount": 0
+      },
+      "forbiddenFallbacks": ["docs/codebase-summary.md", "{skill:hc-scout} --pack"]
+    }
+  ],
+  "expected": {
+    "maxFullScoutCount": 0,
+    "minReuseHitCount": 1,
+    "maxQuickDeltaCount": 1,
+    "maxDirectExploreScoutCount": 0,
+    "maxNestedReportWrites": 0,
+    "maxPackFallbackCount": 0
+  }
+}

@@ -10,6 +10,7 @@ const REQUIRED_FILES = [
 // its requirement is conditional on the `evidence` marker in
 // context-snippets.json (see validator.cjs CONDITIONAL_FILES).
 const EVIDENCE_FILE = 'execution-evidence.json';
+const { validateReconEnvelope } = require('./recon-envelope.cjs');
 
 const DECISIONS = new Set(['PASS', 'PASS_WITH_RISK', 'BLOCKED']);
 const CONTRACT_STATUSES = new Set(['OK', 'CHANGED', 'BROKEN', 'UNKNOWN']);
@@ -51,6 +52,11 @@ function validateContext(value) {
   // Absent = legacy/no requirement; present = must be a non-empty string.
   if (value.evidence !== undefined && !hasText(value.evidence)) {
     push(errors, 'evidence', 'must be a non-empty string when present');
+  }
+  if (value.reconEnvelope !== undefined) {
+    for (const issue of validateReconEnvelope(value.reconEnvelope)) {
+      push(errors, `reconEnvelope.${issue.path.replace(/^reconEnvelope\.?/, '')}`, issue.message);
+    }
   }
   return errors;
 }

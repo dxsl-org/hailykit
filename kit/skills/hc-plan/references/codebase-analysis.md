@@ -8,8 +8,9 @@
 
 Before touching source files, read the project's own documentation:
 
-- `./docs/codebase-summary.md` — architecture overview, component relationships, current status
+- active-plan `scout-report.md` if one already exists — architecture overview, contracts, and current scoped findings
 - `./docs/code-standards.md` — naming conventions, language-specific patterns, error handling approach
+- `./docs/system-architecture.md` — architecture overview, component relationships, current status
 - `./docs/design-guidelines.md` — UI/UX conventions, component library usage (if exists)
 - `CLAUDE.md` — project-specific constraints injected into context
 
@@ -17,7 +18,7 @@ Skip files that don't exist; continue without blocking.
 
 ### Scout the Codebase
 
-Reuse before spawning: if the session already holds a scout report or recon summary covering the task's modules (typical when planning follows `{skill:hl-brainstorm}` or `{skill:hc-scout}` in the same session), use it and skip only this Scout sub-step — Precedent Mining and the Output write to `scout-report.md` still run. Log `✓ Scout: reused session recon`.
+Reuse before spawning: if the session already holds a scout report or recon summary covering the task's modules (typical when planning follows `{skill:hl-brainstorm}` or `{skill:hc-scout}` in the same session), use it and skip only this Scout sub-step — Precedent Mining and the Output write to `scout-report.md` still run. Otherwise check active-plan `context-snippets.json.reconEnvelope`, then active-plan root `scout-report.md`, then — only when no active plan exists — the most relevant root-level `.agents/*/scout-report.md`. Nested legacy `reports/scout-report.md` is `prior` context only; it cannot suppress a needed scout. Log `✓ Scout: reused [source]`.
 
 Otherwise run `{skill:hc-scout}` **once**, listing every aspect in a single prompt — scout partitions the repo and parallelizes internally, so one invocation covers all aspects; invoking it per-aspect runs overlapping repo-wide sweeps:
 
@@ -27,6 +28,7 @@ Otherwise run `{skill:hc-scout}` **once**, listing every aspect in a single prom
 ```
 
 Narrow follow-up lookups after the first report use `{skill:hc-scout} --quick` — never a second full scout.
+Use `{skill:hc-scout} --pack` only when the task explicitly needs a full repo snapshot for external sharing or offline analysis — never as a freshness fallback.
 
 Wait for the scout report before proceeding to analysis.
 

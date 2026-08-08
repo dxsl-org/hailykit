@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Verified scout dedup delivery: targeted scout tests pass 20/20, the full suite passes 594/595 with only the unchanged date-sensitive benchmark baseline failure, and the work stopped short of commit/push/release.
+- Added machine-readable `ReconEnvelope` coverage metadata and active-plan-first routing so scout work is reused when current, narrowed to uncovered deltas when partial, and partitioned by exclusive owned paths when parallel work is required.
+- Converged Scout steps in new/plan/docs/cook/review/fix/debug/goal workflows on `hc-scout`, while preserving separate Explore branches used only for hypothesis falsification.
+- Added deterministic scout-dedup workflow fixtures for `hc-new → hc-plan → hc-docs init`, `hc-cook → hc-review`, and `hc-fix → hc-debug`, plus static tests that assert max full-scout count, reuse hits, quick-delta counts, and no direct-Explore scout fallback.
+- Extended the static skill-contract validator so scout-dedup policy is checked alongside cross-reference, model-tier, and References-table integrity.
 - Tightened docs-generation policy so `hc-new` delegates to `hc-docs init`, root `README.md` keeps the only brief project narrative, and generated docs stay operational.
 - Added a provider-neutral `hailykit benchmark` command family for static footprint, hook replay, workflow planning, offline workflow replay, legacy reasoning import, comparison, and report generation.
 - Added benchmark methodology docs that separate quality, safety, efficiency, and provenance, including calibration-first live batches, private hash-only holdout handling, and effective-pair/bootstrap/permutation diagnostics.
