@@ -125,19 +125,11 @@ Handled by `{skill:hc-cook}`:
 
 ### Ship
 
-**Docs:** Activate `{skill:hc-docs} init`. Use `haily-docs-writer` subagent to create:
-- `./docs/README.md` (≤300 lines)
-- `./docs/codebase-summary.md`
-- `./docs/project-overview-pdr.md`
-- `./docs/code-standards.md`
-- `./docs/system-architecture.md`
+**Docs:** Activate `{skill:hc-docs} init` as the canonical docs/rules generator. To avoid re-inference, pass the requirements/scope, approved stack, detected commands, plan/checkpoint state, constraints, and verified entrypoints, packages, APIs/CLI, env/deployment/config, and design assets. Root `README.md` alone may briefly describe strengths/differentiation; keep other outputs operational.
 
-Use `haily-project-manager` subagent to create `./docs/project-roadmap.md` and mark plan phases complete.
+`{skill:hc-docs} init` owns root `README.md`, root `AGENTS.md`, one-line `CLAUDE.md`/`GEMINI.md`, and the operational `docs/*` set. It must preserve its own scout, inventory, size, accuracy, and grep-based verification workflow.
 
-**Quick-start:** Generate `./docs/quick-start.md` (≤50 lines):
-- Required env vars (derived from `.env.example` or project scan)
-- First-run command
-- Key API endpoints or CLI commands (if applicable)
+Use `haily-project-manager` subagent to update `./docs/project-roadmap.md`, sync plan status, and mark completed phases complete.
 
 **Haily profile (optional):** Use `AskUserQuestion` (header: "Haily — Assistant Profile") to offer personalization:
 
@@ -165,52 +157,12 @@ If Vietnamese or English preset chosen, write `.claude/haily.json` (create or me
 Adjust `addressStyle`/`language` per choice. Skip → do not write `haily.json`.
 The profile is auto-injected by the session bootstrap — no CLAUDE.md section needed.
 
-**Project rules files:** Always create all three files. `AGENTS.md` is the canonical source — `CLAUDE.md` and `GEMINI.md` import it with one line each (official Claude Code recommendation).
-
-Detect tooling commands from project files (`package.json`, `pyproject.toml`, `Makefile`, `Cargo.toml`, etc.) during the Recon stage. Directory structure belongs in `docs/system-architecture.md`, not here.
-
-**`AGENTS.md`** — canonical content (read by Codex, OpenCode, Kimi):
-
-```markdown
-## Project
-[Name] — [1-sentence: purpose + primary tech stack]
-
-## Tooling
-- Build: [detected command]
-- Test:  [detected command]
-- Lint:  [detected command, omit if none]
-
-## Safety Rules
-- NEVER commit secrets (.env, API keys, credentials)
-- NEVER force-push to main/master without explicit user confirmation
-- NEVER drop tables or run destructive migrations without user approval
-- NEVER ignore failing tests to make CI green
-
-## Docs
-- [code-standards.md](docs/code-standards.md) — structure, standards, patterns
-- [system-architecture.md](docs/system-architecture.md) — architecture + directory map
-- [project-roadmap.md](docs/project-roadmap.md) — current phase and priorities
-```
-
-**`CLAUDE.md`** — imports AGENTS.md (Claude Code):
-
-```markdown
-@AGENTS.md
-```
-
-**`GEMINI.md`** — imports AGENTS.md (Gemini CLI):
-
-```markdown
-@AGENTS.md
-```
-
-**Exclude from AGENTS.md:** directory structure (→ `docs/system-architecture.md`), workflow chains, YAGNI/KISS/DRY, file-size rules, comment style (→ `docs/code-standards.md`).
-
 **Final:**
 1. Summary of all changes with brief explanations
-2. Suggest next steps
-3. Ask whether to commit → spawn `haily-git-manager` if yes
-4. Run `{skill:hl-log}` for a concise journal entry
+2. Report what verified context was handed off to `{skill:hc-docs} init`
+3. Suggest next steps
+4. Ask whether to commit → spawn `haily-git-manager` if yes
+5. Run `{skill:hl-log}` for a concise journal entry
 
 ## Workflow Position
 

@@ -137,7 +137,7 @@ Design test strategy before coding    → Task(subagent_type="haily-test-archite
 ## Documentation
 
 ```
-Update project docs (codebase-summary, PDR)  → {skill:hc-docs}
+Update operational project docs             → {skill:hc-docs}
 Generate llms.txt site index                 → {skill:hc-docs} llms
 Search library docs (context7)               → {skill:hc-lookup}
 Diagrams (Mermaid v11)                       → {skill:hl-visualize} --mermaid

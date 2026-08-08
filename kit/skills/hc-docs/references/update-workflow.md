@@ -19,15 +19,7 @@ No reader agents — `haily-docs-writer` reads every doc it edits anyway, so a p
 
 **CRITICAL:** You MUST spawn `haily-docs-writer` agent via Task tool with merged scout reports and the doc inventory.
 
-Pass the gathered context to haily-docs-writer agent to update documentation:
-- `README.md`: Update README (keep it under 300 lines)
-- `docs/project-overview-pdr.md`: Update project overview and PDR
-- `docs/codebase-summary.md`: Update codebase summary
-- `docs/code-standards.md`: Update codebase structure and code standards
-- `docs/system-architecture.md`: Update system architecture
-- `docs/project-roadmap.md`: Update project roadmap
-- `docs/deployment-guide.md` [optional]: Update deployment guide
-- `docs/design-guidelines.md` [optional]: Update design guidelines
+Pass the gathered context to haily-docs-writer. Update only affected operational docs under the output policy in `init-workflow.md`; preserve detected commands, requirements, decisions and why, architecture boundaries, standards, and progress. Root `README.md` alone may keep one brief opening project narrative. Do not recreate `docs/README.md`, `docs/codebase-summary.md`, or a narrative project overview unless the user requests an existing compatibility stub.
 
 ## Additional requests
 <additional_requests>
@@ -50,4 +42,5 @@ Grep-verify to detect potential hallucinations (non-blocking):
 
 ## Important
 - Use `docs/` directory as the source of truth.
+- Keep `AGENTS.md` operational: detected tooling, conditional docs routes, and only project-specific always-on constraints when they are non-obvious. Keep `CLAUDE.md` and `GEMINI.md` as one-line `@AGENTS.md` importers.
 - **Do not** start implementing.

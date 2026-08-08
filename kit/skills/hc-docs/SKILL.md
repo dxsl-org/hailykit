@@ -1,7 +1,7 @@
 ---
 name: hc-docs
 description: "Manage project docs, extract from external PDFs/Office/images using native multimodal reading, generate llms.txt for AI-friendly site indexes."
-when_to_use: "Invoke when generating or updating project documentation, codebase summaries, PDRs, or generating llms.txt for AI consumption."
+when_to_use: "Invoke when generating or updating operational project documentation, targeted doc consistency summaries, PDRs, or generating llms.txt for AI consumption."
 user-invocable: true
 argument-hint: "init|update|summarize|extract|llms"
 metadata:
@@ -21,9 +21,9 @@ Two responsibilities: (1) generate and update project docs in `./docs/`; (2) ext
 
 | Subcommand | Purpose |
 |---|---|
-| `init` | Analyze codebase, create initial docs |
-| `update` | Analyze changes, update existing docs |
-| `summarize` | Quick codebase summary update |
+| `init` | Analyze codebase, create initial operational docs |
+| `update` | Analyze changes, update existing operational docs |
+| `summarize` | Targeted docs consistency summary/update |
 | `extract <file>` | Extract content from PDF/Office/image → markdown |
 | `llms [path] [--full]` | Generate `llms.txt` AI-friendly site index |
 | _(empty)_ | Present options via `AskUserQuestion` |
@@ -38,9 +38,9 @@ Parse `$ARGUMENTS` first word:
 
 | Subcommand | Reference | Purpose |
 |------------|-----------|---------|
-| `init` | `references/init-workflow.md` | Analyze codebase, create initial docs |
-| `update` | `references/update-workflow.md` | Analyze changes, update existing docs |
-| `summarize` | `references/summarize-workflow.md` | Quick codebase summary update |
+| `init` | `references/init-workflow.md` | Analyze codebase, create initial operational docs |
+| `update` | `references/update-workflow.md` | Analyze changes, update existing operational docs |
+| `summarize` | `references/summarize-workflow.md` | Targeted docs consistency summary/update |
 | `extract <file>` | (see below) | Extract content from PDF/Office/image |
 | `llms [path] [--full]` | (see below) | Generate llms.txt for AI-friendly site index |
 | _(empty)_ | `AskUserQuestion` | Present options — do not auto-run `init` |
@@ -80,18 +80,9 @@ python scripts/generate-llms-txt.py --source <path> --output <output-path> --bas
 
 See `references/llms-txt-specification.md` for full format spec and validation rules.
 
-## Docs Directory
+## Generated Docs Policy
 
-```
-./docs/
-├── project-overview-pdr.md
-├── code-standards.md
-├── codebase-summary.md
-├── design-guidelines.md
-├── deployment-guide.md
-├── system-architecture.md
-└── project-roadmap.md
-```
+Only root `README.md` may contain a brief project narrative. Keep `docs/*` operational: commands, requirements, decisions and why, architecture, standards, progress, deployment, or design rules. Exact outputs live in `references/init-workflow.md`.
 
 ## Workflow Position
 

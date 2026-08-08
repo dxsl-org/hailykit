@@ -25,7 +25,7 @@ Before marking a task complete, verify each:
 ## Execution Process
 
 1. **Analyze phase** — read `{plan-dir}/phase-XX-*.md`; note file-ownership list, concurrent phases, conflict-prevention strategy
-2. **Pre-validate** — confirm no file overlap with parallel phases; read `codebase-summary.md` / `code-standards.md` / `system-architecture.md`; verify dependencies from prior phases done
+2. **Pre-validate** — confirm no file overlap with parallel phases; read existing `tech-stack.md` / `code-standards.md` / `system-architecture.md`; verify dependencies from prior phases done
 3. **Implement** — execute steps in order, modifying ONLY owned files; follow architecture exactly; add tests. Honor the phase file's `deviation-log` rule: log each Decision / Deviation / Surprise in its § Deviation Log as it happens; on a reversible divergence, take the smallest reversible option and continue without pausing
 4. **QA** — run typecheck + tests; fix failures; verify phase success criteria
 5. **Report** — files modified, tasks done, test status, conflicts; update phase file status

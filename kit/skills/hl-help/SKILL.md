@@ -469,7 +469,7 @@ Single command: research → tech stack → design → plan → cook → test �
 ```
 {skill:hc-docs} init                    (first time — analyze codebase, generate docs/*)
 {skill:hc-docs} update                  (sync docs with code changes)
-{skill:hc-docs} summarize               (quick refresh of codebase-summary.md)
+{skill:hc-docs} summarize               (targeted docs consistency summary)
 {skill:hc-docs} extract <file.pdf>      (extract external PDF/Office → markdown)
 {skill:hc-docs} llms                    (generate llms.txt for AI-friendly site index)
 ```

@@ -12,14 +12,18 @@
 **CRITICAL:** You MUST spawn `haily-docs-writer` agent via Task tool with merged reports. Do not wait for user input.
 
 Pass the gathered context to haily-docs-writer agent to create initial documentation:
-- `README.md`: Update README with initial documentation (keep it under 300 lines)
-- `docs/project-overview-pdr.md`: Project overview and PDR (Product Development Requirements)
-- `docs/codebase-summary.md`: Codebase summary
-- `docs/code-standards.md`: Codebase structure and code standards
-- `docs/system-architecture.md`: System architecture
-- `docs/project-roadmap.md`: Project roadmap
-- `docs/deployment-guide.md` [optional]: Deployment guide
-- `docs/design-guidelines.md` [optional]: Design guidelines
+- `README.md`: May open with one brief purpose, strengths, and differentiation paragraph; keep the remainder operational (under 300 lines)
+- `docs/product-requirements.md`: Goals, requirements, constraints, decisions, and acceptance criteria
+- `docs/tech-stack.md`: Operational technology choices, key dependencies, and why they exist
+- `docs/code-standards.md`: Codebase structure, standards, and repeatable conventions
+- `docs/system-architecture.md`: Boundaries, directory map, major flows, and integration surfaces
+- `docs/quick-start.md`: Required environment, first-run commands, and primary API or CLI entrypoints (under 50 lines)
+- `docs/project-roadmap.md`: Current priorities, milestones, and near-term sequencing
+- `docs/project-changelog.md`: Significant shipped changes and doc-worthy fixes
+- `docs/deployment-guide.md` [optional]: Deployment/runtime operations if the project has a deploy surface
+- `docs/design-guidelines.md` [optional]: Design system or UX rules if the project has a UI surface
+
+Preserve the scout findings, inventory, detected commands, and explanatory why in the handoff. Do not ask the writer to create `docs/README.md`, `docs/codebase-summary.md`, or a duplicated narrative overview.
 
 ## Phase 3: Size Check (Post-Generation)
 
@@ -65,34 +69,26 @@ The profile is auto-injected by the session bootstrap — no CLAUDE.md section n
 
 ### 4b — Project rules files write
 
-Always create all three files. `AGENTS.md` is the canonical source — `CLAUDE.md` and `GEMINI.md` import it with one line each. This is the [officially recommended pattern](https://code.claude.com/docs/en/memory#agents-md) by Anthropic for multi-provider repos.
+Always create all three files. `AGENTS.md` is canonical; one-line `CLAUDE.md` and `GEMINI.md` imports prevent rule drift across providers.
 
 Detect tooling commands from project files (`package.json`, `pyproject.toml`, `Makefile`, `Cargo.toml`, etc.) using the scout reports from Phase 1. Directory structure belongs in `docs/system-architecture.md`, not here.
 
 **If `AGENTS.md` does NOT exist** → create it:
 
 ```markdown
-## Project
-[name from codebase scan] — [1-sentence: purpose + primary tech stack]
-
 ## Tooling
 - Build: [detected command]
 - Test:  [detected command]
 - Lint:  [detected command, omit if none]
 
-## Safety Rules
-- NEVER commit secrets (.env, API keys, credentials)
-- NEVER force-push to main/master without explicit user confirmation
-- NEVER drop tables or run destructive migrations without user approval
-- NEVER ignore failing tests to make CI green
-
 ## Docs
+- [quick-start.md](docs/quick-start.md) — environment and first-run commands
 - [code-standards.md](docs/code-standards.md) — structure, standards, patterns
-- [system-architecture.md](docs/system-architecture.md) — architecture + directory map
+- [system-architecture.md](docs/system-architecture.md) — boundaries, flows, directory map
 - [project-roadmap.md](docs/project-roadmap.md) — current phase and priorities
 ```
 
-**Do NOT add** directory structure, workflow chains, YAGNI/KISS/DRY, file-size rules, or comment style — they live in `docs/` and are loaded on demand.
+Keep detected `## Tooling`. Keep `## Docs`. Add only project-specific always-on constraints that are non-obvious from repo defaults or global rules. Do not add a `## Project` narrative section, generic duplicated safety rules, directory structure, workflow chains, YAGNI/KISS/DRY, file-size rules, or comment style — they live in `docs/` or global instructions.
 
 **If `AGENTS.md` EXISTS** → ask user:
 - (a) Append a `## Docs` section listing the newly created docs files

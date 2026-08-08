@@ -22,6 +22,7 @@ grants to third parties.
 
 - Check existing issues and pull requests to avoid duplicate work.
 - For significant changes, open an issue first to discuss the approach.
+- Ship rules, hooks, agents, and settings from `kit/`; edits under `~/.claude/` are machine-local.
 - Follow the code standards in [`docs/code-standards.md`](docs/code-standards.md).
 - Run `npm run check:skills` before pushing skill changes.
 - Run `npm test` before submitting any code change.

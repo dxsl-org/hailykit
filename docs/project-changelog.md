@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Tightened docs-generation policy so `hc-new` delegates to `hc-docs init`, root `README.md` keeps the only brief project narrative, and generated docs stay operational.
 - Added a provider-neutral `hailykit benchmark` command family for static footprint, hook replay, workflow planning, offline workflow replay, legacy reasoning import, comparison, and report generation.
 - Added benchmark methodology docs that separate quality, safety, efficiency, and provenance, including calibration-first live batches, private hash-only holdout handling, and effective-pair/bootstrap/permutation diagnostics.
 - Added a benchmark tie-in to `docs/token-overhead.md` so static footprint measurements and live benchmark evidence live in the same measurement story.

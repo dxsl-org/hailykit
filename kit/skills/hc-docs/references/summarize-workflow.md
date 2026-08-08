@@ -1,18 +1,12 @@
 # Summarize Workflow
 
-Update `docs/codebase-summary.md` and respond with a summary report. Activate `{skill:hc-scout}` only when `<should_scan_codebase>` is `true` — otherwise work from `docs/`, the focused topics, and targeted grep; never full-scan by default.
+Summarize or update docs for `$1` (default: all). Work from `docs/` and targeted grep; activate `{skill:hc-scout}` only when `$2` is `true` (default: `false`).
 
 ## Arguments
 $1: Focused topics (default: all)
 $2: Should scan codebase (`Boolean`, default: `false`)
 
-## Focused Topics
-<focused_topics>$1</focused_topics>
-
-## Should Scan Codebase
-<should_scan_codebase>$2</should_scan_codebase>
-
 ## Important
-- Use `docs/` directory as the source of truth for documentation.
-- Do not scan the entire codebase unless the user explicitly requests it.
+- Update only operational docs touched by the focus. Do not maintain `docs/codebase-summary.md`.
+- Grep-verify paths, symbols, config keys, and internal links before reporting.
 - **Do not** start implementing.
