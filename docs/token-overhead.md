@@ -242,7 +242,9 @@ Hot/conditional bodies fell by `46,542` bytes: contextual Markdown `-4,765`, fiv
 
 Final artifacts: static `1,235` observations (`manifestHash=57b87c8ecc7e2390573177c2e44e5516b90f57d1933d4f1b42ae49617660ee05`) and hooks `16` observations (`manifestHash=3f7e6e4fa2db8acb84e6719d41b201c754a8ab58489c2242ef4e0d2ac19fffd9`). Full tests pass 628/628.
 
-A schema-minimum live A/B then ran one fixture once per arm on verified `gpt-5.4-mini` (`manifestHash=fe1b47eeebf9cc49b232bca72b4bc6e9b7380c457f396148752450ec19c99ef3`). For that pair, treatment bytes fell 22.60%, input tokens 10.50%, and total tokens 10.21%; no tools, errors, or approvals occurred. These are descriptive efficiency observations only. Behavior quality remains `INCONCLUSIVE` because no evaluator evidence was attached and both rows are decision-ineligible; one pair cannot establish latency or output-token effects. Codex App Server emitted no observed USD cost, so the `$0.10` manifest value is only a reserve cap.
+A schema-minimum live A/B then ran one fixture once per arm on verified `gpt-5.4-mini` (`manifestHash=fe1b47eeebf9cc49b232bca72b4bc6e9b7380c457f396148752450ec19c99ef3`). For that pair, treatment bytes fell 22.60%, input tokens 10.50%, and total tokens 10.21%; no tools, errors, or approvals occurred.
+
+One additional raw-answer capture pair used the same fixture, model, and treatments. A reproducible eight-check workflow-contract rubric scored both arms `8/8`; across both pairs, candidate input tokens fell 10.50% and total tokens 10.36% on average. This is an exploratory behavior-retention PASS for one fixture, not a canonical quality decision. The canonical report remains `INCONCLUSIVE` because its rows have no evaluator evidence and are decision-ineligible; two pairs cannot establish latency, output-token, or general quality effects. Codex App Server emitted no observed USD cost, so the two `$0.10` values were reserve caps only.
 
 ## Agent prompt bodies
 

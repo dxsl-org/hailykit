@@ -4,7 +4,7 @@
 
 - Complete: hook, guardrail, harness, and skill prompt optimization
   - Goal: measure every injected Markdown class, remove storytelling/repeated simple HOW, and process skills in small independently tested batches.
-  - Status: Phases 0-6 complete locally — net source footprint fell by 81,896 normalized bytes, static/hook artifacts and semantic gates pass, and the full suite passes 628/628. A schema-minimum two-call live A/B observed 10.21% fewer total tokens for one workflow pair; behavior equivalence remains inconclusive and observed USD cost is unavailable.
+  - Status: Phases 0-6 complete locally — net source footprint fell by 81,896 normalized bytes, static/hook artifacts and semantic gates pass, and the full suite passes 628/628. Two live pairs averaged 10.36% fewer total tokens; an exploratory rubric scored both arms 8/8, while canonical behavior equivalence remains inconclusive and observed USD cost is unavailable.
 - Complete: subagent prompt optimization
   - Goal: compress all 25 `kit/agents/*.md` prompt bodies while preserving behavior, safety, schemas, and benchmark evidence.
   - Status: implemented locally; final snapshot refreshed from `collectAgentBodyBaseline()`, `npm run check:skills` passes, and `npm test` retains the known date-pinned benchmark assertion.
