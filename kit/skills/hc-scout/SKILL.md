@@ -11,7 +11,7 @@ metadata:
 
 # hc-scout — Parallel Codebase Discovery
 
-Splits the codebase into non-overlapping segments and launches one Explore subagent per segment in parallel. Results merge into a single structured report within 3 minutes.
+Split the codebase into non-overlapping segments, launch one Explore subagent per segment, and merge results into one report within 3 minutes.
 
 ## Usage
 
@@ -26,17 +26,17 @@ Splits the codebase into non-overlapping segments and launches one Explore subag
 {skill:hc-scout} --deps src/api/users --owner my-org # trace local module consumers
 ```
 
-| Mode | Speed | When to use |
-|------|-------|-------------|
-| *(default)* | 30–90s | First contact with an area; discovery + mapping |
-| `ext` | 60–180s | Broad coverage for 500+ file codebases with targeted Glob/Grep |
-| `--quick` | ⚡ 5–15s | You know the area — just need to locate something fast |
-| `--contracts` | ⚡ 10–30s | Before a refactor — extract the public API surface you must not break |
-| `--pack` | 30–60s | Share full repo context with an external LLM or snapshot |
-| `--graph` | 60–120s | Cross-file dependency chains on large codebases (>200 files) |
-| `--deps` | 30–90s | Trace downstream consumers of a module across repos; flag architectural drift |
+| Mode | When to use |
+|------|-------------|
+| *(default)* | First contact with an area; discovery + mapping |
+| `ext` | Broad coverage for large codebases |
+| `--quick` | Known area; locate something fast |
+| `--contracts` | Extract the public API surface before a refactor |
+| `--pack` | Share a full repo snapshot with another model |
+| `--graph` | Understand deep cross-file dependency chains |
+| `--deps` | Trace downstream consumers and drift |
 
-Modes compose: `{skill:hc-scout} --quick --contracts src/auth` — fast contract extraction from a known module. Full orientation maps still persist only for the default and `ext` modes; `--quick` may contribute same-session recon metadata, but it never becomes a persisted `scout-report.md`.
+Modes compose: `{skill:hc-scout} --quick --contracts src/auth` gives fast contract extraction in a known module. Only default and `ext` persist orientation maps; `--quick` can feed same-session recon metadata but never becomes a persisted `scout-report.md`.
 
 ## Constraints
 
@@ -50,7 +50,7 @@ Modes compose: `{skill:hc-scout} --quick --contracts src/auth` — fast contract
 
 ## Process
 
-1. **ReconEnvelope routing** — read prior recon in this order: explicit caller recon, active-plan `context-snippets.json.reconEnvelope`, active-plan `scout-report.md`, then none. Every candidate is classified by `freshness` (`observed`, `same-plan`, `prior`, `stale`), `complete`, `coveredPaths`, `ownedPaths`, and `gaps`.
+1. **ReconEnvelope routing** — read prior recon in this order: explicit caller recon, active-plan `context-snippets.json.reconEnvelope`, active-plan `scout-report.md`, then none. Classify each candidate by `freshness` (`observed`, `same-plan`, `prior`, `stale`), `complete`, `coveredPaths`, `ownedPaths`, and `gaps`.
 
    | Envelope state | Route |
    |---|---|
@@ -59,12 +59,12 @@ Modes compose: `{skill:hc-scout} --quick --contracts src/auth` — fast contract
    | `freshness=observed|same-plan`, uncovered delta >= 3 exclusive path slices | `parallel` — partition and scout the uncovered delta |
    | `freshness=prior|stale` | Never suppress a new lookup; use only as path hints |
 
-   Same-session `--quick` output is valid only as targeted recon metadata (`coveredPaths`, `ownedPaths`, `gaps`) — never as a full orientation map. Skip the `.agents` glob when the caller already passed recon context or explicitly rejected an on-disk report; re-testing it here revives the artifact the caller just ruled out. Log `✓ Reuse: [explicit recon | same-plan context | scout-report.md path | none]`.
+   Same-session `--quick` output is targeted recon metadata only (`coveredPaths`, `ownedPaths`, `gaps`) — never a full orientation map. Skip the `.agents` glob when caller recon already exists or the caller explicitly rejected an on-disk report. Log `✓ Reuse: [explicit recon | same-plan context | scout-report.md path | none]`.
 2. **Extract targets** — parse the prompt for file types, symbol names, directories, or patterns to locate. When `--deps <module>` is present, load `references/flow-deps.md` and follow the 3-query fan-out protocol instead of standard segment partition.
-3. **Partition** — divide the target into non-overlapping segments; determine agent count from uncovered path slices, not from the whole repo. Every segment carries `ownedPaths` (exclusive search scope) and `gaps` (what prior recon did not prove). Root-level files (`package.json`, `README`, config files) and `docs/`/`.agents/` belong to the orchestrator, never to a segment — the orchestrator answers output items 1 (Project Type) and 4 (Docs & In-Flight Plans) itself by reading those files directly, so no agent re-reads them.
+3. **Partition** — divide the target into non-overlapping segments; size agent count from uncovered path slices, not the whole repo. Each segment carries `ownedPaths` and `gaps`. Root files (`package.json`, `README`, config files) and `docs/`/`.agents/` belong to the orchestrator, never to a segment, so agents do not duplicate them.
 4. **Register tasks** — call `TaskList` to check for existing scout tasks; create one per agent via `TaskCreate` with scope in metadata. Fall back to `TodoWrite` when Task tools are absent. Log `✓ Registered [N] scout tasks ([internal|external] mode)`.
 5. **Spawn in parallel** — launch one Explore subagent per segment; set each to `in_progress` via `TaskUpdate` before spawning. Each prompt must include its `ownedPaths`, current `gaps`, and the instruction that every Glob/Grep call is scoped to one owned path at a time.
-6. **Aggregate & persist** — after the 3-minute window, mark completed agents via `TaskUpdate`; note timed-out agents. Merge all findings into the output format below. Persist only full discovery output (default and `ext` modes): write it to `scout-report.md` at the root of the active plan dir (`## Plan Context`) — not under `reports/`; downstream reuse ladders glob `.agents/*/scout-report.md` and only the dir root matches. Never overwrite a plan-authored `scout-report.md` (it carries Precedents and Blast Radius this orientation map lacks) — append a `## Scout Addendum` section instead, replacing any previous addendum rather than stacking a new one. When no plan is active, create a dir from the `## Naming` Plan-dir pattern (slug from the scout target) and write there. Emit `context-snippets.json.reconEnvelope` for both full discovery and same-session `--quick` lookups. Output from `--contracts`, `--pack`, `--graph`, and `--deps` is never persisted to `scout-report.md` — it is not an orientation map and would poison downstream reuse.
+6. **Aggregate & persist** — after the 3-minute window, mark completed agents via `TaskUpdate`, note timeouts, and merge findings into the output format below. Persist only full discovery output (default and `ext`) to `scout-report.md` at the root of the active plan dir — not under `reports/`. Never overwrite a plan-authored `scout-report.md`; append a `## Scout Addendum` section instead, replacing any previous addendum rather than stacking a new one. When no plan is active, create a plan-style dir and write there. Emit `context-snippets.json.reconEnvelope` for full discovery and same-session `--quick` lookups. Output from `--contracts`, `--pack`, `--graph`, and `--deps` is never persisted to `scout-report.md` — it is not an orientation map and would poison downstream reuse.
 
 ## Output
 
@@ -99,20 +99,20 @@ Every scout report must address all five items, even when the answer is "none fo
 - Gaps, ambiguous ownership, or files needing a deeper pass
 ```
 
-Entries must be short — this is an orientation map, not exhaustive documentation.
+Entries must stay short — this is an orientation map, not exhaustive documentation.
 
 ## --quick Mode
 
 Single Explore subagent (no parallel spawning, no task registration). Returns a focused Relevant Modules list in under 15 seconds.
 
-**Use when:** you already know which part of the codebase you're working in and just need to locate specific files or verify a structure. Skip `--quick` when you need a full orientation map.
+**Use when:** you already know the area and only need to locate files or verify structure. Skip `--quick` when you need a full orientation map.
 
 ```
 {skill:hc-scout} --quick "auth middleware"
 {skill:hc-scout} --quick src/api/users.ts
 ```
 
-Output: `Relevant Modules` + `Unresolved Questions` only. No parallel agents, no task registration overhead. The result may populate same-session `reconEnvelope` metadata for delta routing, but it is not a persisted orientation map.
+Output: `Relevant Modules` + `Unresolved Questions` only. No parallel agents, no task registration overhead. It may populate same-session `reconEnvelope` metadata for delta routing, but it is not a persisted orientation map.
 
 ## --contracts Mode
 
@@ -120,7 +120,7 @@ Extracts the public API surface of a target module or scope — exported interfa
 
 **Use when:** planning a refactor, reviewing cross-module dependencies, or establishing a stability boundary before making changes.
 
-**Fast path (TS/JS, Python, Go):** run `hailykit contracts <scope> --json` first — it extracts exported symbols, signatures, and HTTP endpoints deterministically with no subagent. Read its output as the surface map; only fall back to manual extraction (or other stacks) via the patterns below. It is a fast regex surface map, not a parser — read source for edge syntax it misses.
+**Fast path (TS/JS, Python, Go):** run `hailykit contracts <scope> --json` first. It extracts exported symbols, signatures, and HTTP endpoints deterministically with no subagent. Use manual extraction only when that fast map misses edge syntax or the stack is unsupported.
 
 See `references/protocol-contract-extraction.md` for extraction patterns per language/stack.
 
@@ -157,7 +157,7 @@ Files that MUST NOT change their public interface without a version bump or migr
 
 ## --pack Mode
 
-Collapse the repository into one AI-consumable file. Use when sharing context with an external LLM or when a complete snapshot is required.
+Collapse the repository into one AI-consumable file for external review or snapshotting.
 
 For a quick zero-dependency local dump, `hailykit pack [path] --json` concatenates text files (gitignore-aware) with a token estimate and is **secret-safe by default** (credential-file denylist + content secret scan exclude any file that could leak). For remote repos, compression, alternate output formats, or clipboard, use `repomix`:
 
@@ -170,22 +170,22 @@ npx repomix --remote owner/repo                                  # remote repo w
 repomix --copy                                                   # copy result to clipboard
 ```
 
-See `references/tech-repomix-config.md` for configuration options and `references/tech-repomix-patterns.md` for workflow patterns.
+See `references/tech-repomix-config.md` and `references/tech-repomix-patterns.md`.
 
 ## --graph Mode
 
-Indexes the codebase with **codebase-memory-mcp** (66 languages, 14 MCP tools, zero-dependency C binary) and exposes structured cross-file dependency queries.
+Index the codebase with **codebase-memory-mcp** and expose structured cross-file dependency queries.
 
 ```bash
 codebase-memory build .   # build the index
 codebase-memory serve     # expose as MCP server
 ```
 
-Use `--graph` only when all three conditions hold: the codebase exceeds ~200 files, the task is a major feature or refactor, and cross-file dependency chains must be understood before planning.
+Use `--graph` only when the repo is large, the task is a major feature or refactor, and cross-file dependency chains must be understood before planning.
 
 ## --deps Mode
 
-Activated by `--deps <module-name-or-path> [--owner <org>]`. Traces downstream consumers of an API or module across repositories using `gh search code` — no running service required, only `gh auth login`. Runs a 3-query fan-out: declared consumers (package.json/manifest), active import sites (import statements), version drift (old major version pinned). Classifies each consumer as ACTIVE, DECLARED_ONLY, DRIFTED, or IMPLICIT. Emits a consumer table sorted by urgency (DRIFTED first). Subject to GitHub code search constraints: default branch only, ~1000 results per query, 9 req/min rate limit (7-second sleep between queries enforced). Full protocol: `references/flow-deps.md`.
+Activated by `--deps <module-name-or-path> [--owner <org>]`. It traces downstream consumers of an API or module across repos using `gh search code`, runs the 3-query fan-out from `references/flow-deps.md`, classifies each consumer as ACTIVE / DECLARED_ONLY / DRIFTED / IMPLICIT, and sorts the output by urgency. Limits still apply: default branch only, about 1000 results per query, and a 9 req/min rate limit with the enforced 7-second pause.
 
 ## Workflow Position
 

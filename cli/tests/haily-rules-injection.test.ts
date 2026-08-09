@@ -18,7 +18,9 @@ import { execFileSync } from 'node:child_process';
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const HOOK_PATH = path.join(REPO_ROOT, 'kit', 'hooks', 'haily-rules.cjs');
-const CONTEXTUAL_SENTINEL = 'SENTINEL_REVIEW_AUDIT_CONTEXTUAL_MARKER';
+const REVIEW_CONTENT = '# Review Audit\nSENTINEL_REVIEW_AUDIT_CONTEXTUAL_MARKER\n';
+const ORCHESTRATION_CONTENT = '# Orchestration\nSENTINEL_ORCHESTRATION_CONTEXTUAL_MARKER\n';
+const TEAM_CONTENT = '# Team Coordination\nSENTINEL_TEAM_CONTEXTUAL_MARKER\n';
 
 interface HookResult { status: number; stdout: string; stderr: string }
 
@@ -56,15 +58,23 @@ function uniqueSessionId(label: string): string {
   return `rulesinj-${label}-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+function extractContextualBlock(output: string, content: string): string {
+  const expected = content.trim();
+  const start = output.indexOf(expected);
+  assert.notEqual(start, -1);
+  const after = output.slice(start + expected.length);
+  const nextSection = after.indexOf('\n\n## ');
+  return (nextSection === -1 ? output.slice(start) : output.slice(start, start + expected.length + nextSection)).trim();
+}
+
 // Isolated project dir so config/contextual-rule lookups don't depend on this
 // machine's real ~/.claude install or hailykit's own repo-local .claude/ (which
 // has no contextual/ dir since this repo IS the kit source, not an install target).
 const tmpProjectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hl-rules-test-'));
 fs.mkdirSync(path.join(tmpProjectDir, '.claude', 'contextual'), { recursive: true });
-fs.writeFileSync(
-  path.join(tmpProjectDir, '.claude', 'contextual', 'review-audit-self-decision.md'),
-  `# Review Audit\n${CONTEXTUAL_SENTINEL}\n`,
-);
+fs.writeFileSync(path.join(tmpProjectDir, '.claude', 'contextual', 'review-audit-self-decision.md'), REVIEW_CONTENT);
+fs.writeFileSync(path.join(tmpProjectDir, '.claude', 'contextual', 'orchestration-protocol.md'), ORCHESTRATION_CONTENT);
+fs.writeFileSync(path.join(tmpProjectDir, '.claude', 'contextual', 'team-coordination-rules.md'), TEAM_CONTENT);
 
 after(() => {
   fs.rmSync(tmpProjectDir, { recursive: true, force: true });
@@ -79,7 +89,7 @@ test('injection: emits real markdown sections, never the stringified-object bug'
     assert.doesNotMatch(result.stdout, /\[object Object\]/);
     assert.match(result.stdout, /^## Rules$/m);
     assert.match(result.stdout, /^## Paths$/m);
-    assert.match(result.stdout, new RegExp(CONTEXTUAL_SENTINEL));
+    assert.match(result.stdout, /SENTINEL_REVIEW_AUDIT_CONTEXTUAL_MARKER/);
   } finally {
     cleanupSession(sessionId);
   }
@@ -112,9 +122,45 @@ test('injection: contextual (keyword-matched) rules still fire during cooldown',
     const second = runHook(payload(sessionId, 'please review this code'), tmpProjectDir);
     assert.equal(second.status, 0);
     assert.doesNotMatch(second.stdout, /^## Rules$/m);
-    assert.match(second.stdout, new RegExp(CONTEXTUAL_SENTINEL));
+    assert.match(second.stdout, /SENTINEL_REVIEW_AUDIT_CONTEXTUAL_MARKER/);
   } finally {
     cleanupSession(sessionId);
+  }
+});
+
+test('injection: same matching prompt keeps identical contextual bytes across full build and cooldown path', () => {
+  const sessionId = uniqueSessionId('review-equivalence');
+  cleanupSession(sessionId);
+  try {
+    const expected = REVIEW_CONTENT.trim();
+    const first = runHook(payload(sessionId, 'please review this code'), tmpProjectDir);
+    assert.equal(first.status, 0);
+
+    const second = runHook(payload(sessionId, 'please review this code'), tmpProjectDir);
+    assert.equal(second.status, 0);
+    assert.equal(second.stdout.trim(), expected);
+    assert.equal(extractContextualBlock(first.stdout, REVIEW_CONTENT), expected);
+  } finally {
+    cleanupSession(sessionId);
+  }
+});
+
+test('injection: orchestration and team prompts hit their own contextual files', () => {
+  const orchestrationSession = uniqueSessionId('orchestration');
+  const teamSession = uniqueSessionId('team');
+  cleanupSession(orchestrationSession);
+  cleanupSession(teamSession);
+  try {
+    const orchestration = runHook(payload(orchestrationSession, 'please spawn a subagent for this task'), tmpProjectDir);
+    assert.equal(orchestration.status, 0);
+    assert.match(orchestration.stdout, /SENTINEL_ORCHESTRATION_CONTEXTUAL_MARKER/);
+
+    const team = runHook(payload(teamSession, 'message the teammate in the agent team'), tmpProjectDir);
+    assert.equal(team.status, 0);
+    assert.match(team.stdout, /SENTINEL_TEAM_CONTEXTUAL_MARKER/);
+  } finally {
+    cleanupSession(orchestrationSession);
+    cleanupSession(teamSession);
   }
 });
 
@@ -122,4 +168,25 @@ test('injection: fails open on malformed stdin (no crash, no output)', () => {
   const result = runHook('not-json', tmpProjectDir);
   assert.equal(result.status, 0);
   assert.equal(result.stdout.trim(), '');
+});
+
+test('contextual source files keep required safety and status phrases after compaction', () => {
+  const review = fs.readFileSync(path.join(REPO_ROOT, 'kit', 'contextual', 'review-audit-self-decision.md'), 'utf8');
+  assert.match(review, /verified/i);
+  assert.match(review, /threat model/i);
+  assert.match(review, /NEVER silently reverse decisions the user has already confirmed/i);
+  assert.match(review, /confidence/i);
+
+  const orchestration = fs.readFileSync(path.join(REPO_ROOT, 'kit', 'contextual', 'orchestration-protocol.md'), 'utf8');
+  assert.match(orchestration, /Work context/i);
+  assert.match(orchestration, /Reports/i);
+  assert.match(orchestration, /Plans/i);
+  assert.match(orchestration, /DONE_WITH_CONCERNS/i);
+  assert.match(orchestration, /Verification/i);
+
+  const team = fs.readFileSync(path.join(REPO_ROOT, 'kit', 'contextual', 'team-coordination-rules.md'), 'utf8');
+  assert.match(team, /File Ownership/i);
+  assert.match(team, /STOP and report to lead immediately/i);
+  assert.match(team, /SendMessage/i);
+  assert.match(team, /Do not treat idle notifications as completion signals/i);
 });

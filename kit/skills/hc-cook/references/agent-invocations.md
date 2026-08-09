@@ -1,121 +1,99 @@
 # Agent Delegation Patterns
 
-Canonical invocation tags for every subagent role used by `{skill:hc-cook}`.
-The installer resolves each tag to the provider's native agent-spawn syntax at install time.
+Canonical tags used by `{skill:hc-cook}`. The installer converts them to provider-native spawn syntax.
 
-General form:
-
-```
-{agent:<role>}           — spawn single agent
-{agents:<role1>,<role2>} — spawn in parallel
-{agent-result:<role>}    — result transition marker (Claude: implicit; others: prose bridge)
+```text
+{agent:<role>}           single agent
+{agents:<role1>,<role2>} parallel agents
+{agent-result:<role>}    result transition marker
 ```
 
----
-
-## Research
+## Recon And Planning
 
 {agent:haily-researcher}
 
-Investigate the topic in depth. Cap report at 150 lines; cite sources.
-Spin up several researchers in parallel when the task spans unrelated domains:
+Investigate one bounded topic. Cite sources and cap the report at 150 lines. Use parallel researchers only for independent domains.
 
 {agents:haily-researcher,haily-researcher}
 
 {agent-result:haily-researcher}
 
-## Codebase Scout
-
 {agent:scout}
 
-Locate modules, patterns, and contracts related to the feature.
-Default `{skill:hc-scout}`. Pass any prior recon, active-plan path, and touched-module hints so scout can reuse before spawning. Escalate to `{skill:hc-scout} ext` only for 500+ file codebases needing broad coverage after reuse fails.
+Locate relevant modules, patterns, and contracts. Pass prior recon, active-plan path, and touched-module hints. Reuse first; use `{skill:hc-scout} ext` only after reuse fails in a 500+ file codebase.
 
 {agent-result:scout}
 
-## Plan Authoring
-
 {agent:haily-planner}
 
-Synthesize a phased implementation plan from the research reports.
-Expected deliverables: one `plan.md` root + one `phase-XX-*.md` per phase.
+Produce one `plan.md` plus one `phase-XX-*.md` per phase from the verified recon.
 
 {agent-result:haily-planner}
 
-## Frontend / UI
+## Build And Test
 
 {agent:haily-designer}
 
-Build the interface following `./docs/design-guidelines.md`.
-Designer owns layout, tokens, and component markup; backend wiring stays with the haily-implementor.
-
-## Test Execution
+Own UI layout, tokens, and component markup under `./docs/design-guidelines.md`; implementation owns backend wiring.
 
 {agent:haily-tester}
 
-Execute the full test suite for the current phase.
-Target: 100 % green. Any red triggers the haily-debugger (see below).
+Run the final phase code. Any failure routes to the debugger; never accept a test run against pre-final code.
 
 {agent-result:haily-tester}
 
-## Test-Writer Context Split (`--tdd`)
-
-Under `--tdd`'s Red-Green cycle (`references/process-steps.md` § --tdd Flag Behavior), test authoring and implementation run in separate contexts — a single context that reasons about both contaminates tests with implementation knowledge, or implementation with test-shape knowledge.
-
-{agent:haily-test-architect}
-
-Design the test strategy from the phase file's spec/acceptance criteria alone — no implementation approach in context. When `--spec` is also active, translate each `AC-N` criterion into a given-when-then acceptance test tagged with its `AC-N` id.
-
-{agent-result:haily-test-architect}
-
-A test-writing step turns the strategy into concrete failing test files, runs them, and captures the red proof (`kit/agents/haily-tester.md` § Red Proof) — still without implementation-reasoning context. Only after the test-only commit exists does the implementor receive the committed tests, not the test-writing rationale.
-
-{agent:haily-implementor}
-
-Implement to green against the committed tests below. Do not edit the committed test files — any diff to them during this step is a tamper flag.
-
-{agent-result:haily-implementor}
-
-## Failure Diagnosis
-
 {agent:haily-debugger}
 
-Root-cause the failures and propose targeted fixes.
-Only spawned after a haily-tester run surfaces failures; never pre-emptively.
+Root-cause observed test failures and propose bounded fixes. Spawn only after a tester reports failure.
 
 {agent-result:haily-debugger}
 
-## Code Audit
+## TDD Context Split
+
+Under `--tdd` Red-Green, separate test design/writing from implementation so implementation knowledge cannot shape the tests.
+
+{agent:haily-test-architect}
+
+Design tests from the phase spec and acceptance criteria only. With `--spec`, translate each `AC-N` into a tagged given-when-then acceptance test.
+
+{agent-result:haily-test-architect}
+
+The test-writing context creates failing tests, executes them for red proof, and commits test-only. It passes committed tests—not its rationale—to the implementor.
+
+{agent:haily-implementor}
+
+Implement to green without editing committed tests. Any test diff is a tamper flag.
+
+{agent-result:haily-implementor}
+
+## Review
 
 {agent:haily-reviewer}
 
-Audit the phase across: acceptance coverage, regression risk, contract stability, pattern consistency, build hygiene.
-Return verdict (pass / conditional / block) + severity-ranked findings.
+Audit acceptance coverage, regressions, public contracts, pattern consistency, and build hygiene. Return `pass`, `conditional`, or `block` with severity-ranked evidence.
 
-When `--deep` is set (or `haily.json deep.auto`, unless `--quick` is explicit), forward `--deep` into this prompt so the agent applies `{skill:hc-review}` `--deep` semantics — refuter votes on Critical findings before they count toward the block threshold (see `references/review-gates.md`).
+Forward `--deep` when explicitly set or `haily.json deep.auto` applies, except when `--quick` is explicit. Deep review uses refuter votes for every Critical and accepted Medium finding; it does not activate cross-model review.
 
 {agent-result:haily-reviewer}
 
-## Domain-Risk Review
+### Domain-Risk Review
 
-Spawn an additional `haily-reviewer` with a domain-specific lens when the phase touches a high-risk domain. Run after the standard code audit. **Under `--deep`, spawn this reviewer unconditionally** — regardless of whether the phase touches a listed domain below.
+Spawn a second reviewer after the standard audit when the phase touches a listed domain. Under `--deep`, spawn it unconditionally.
 
-**Trigger conditions — spawn domain-risk reviewer when phase touches:**
-
-| Domain | Examples |
-|--------|---------|
-| Auth / authz | Session handling, JWT, OAuth, permissions, RBAC |
-| Secrets | Env vars written/read, credential storage, key rotation |
-| Payments | Billing logic, price calculations, Stripe/Paddle webhooks |
-| Data migrations | Schema changes, index drops, backfills, destructive ALTER |
-| Public API contracts | Endpoint signatures, response shapes, versioned routes |
-| CI / Deploy | Workflow files, Dockerfile, release scripts, env promotion |
-| Filesystem | File writes outside project dir, temp file cleanup, permissions |
-| Production config | Feature flags, rate limits, timeouts, circuit breakers |
+| Domain | Risk surface |
+|---|---|
+| Auth/authz | sessions, JWT, OAuth, permissions, RBAC |
+| Secrets | env vars, credential storage, key rotation |
+| Payments | billing, calculations, payment webhooks |
+| Data migrations | schema changes, drops, backfills, destructive ALTER |
+| Public APIs | endpoint signatures, response shapes, versioned routes |
+| CI/deploy | workflows, Dockerfile, releases, environment promotion |
+| Filesystem | writes outside the project, cleanup, permissions |
+| Production config | flags, limits, timeouts, circuit breakers |
 
 {agent:haily-reviewer}
 
-Prompt focus: "This phase touches [domain]. Review specifically for [domain] risks: [see domain table above for risk vectors]. Assume adversarial inputs and worst-case state. Flag any path where a logic error, missing validation, or race condition could cause [data loss / unauthorized access / billing error / deployment failure]."
+Review only the named domain. Assume adversarial inputs and worst-case state; cite paths to unauthorized access, data loss, billing error, or deployment failure.
 
 {agent-result:haily-reviewer}
 
@@ -123,47 +101,41 @@ Prompt focus: "This phase touches [domain]. Review specifically for [domain] ris
 
 {agent:haily-refiner}
 
-Reduce complexity without altering observable behavior.
+Preserve behavior while reducing only files in `git diff --name-only HEAD`. Trigger when any configured/default threshold is exceeded:
 
-Trigger conditions:
-- `git diff --shortstat HEAD --ignore-all-space` exceeds any limit in `haily.json`
-  (`simplify.threshold.{locDelta,fileCount,singleFileLoc}`, defaults 400 / 8 / 200)
-- Scope to `git diff --name-only HEAD`
-- Validate result via `git diff --shortstat HEAD -- [file-list]` delta, not agent prose
-- Bypass: `HL_SIMPLIFY_DISABLED=1` or `haily.json` `simplify.gate.enabled: false`
+- `simplify.threshold.locDelta`: 400
+- `simplify.threshold.fileCount`: 8
+- `simplify.threshold.singleFileLoc`: 200
 
-## Plan Sync-Back + Documentation
+Measure the resulting diff; do not accept agent prose as proof. Bypass only with `HL_SIMPLIFY_DISABLED=1` or `simplify.gate.enabled: false`.
+
+## Finalization
 
 {agents:haily-project-manager,haily-docs-writer}
 
 {agent-result:haily-project-manager}
 
-Reconcile completed work: align every phase file's checkboxes with task status, update plan.md progress fields.
-Docs writer refreshes `./docs` to reflect changes in the current phase.
-
-## Version Control
+Project manager reconciles every phase checkbox and `plan.md` status. Docs writer updates `./docs` only when warranted.
 
 {agent:haily-git-manager}
 
-Stage all changes and commit with a conventional-commit message.
+Stage the owned changes, scan for secrets, and commit using the repository's message style.
 
 ## Exemplar Injection
 
-Produced by the Recon pre-Build Pass (`references/process-steps.md` § Exemplar Pull) — normal + `--deep`, skipped on `--quick`. Before spawning `haily-implementor`, append this block to its prompt:
+Before Build, append 2–3 in-repo exemplars to the implementor prompt, capped at 80 excerpt lines total:
 
-```
+```text
 ## Exemplar(s)
-<file>:<line>-<line> — <one-line reason this matches the phase's work type>
+<file>:<line>-<line> — <why it matches>
 <excerpt>
 ```
 
-- 2–3 exemplars max, ≤80 lines of excerpt total across all of them combined — trim to the relevant function/block, never paste whole files
-- Source only from the project's own tree — never vendored deps, generated code, `.gitignore`'d paths, or `node_modules`
-- Greenfield hatch: no matching precedent → replace the block with the single line `No in-repo exemplar — follow injected standards.` (never omit silently)
+Exclude vendored, generated, ignored, and dependency paths. If none exists, write `No in-repo exemplar — follow injected standards.` Never omit the result silently. Skip this pass only under `--quick`.
 
 {agent:haily-implementor}
 
-Match this codebase's idiom: follow the injected exemplar(s) above for structure, naming, and error-handling style.
+Match the exemplars' structure, naming, and error-handling style.
 
 {agent-result:haily-implementor}
 
@@ -171,20 +143,17 @@ Match this codebase's idiom: follow the injected exemplar(s) above for structure
 
 {agent:haily-implementor}
 
-Execute the assigned phase file; owns the listed files exclusively.
-Launch one haily-implementor per independent phase; enforce non-overlapping file ownership.
+Assign one independent phase per implementor with explicit, non-overlapping file ownership.
 
 ## Tier Routing
 
-When `{skill:hc-cook}` receives `--tier fast|medium|thinking` (passed by `{skill:hc-goal}` per phase from the phase frontmatter), forward it to Build and Verify agents via the Task `model:` parameter:
+Forward `--tier` only to Build and Verify agents:
 
-| `--tier` value | Task `model:` param |
+| Tier | Task `model:` |
 |---|---|
 | `fast` | `{model:fast}` |
 | `medium` | `{model:medium}` |
 | `thinking` | `{model:thinking}` |
-| absent | (inherit session model — backward compatible) |
+| absent | inherit session model |
 
-Apply to `haily-implementor` (Build) and `haily-tester` (Verify). Do **not** apply to `haily-reviewer` — review judgment is always the session model or higher, never downgraded.
-
-Tier names (`{model:fast}` etc.) resolve to provider model IDs at install time via `kit/model-map.json`. Never hard-code vendor model IDs here.
+Apply to `haily-implementor` and `haily-tester`. Never downgrade `haily-reviewer`; it uses the session model or higher. Resolve tier placeholders through `kit/model-map.json`; never hard-code vendor model IDs.

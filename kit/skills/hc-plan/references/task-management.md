@@ -1,133 +1,69 @@
 # Task Management Integration
 
-## Session-Scoped Reality
+Plan files are persistent and remain the source of truth. Claude Tasks are session-scoped coordination state; `~/.claude/tasks/` stores locks, not task data.
 
-Claude Tasks are **ephemeral** — they die when the session ends. `~/.claude/tasks/` holds lock files only, NOT task data. Plan files (plan.md, phase-XX.md with checkboxes) are the **persistent** layer.
+`TaskCreate` / `TaskUpdate` / `TaskGet` / `TaskList` are CLI-only. When unavailable, use `TodoWrite`; planning and execution must still work.
 
-**Tool Availability:** `TaskCreate`/`TaskUpdate`/`TaskGet`/`TaskList` are **CLI-only** — disabled in VSCode extension (`isTTY` check). If these tools error, use `TodoWrite` for progress tracking. Plan files remain the source of truth; hydration is an optimization, not a requirement.
+## Hydration Rule
 
-The **hydration pattern** bridges sessions:
-
-```
-┌──────────────────┐  Hydrate   ┌───────────────────┐
-│ Plan Files       │ ─────────► │ Claude Tasks      │
-│ (persistent)     │            │ (session-scoped)  │
-│ [ ] Phase 1      │            │ ◼ pending         │
-│ [ ] Phase 2      │            │ ◼ pending         │
-└──────────────────┘            └───────────────────┘
-                                        │ Work
-                                        ▼
-┌──────────────────┐  Sync-back ┌───────────────────┐
-│ Plan Files       │ ◄───────── │ Task Updates      │
-│ (updated)        │            │ (completed)       │
-│ [x] Phase 1      │            │ ✓ completed       │
-│ [ ] Phase 2      │            │ ◼ in_progress     │
-└──────────────────┘            └───────────────────┘
-```
-
-- **Hydrate:** Read plan files → TaskCreate per unchecked `[ ]` item
-- **Work:** TaskUpdate tracks in_progress/completed in real-time
-- **Sync-back:** Update `[ ]` → `[x]` in phase files, update plan.md frontmatter status
-
-## When to Create Tasks
-
-**Default:** On — auto-hydrate after plan files are written
-**3-Task Rule:** <3 phases → skip tasks (overhead exceeds benefit)
-
-| Scenario | Tasks? | Why |
-|----------|--------|-----|
-| Multi-phase feature (3+ phases) | Yes | Track progress, enable parallel |
-| Complex dependencies between phases | Yes | Automatic unblocking |
-| Plan will be executed by cook | Yes | Seamless handoff |
-| Single-phase quick fix | No | Just do it directly |
-| Trivial 1-2 step plan | No | Overhead not worth it |
-
-## Task Creation Patterns
-
-### Phase-Level TaskCreate
+Hydrate Tasks after writing a plan with at least 3 phases or a meaningful dependency graph. Skip hydration for 1–2 trivial phases because coordination overhead exceeds its value.
 
 ```
+plan checkboxes --hydrate--> session Tasks --work--> Task status
+       ^                                             |
+       +---------------- sync-back -----------------+
+```
+
+- Hydrate one Task per unchecked phase; add critical step Tasks only when independent tracking or risk warrants it.
+- Treat checked `[x]` items as complete when resuming.
+- Track live work as `pending -> in_progress -> completed`.
+- Sync completed Tasks back to phase checkboxes and plan status before finalization.
+
+## Task Contract
+
+Each phase Task carries:
+
+- `subject`: imperative deliverable, under 60 characters.
+- `activeForm`: present-continuous form of the subject.
+- `description`: concrete output plus its phase-file pointer.
+- required metadata: `phase`, `priority`, `effort`, `planDir`, `phaseFile`.
+- optional metadata: `step`, `critical`, `riskLevel`, `dependencies`.
+
+```text
 TaskCreate(
-  subject: "Setup environment and dependencies",
-  activeForm: "Setting up environment",
-  description: "Install packages, configure env, setup database. See phase-01-setup.md",
-  metadata: { phase: 1, priority: "P1", effort: "2h",
-              planDir: ".agents/260205-auth/", phaseFile: "phase-01-setup.md" }
+  subject: "Implement OAuth2 flow",
+  activeForm: "Implementing OAuth2 flow",
+  description: "Implement refresh and recovery; see phase-03-api.md",
+  metadata: { phase: 3, priority: "P1", effort: "2h",
+              planDir: ".agents/260205-auth/", phaseFile: "phase-03-api.md" },
+  addBlockedBy: ["phase-2-task-id"]
 )
 ```
 
-### Critical Step TaskCreate
+Use `addBlockedBy` when the new Task depends on known predecessors. Use `addBlocks` only when creating the predecessor before its dependents. Reject dependency cycles.
 
-For high-risk/complex steps within phases:
+## Cook Handoff
 
-```
-TaskCreate(
-  subject: "Implement OAuth2 token refresh",
-  activeForm: "Implementing token refresh",
-  description: "Handle token expiry, refresh flow, error recovery",
-  metadata: { phase: 3, step: "3.4", priority: "P1", effort: "1.5h",
-              planDir: ".agents/260205-auth/", phaseFile: "phase-03-api.md",
-              critical: true, riskLevel: "high" },
-  addBlockedBy: ["{phase-2-task-id}"]
-)
-```
+Same session:
 
-## Metadata & Naming Conventions
+1. Planning hydrates Tasks.
+2. Cook reuses existing Tasks and begins with the first unblocked phase.
 
-**Required metadata:** `phase`, `priority` (P1/P2/P3), `effort`, `planDir`, `phaseFile`
-**Optional metadata:** `step`, `critical`, `riskLevel`, `dependencies`
+New session:
 
-**subject** (imperative): Action verb + deliverable, <60 chars
-- "Setup database migrations", "Implement OAuth2 flow", "Create user profile endpoints"
+1. Cook reads the plan because prior Tasks no longer exist.
+2. Cook hydrates unchecked phases and skips checked phases.
 
-**activeForm** (present continuous): Matches subject in -ing form
-- "Setting up database", "Implementing OAuth2", "Creating user profile endpoints"
+Sync-back:
 
-**description**: 1-2 sentences, concrete deliverables, reference phase file
+1. Mark completed session Tasks.
+2. `haily-project-manager` reconciles every phase file by `phase` and `phaseFile` metadata.
+3. Backfill completed `[ ] -> [x]` items across all phases, then derive `plan.md` status from the files.
+4. Report unresolved mappings before claiming completion.
 
-## Dependency Chains
+## Validation
 
-```
-Phase 1 (no blockers)              ← start here
-Phase 2 (addBlockedBy: [P1-id])    ← auto-unblocked when P1 completes
-Phase 3 (addBlockedBy: [P2-id])
-Sub-task 3.4 (addBlockedBy: [P2-id])   ← critical steps share phase dependency
-```
-
-Use `addBlockedBy` for forward references ("I need X done first").
-Use `addBlocks` when creating parent first ("X blocks these children").
-
-## Cook Handoff Protocol
-
-### Same-Session (planning → cook immediately)
-
-1. Planning hydrates tasks → tasks exist in session
-2. Cook (Build stage): `TaskList` → finds existing tasks → picks them up
-3. Cook skips re-creation, begins implementation directly
-
-### Cross-Session (new session, resume plan)
-
-1. User runs `{skill:hc-cook} path/to/plan.md` in new session
-2. Cook (Build stage): `TaskList` → empty (tasks died with old session)
-3. Cook reads plan files → re-hydrates from unchecked `[ ]` items
-4. Already-checked `[x]` items = done, skip those
-
-### Sync-Back (cook Ship stage)
-
-1. `TaskUpdate` marks all session tasks complete.
-2. `haily-project-manager` subagent runs full-plan sync-back:
-   - Sweep all `phase-XX-*.md` files.
-   - Reconcile completed tasks by metadata (`phase`, `phaseFile`).
-   - Backfill stale completed checkboxes `[ ]` → `[x]` across all phases (not only current phase).
-   - Update `plan.md` status/progress from actual checkbox state.
-3. If any completed task cannot be mapped to a phase file, report unresolved mappings before claiming completion.
-4. Git commit captures the state transition for next session.
-
-## Quality Checks
-
-After task hydration, verify:
-- Dependency chain has no cycles
-- All phases have corresponding tasks
-- Required metadata fields present (phase, priority, effort, planDir, phaseFile)
-- Task count matches unchecked `[ ]` items in plan files
-- Output: `✓ Hydrated [N] phase tasks + [M] critical step tasks with dependency chain`
+- Task count matches the unchecked phases plus justified critical steps.
+- Every hydrated phase has required metadata and a phase-file target.
+- The dependency graph is acyclic and exposes at least one unblocked Task.
+- Output: `✓ Hydrated [N] phase tasks + [M] critical step tasks with dependency chain`.

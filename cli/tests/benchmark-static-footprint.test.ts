@@ -25,6 +25,19 @@ function tempRepo(): string {
   return dir;
 }
 
+function writeText(filePath: string, content: string): void {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, content, 'utf8');
+}
+
+function addReferenceAndContextualFixtures(repo: string): void {
+  writeText(path.join(repo, 'kit/contextual/review-audit-self-decision.md'), '# Review context\nStay evidence-led.\n');
+  writeText(path.join(repo, 'kit/skills/hc-plan/SKILL.md'), '---\nname: hc-plan\ndescription: "Hot skill"\n---\n\n# hc-plan\n');
+  writeText(path.join(repo, 'kit/skills/hc-plan/references/hot-reference.md'), '# Hot reference\nCompact route notes.\n');
+  writeText(path.join(repo, 'kit/skills/hl-help/SKILL.md'), '---\nname: hl-help\ndescription: "Cold skill"\n---\n\n# hl-help\n');
+  writeText(path.join(repo, 'kit/skills/hl-help/references/cold-reference.md'), '# Cold reference\nRare catalog content.\n');
+}
+
 function snapshot(rootDir: string, entries: Record<string, string>): InstalledArtifactSnapshot {
   return {
     rootDir,
@@ -50,22 +63,36 @@ function descriptionBytes(text: string): number {
   return Buffer.byteLength(match?.[1] ?? '', 'utf8');
 }
 
-test('inventory includes agents, hooks, and split skill description/body entries', () => {
-  const inventory = listStaticInventory(FIXTURE_ROOT);
+test('inventory includes contextual rows plus split skill body and hot/cold reference entries', () => {
+  const repo = tempRepo();
+  addReferenceAndContextualFixtures(repo);
+  const inventory = listStaticInventory(repo);
   assert.ok(inventory.some((entry) => entry.relativePath === 'kit/agents/sample-agent.md' && entry.componentClass === 'agent'));
   assert.ok(inventory.some((entry) => entry.relativePath === 'kit/hooks/sample-hook.cjs' && entry.componentClass === 'hook-source'));
   assert.ok(inventory.some((entry) => entry.relativePath === 'kit/skills/sample-skill/SKILL.md' && entry.componentClass === 'skill-description'));
   assert.ok(inventory.some((entry) => entry.relativePath === 'kit/skills/sample-skill/SKILL.md' && entry.componentClass === 'skill-body'));
+  assert.ok(inventory.some((entry) => entry.relativePath === 'kit/contextual/review-audit-self-decision.md' && entry.componentClass === 'contextual-rule'));
+  assert.ok(inventory.some((entry) => entry.relativePath === 'kit/skills/hc-plan/references/hot-reference.md' && entry.componentClass === 'skill-reference-hot'));
+  assert.ok(inventory.some((entry) => entry.relativePath === 'kit/skills/hl-help/references/cold-reference.md' && entry.componentClass === 'skill-reference-cold'));
 });
 
 test('collector emits V2 static observations and treats CRLF-only changes as zero semantic delta', () => {
   const repo = tempRepo();
+  addReferenceAndContextualFixtures(repo);
   const rulePath = path.join(repo, 'kit/rules/sample-rule.md');
   fs.writeFileSync(rulePath, '# Sample rule\r\n\r\nUse {skill:hc-plan} before major changes.\r\n', 'utf8');
+  const hotReferencePath = path.join(repo, 'kit/skills/hc-plan/references/hot-reference.md');
+  fs.writeFileSync(hotReferencePath, '# Hot reference\r\nCompact route notes.\r\n', 'utf8');
   const artifact = collectStaticFootprint({
     repoRoot: repo,
     baseRef: 'HEAD',
-    claudeSnapshot: snapshot(snapshotRoot('claude'), { 'rules/haily-coding.md': 'alpha', 'hooks/wrapper.js': 'beta' }),
+    claudeSnapshot: snapshot(snapshotRoot('claude'), {
+      'rules/haily-coding.md': 'alpha',
+      'hooks/wrapper.js': 'beta',
+      'contextual/review-audit-self-decision.md': 'review',
+      'skills/hc-plan/references/hot-reference.md': 'hot',
+      'skills/hl-help/references/cold-reference.md': 'cold',
+    }),
     codexSnapshot: snapshot(snapshotRoot('codex'), { 'rules/haily-coding.md': 'gamma' }),
   });
   const text = stringifyBenchmarkNdjson([artifact.manifest, ...artifact.observations, artifact.outcome]);
@@ -76,8 +103,16 @@ test('collector emits V2 static observations and treats CRLF-only changes as zer
   assert.equal(staticMeta(ruleRow).normalizedByteDelta, 0);
   assert.ok(typeof staticMeta(ruleRow).rawByteDelta === 'number');
   assert.equal(ruleRow.metrics.outputBytes, Buffer.byteLength('# Sample rule\r\n\r\nUse {skill:hc-plan} before major changes.\r\n', 'utf8'));
+  const hotReferenceRow = artifact.observations.find((row) => row.fixtureId === 'kit/skills/hc-plan/references/hot-reference.md' && staticMeta(row).representation === 'source');
+  assert.ok(hotReferenceRow);
+  assert.equal(staticMeta(hotReferenceRow).componentClass, 'skill-reference-hot');
+  assert.equal(staticMeta(hotReferenceRow).normalizedBytes, Buffer.byteLength('# Hot reference\nCompact route notes.\n', 'utf8'));
+  assert.equal(staticMeta(hotReferenceRow).normalizedByteDelta, null);
   const installedRow = artifact.observations.find((row) => staticMeta(row).provider === 'claude');
   assert.equal(staticMeta(installedRow!).providerFootprintStatus, 'present');
+  assert.ok(artifact.observations.some((row) => staticMeta(row).representation === 'installed' && staticMeta(row).componentClass === 'contextual-rule'));
+  assert.ok(artifact.observations.some((row) => staticMeta(row).representation === 'installed' && staticMeta(row).componentClass === 'skill-reference-hot'));
+  assert.ok(artifact.observations.some((row) => staticMeta(row).representation === 'installed' && staticMeta(row).componentClass === 'skill-reference-cold'));
   assert.equal(artifact.outcome.decision, 'inconclusive');
   const skillRows = artifact.observations.filter((row) => row.fixtureId === 'kit/skills/sample-skill/SKILL.md');
   const descriptionRow = skillRows.find((row) => staticMeta(row).componentClass === 'skill-description');
@@ -126,7 +161,7 @@ test('collector rejects dotfile secrets, snapshot path escape, bad sha, duplicat
 
 test('measure-kit-overhead script keeps the legacy table shape', () => {
   const output = execFileSync('node', ['scripts/measure-kit-overhead.mjs'], { cwd: process.cwd(), encoding: 'utf8' });
-  assert.match(output, /^# Kit overhead measurement — 2026-08-07/m);
+  assert.match(output, /^# Kit overhead measurement — \d{4}-\d{2}-\d{2}$/m);
   assert.match(output, /^\| Cost class \| Before \(bytes \/ est\. tokens\) \| After \(bytes \/ est\. tokens\) \| Delta \|$/m);
   assert.match(output, /^\| Rules \(one-time cacheable prefix\) \| /m);
   assert.match(output, /^\| Standards \(recurring, claude only\) \| /m);

@@ -167,6 +167,83 @@ The new effectiveness benchmark is the formal companion to this document: use `h
 
 For decisions, read `quality` and `efficiency` separately. A footprint win is only descriptive if provider identity, live telemetry, or pair completeness is missing; the benchmark report encodes that distinction instead of collapsing everything into one score.
 
+## Phase 0+1 Measurement (2026-08-09)
+
+Measured against immutable baseline `7441899962523f563ed287283bbc64bdd8b12316` with `node dist/bin.js benchmark static --base-ref 7441899962523f563ed287283bbc64bdd8b12316 --json` after the contextual compaction and inventory expansion in this wave. This run produced `manifestHash=66bfbfad62794cca603b49199837751b815b479c267e464a8b49d59a41225b51`, `rows=1227`; the manifest hash is run-specific because installed-snapshot timestamps participate in its identity.
+
+| Surface | Class | Count | Normalized bytes | Normalized delta vs baseline | Notes |
+|---|---|---:|---:|---:|---|
+| Contextual Markdown | `contextual-rule` | 3 | 8,961 | -4,765 | Real recurring shrink on the cooldown/full-build contextual slice. |
+| Hot skill references | `skill-reference-hot` | 98 | 433,853 | 0 | New static inventory coverage only; no content edits in this phase. |
+| Cold skill references | `skill-reference-cold` | 221 | 1,446,663 | 0 | New static inventory coverage only; no content edits in this phase. |
+
+Per-file contextual savings:
+
+| File | Before bytes | After bytes | Delta |
+|---|---:|---:|---:|
+| `kit/contextual/orchestration-protocol.md` | 5,090 | 2,897 | -2,193 |
+| `kit/contextual/review-audit-self-decision.md` | 4,704 | 2,631 | -2,073 |
+| `kit/contextual/team-coordination-rules.md` | 3,932 | 3,433 | -499 |
+
+No `kit/rules/*.md` or subagent `econ` text changed in this phase. `scripts/measure-kit-overhead.mjs` intentionally remains narrow and keeps its legacy table shape; Phase 0 extends benchmark static coverage instead of changing that script's cost classes. Hook contract proof now includes a same-prompt cooldown equivalence test, so the compacted contextual files emit identical contextual bytes whether they arrive through the first full reminder build or the cooldown-only path.
+
+## Core Skill Batch Measurement (2026-08-09)
+
+The first five-skill batch keeps frontmatter, invocation syntax, required callouts, workflow position, reference paths, and safety/evidence/rollback markers under `cli/tests/skill-prompt-contracts.test.ts`. Against baseline `7441899962523f563ed287283bbc64bdd8b12316`, normalized `skill-body` bytes fell from `81,261` to `64,391`: `-16,870` bytes, about `-4,218` estimated tokens (`-20.76%`).
+
+| Skill | Before | After | Delta |
+|---|---:|---:|---:|
+| `hc-plan` | 13,084 | 9,476 | -3,608 |
+| `hc-cook` | 15,518 | 12,493 | -3,025 |
+| `hc-review` | 23,888 | 16,981 | -6,907 |
+| `hc-fix` | 13,975 | 12,105 | -1,870 |
+| `hc-scout` | 14,796 | 13,336 | -1,460 |
+
+The static artifact has `rows=1227` and run-specific `manifestHash=1493947d5857a3fd68045160966b5359b5ddaed19ab8cd4480a4f7f98b1380ee`. These figures prove footprint reduction and contract-test parity, not live behavioral equivalence; a paired live A/B remains required for a quality claim.
+
+## `hl-help` Progressive-Disclosure Batch (2026-08-09)
+
+`hl-help` now keeps only discovery, prefix/routing, filter, and combo-entry contracts in its hot body. Normalized `skill-body` bytes fell from `29,537` to `4,630` (`-24,907`, about `-6,227` estimated tokens, `-84.32%`); the frontmatter-excluded body fell from `29,079` to `4,172`, and the file is now 105 lines instead of 634. Four cold reference files total `7,612` normalized bytes, so even body plus moved catalogs are `17,295` bytes smaller than the former monolith while routine invocation no longer pays for the catalogs.
+
+The static artifact has `rows=1235` and run-specific `manifestHash=6dbe7f65eff9c5b357df4e8747d004a37ddb4257da16362fd8adbad2b7c7a5f9`. `cli/tests/hl-help-prompt-contract.test.ts` locks frontmatter, invocation syntax, routing/security distinctions, reference links, and the hot-body byte/line ceilings.
+
+## Workflow Reference Batches (2026-08-09)
+
+Phase 4 used two independently gated batches across `hc-plan`, `hc-cook`, `hc-review`, and `hc-fix`. Four normalized reference rows fell from `24,778` to `13,534` bytes: `-11,244` bytes, about `-2,811` estimated tokens (`-45.38%`).
+
+| Reference | Before | After | Delta |
+|---|---:|---:|---:|
+| `hc-plan/references/task-management.md` | 5,904 | 2,807 | -3,097 |
+| `hc-review/references/process-task-pipeline.md` | 5,629 | 2,814 | -2,815 |
+| `hc-fix/references/task-orchestration.md` | 5,400 | 2,523 | -2,877 |
+| `hc-cook/references/agent-invocations.md` | 7,845 | 5,390 | -2,455 |
+
+The task-orchestration batch locks hydration, sync-back, fallback, dependency graphs, re-review caps, phase counts, ownership, failure, and finalization relations. The cook invocation batch locks agent spawn points, TDD context separation, deep/domain review, complexity thresholds, exemplars, finalization agents, parallel ownership, and tier routing. The final static artifact contains `1,235` benchmark observations with run-specific `manifestHash=c2729c2071312a0790e2d2f35ec231159b65c04aaf8d1c8541cc90a585624a77`. These remain static footprint and contract results, not live behavior-equivalence evidence.
+
+## Cold Reference Library Batches (2026-08-09)
+
+Phase 5 used three library-isolated batches. Eleven cold/on-demand references fell from `61,488` to `29,766` normalized bytes: `-31,722` bytes, about `-7,931` estimated tokens (`-51.59%`). This is storage and load-on-demand reduction, not recurring hot-path savings.
+
+| Library | Files | Before | After | Delta |
+|---|---:|---:|---:|---:|
+| `hl-design` | 3 | 24,086 | 11,495 | -12,591 |
+| `hc-mcp-builder` | 5 | 17,859 | 9,350 | -8,509 |
+| `hl-write` | 3 | 19,543 | 8,921 | -10,622 |
+
+The `hl-design` batch removes story-like design prose and redundant screenshot HOW while preserving dimensions, approval, accessibility, print, and canvas output constraints. The MCP batch preserves core/adapter ownership, transports, auth precedence, secret handling, deployment boundaries, and destructive-tool confirmation. The writing batch preserves routing, evidence/attribution floors, article publication integrity, academic structure, and citation verification. `hl-write`'s `flat_inline` declaration and inlined craft reference are unchanged; installer/provider tests pass.
+
+The final static artifact contains `1,235` benchmark observations with run-specific `manifestHash=3b465824929f776da1ebcd0a720d47f321156a47a458812a4c3a850bd1c7a15d`. Static and contract evidence does not establish live behavioral equivalence.
+
+## Final Consolidation (2026-08-09)
+
+Across this plan, normalized source footprint fell by a net `81,896` bytes (about `20,474` tokens at the derived 4-bytes/token estimate). Do not read that as a per-request saving: it combines conditional contextual injection, invoked skill bodies, workflow references, cold libraries, and the new `hl-help` cold-reference offset.
+
+Hot/conditional bodies fell by `46,542` bytes: contextual Markdown `-4,765`, five core skill bodies `-16,870`, and the `hl-help` hot body `-24,907`. Existing workflow/cold references fell by another `42,966` bytes, while four new `hl-help` cold references add `7,612` bytes and keep catalogs off its routine path.
+
+Final artifacts: static `1,235` observations (`manifestHash=57b87c8ecc7e2390573177c2e44e5516b90f57d1933d4f1b42ae49617660ee05`) and hooks `16` observations (`manifestHash=3f7e6e4fa2db8acb84e6719d41b201c754a8ab58489c2242ef4e0d2ac19fffd9`). Full tests pass 628/628.
+
+A schema-minimum live A/B then ran one fixture once per arm on verified `gpt-5.4-mini` (`manifestHash=fe1b47eeebf9cc49b232bca72b4bc6e9b7380c457f396148752450ec19c99ef3`). For that pair, treatment bytes fell 22.60%, input tokens 10.50%, and total tokens 10.21%; no tools, errors, or approvals occurred. These are descriptive efficiency observations only. Behavior quality remains `INCONCLUSIVE` because no evaluator evidence was attached and both rows are decision-ineligible; one pair cannot establish latency or output-token effects. Codex App Server emitted no observed USD cost, so the `$0.10` manifest value is only a reserve cap.
+
 ## Agent prompt bodies
 
 `kit/agents/*.md` are outside `measure-kit-overhead.mjs`; they are the recurring prompt bodies loaded for the selected subagent, not the shared rules/standards/skill-description classes above.

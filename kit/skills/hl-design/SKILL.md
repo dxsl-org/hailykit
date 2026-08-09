@@ -160,7 +160,6 @@ python ../hc-docs/scripts/media_optimizer.py <file>
 | `references/flow-social.md` | Social media image design |
 | `references/tech-banner-formats.md` | Banner sizes + 22 art direction styles |
 | `references/tech-canvas-design.md` | Canvas composition system |
-| `references/tech-image-generation.md` | Image generation model reference |
 | `references/tech-cip-prompts.md` | CIP prompt engineering |
 | `references/tech-logo-prompts.md` | Logo AI prompt engineering |
 | `references/tech-logo-colors.md` | Color psychology for logo design |

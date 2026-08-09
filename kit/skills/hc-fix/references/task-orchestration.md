@@ -1,110 +1,60 @@
 # Task Orchestration
 
-Native Claude Task tools for tracking and coordinating fix workflows.
+Use Claude Tasks when a fix has at least 3 meaningful steps, multiple agents, or independent issue trees. Quick fixes skip Tasks because tracking overhead exceeds their value.
 
-**Skill:** Activate `{skill:hl-log}` for advanced task orchestration — provides hydration (plan checkboxes → Tasks), sync-back (Tasks → plan checkboxes), cross-session resume, and progress tracking patterns.
+`TaskCreate`, `TaskUpdate`, `TaskGet`, and `TaskList` are CLI-only. When unavailable, use `TodoWrite`; the fix workflow must remain functional. For hydration and cross-session sync-back, follow `../../hc-plan/references/task-management.md`.
 
-**Tool Availability:** `TaskCreate`, `TaskUpdate`, `TaskGet`, `TaskList` are **CLI-only** — disabled in VSCode extension (`isTTY` check). If these tools error, use `TodoWrite` for progress tracking instead. Fix workflow remains fully functional — Tasks add visibility and coordination, not core functionality.
+Lifecycle: `pending -> in_progress -> completed`. Keep at most one Task `in_progress` per agent.
 
-## When to Use Tasks
+## Standard Workflow — 6 Phases
 
-| Complexity | Use Tasks? | Reason |
-|-----------|-----------|--------|
-| Simple/Quick | No | < 3 steps, overhead exceeds benefit |
-| Moderate (Standard) | Yes | 6 steps, multi-subagent coordination |
-| Complex (Deep) | Yes | 9 steps, dependency chains, parallel agents |
-| Parallel | Yes | Multiple independent issue trees |
-
-## Task Tools
-
-- `TaskCreate(subject, description, activeForm, metadata)` - Create task
-- `TaskUpdate(taskId, status, addBlockedBy, addBlocks)` - Update status/deps
-- `TaskGet(taskId)` - Get full task details
-- `TaskList()` - List all tasks with status
-
-**Lifecycle:** `pending` → `in_progress` → `completed`
-
-## Standard Workflow Tasks (6 phases)
-
-Create all tasks upfront, then work through them:
-
-```
-T1 = TaskCreate(subject="Scout codebase",       activeForm="Scouting codebase",     metadata={step: 1, phase: "investigate"})
-T2 = TaskCreate(subject="Diagnose root cause",   activeForm="Diagnosing root cause", metadata={step: 2, phase: "investigate"})
-T3 = TaskCreate(subject="Implement fix",         activeForm="Implementing fix",      metadata={step: 3, phase: "implement"},  addBlockedBy=[T1, T2])
-T4 = TaskCreate(subject="Verify + prevent",      activeForm="Verifying fix",         metadata={step: 4, phase: "verify"},     addBlockedBy=[T3])
-T5 = TaskCreate(subject="Code review",           activeForm="Reviewing code",        metadata={step: 5, phase: "verify"},     addBlockedBy=[T4])
-T6 = TaskCreate(subject="Finalize",              activeForm="Finalizing",            metadata={step: 6, phase: "finalize"},   addBlockedBy=[T5])
+```text
+scout + diagnose -> implement -> verify/prevent -> review -> finalize
 ```
 
-Update as work progresses:
-```
-TaskUpdate(taskId=T1, status="in_progress")
-// ... scout codebase ...
-TaskUpdate(taskId=T1, status="completed")
-// T3 auto-unblocks when T1 + T2 complete
-```
+Create the six Tasks up front. `implement` blocks on scout and diagnosis; every later phase blocks on its predecessor. Mark each Task in progress when claimed and complete immediately after its evidence exists.
 
-## Deep Workflow Tasks (9 phases)
+## Deep Workflow — 9 Phases
 
-Steps 1+2+3 run in parallel (scout + diagnose + research).
-
-```
-T1 = TaskCreate(subject="Scout codebase",           metadata={step: 1, phase: "investigate"})
-T2 = TaskCreate(subject="Diagnose root cause",       metadata={step: 2, phase: "investigate"})
-T3 = TaskCreate(subject="Research solutions",         metadata={step: 3, phase: "investigate"})
-T4 = TaskCreate(subject="Brainstorm approaches",      metadata={step: 4, phase: "design"},     addBlockedBy=[T1, T2, T3])
-T5 = TaskCreate(subject="Create implementation plan", metadata={step: 5, phase: "design"},     addBlockedBy=[T4])
-T6 = TaskCreate(subject="Implement fix",              metadata={step: 6, phase: "implement"},  addBlockedBy=[T5])
-T7 = TaskCreate(subject="Verify + prevent",           metadata={step: 7, phase: "verify"},     addBlockedBy=[T6])
-T8 = TaskCreate(subject="Code review",                metadata={step: 8, phase: "verify"},     addBlockedBy=[T7])
-T9 = TaskCreate(subject="Finalize & docs",            metadata={step: 9, phase: "finalize"},   addBlockedBy=[T8])
+```text
+(1 scout || 2 diagnose || 3 research)
+  -> 4 brainstorm -> 5 plan -> 6 implement
+  -> 7 verify/prevent -> 8 review -> 9 finalize/docs
 ```
 
-**Note:** Steps 1, 2, and 3 run in parallel (scout + diagnose + research simultaneously).
+Steps 1, 2, and 3 run in parallel. Each later Task carries `addBlockedBy` for the preceding stage. Preserve this graph when a deep fix adds specialist work.
 
-## Parallel Issue Coordination
+## Parallel Issues
 
-For 2+ independent issues, create separate task trees per issue:
+For two or more independent issues, create one tree per issue:
 
-```
-// Issue A tree
-TaskCreate(subject="[Issue A] Scout",      metadata={issue: "A", step: 1})
-TaskCreate(subject="[Issue A] Diagnose",   metadata={issue: "A", step: 2})
-TaskCreate(subject="[Issue A] Fix",        metadata={issue: "A", step: 3}, addBlockedBy=[A-step1, A-step2])
-TaskCreate(subject="[Issue A] Verify",     metadata={issue: "A", step: 4}, addBlockedBy=[A-step3])
-
-// Issue B tree
-TaskCreate(subject="[Issue B] Scout",      metadata={issue: "B", step: 1})
-TaskCreate(subject="[Issue B] Diagnose",   metadata={issue: "B", step: 2})
-TaskCreate(subject="[Issue B] Fix",        metadata={issue: "B", step: 3}, addBlockedBy=[B-step1, B-step2])
-TaskCreate(subject="[Issue B] Verify",     metadata={issue: "B", step: 4}, addBlockedBy=[B-step3])
-
-// Final shared task
-TaskCreate(subject="Integration verify",   addBlockedBy=[A-step4, B-step4])
+```text
+issue A: (scout || diagnose) -> fix -> verify --+
+                                                  +-> integration verify
+issue B: (scout || diagnose) -> fix -> verify --+
 ```
 
-Spawn `haily-implementor` subagents per issue tree. Each agent:
-1. Claims tasks via `TaskUpdate(status="in_progress")`
-2. Completes tasks via `TaskUpdate(status="completed")`
-3. Blocked tasks auto-unblock when dependencies resolve
+- Assign each tree a non-overlapping file or responsibility boundary.
+- Use metadata `{ issue, step, phase, severity }` for filtering.
+- Block the shared integration verification on every issue verification.
+- Never let an agent claim work owned by another tree.
 
-## Subagent Task Assignment
+## Ownership And Failure Rules
 
-Assign tasks to subagents via `owner` field:
+- Assign an owner before parallel execution; list only `pending` Tasks with no blockers when selecting work.
+- If a Task fails, keep it `in_progress`, record the blocker, and create a bounded remediation subtask.
+- Do not mark a fix complete before its verification evidence exists.
+- Do not batch status changes; update immediately so dependents unblock correctly.
+- A blocked or incomplete Task prevents finalization.
 
+## Minimal Task Shape
+
+```text
+TaskCreate(
+  subject: "Implement authorization fix",
+  activeForm: "Implementing authorization fix",
+  description: "Apply the diagnosed fix and preserve the public contract",
+  metadata: { issue: "A", step: 3, phase: "implement", severity: "high" },
+  addBlockedBy: [scoutTask, diagnoseTask]
+)
 ```
-TaskUpdate(taskId=taskA, owner="agent-scout")
-TaskUpdate(taskId=taskB, owner="agent-diagnose")
-```
-
-Check available work: `TaskList()` → filter by `status=pending`, `blockedBy=[]`, `owner=null`
-
-## Rules
-
-- Create tasks BEFORE starting work (upfront planning)
-- Only 1 task `in_progress` per agent at a time
-- Mark complete IMMEDIATELY after finishing (don't batch)
-- Use `metadata` for filtering: `{step, phase, issue, severity}`
-- If task fails → keep `in_progress`, create subtask for blocker
-- Skip Tasks entirely for Quick workflow (< 3 steps)

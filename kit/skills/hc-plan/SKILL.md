@@ -11,7 +11,7 @@ metadata:
 
 # Plan — Phased Implementation Roadmaps
 
-Turns a task description into a structured, phased plan through research, codebase analysis, and adversarial review. Never writes implementation code — only plan artifacts.
+Turns a task into a phased implementation plan. Never writes implementation code.
 
 ## Usage
 
@@ -21,23 +21,21 @@ Turns a task description into a structured, phased plan through research, codeba
 {skill:hc-plan} validate [plan-path]
 ```
 
-If invoked without arguments or with ambiguous intent, use `AskUserQuestion` (header: "Planning Operation") to clarify task scope before proceeding.
+If the request is ambiguous, use `AskUserQuestion` (header: "Planning Operation") before planning.
 
 | Flag | Behavior |
 |------|----------|
-| *(none)* | Interactive — agent auto-detects research depth; pauses at each Checkpoint |
-| `--quick` | Skip Research + Red Team + Validation. Go straight to Codebase Analysis → Solution Design → Plan Writing. Use when you already know the codebase and approach — small features, bug fixes, or well-understood refactors. |
-| `--deep` | Force maximum depth: 2–3 researchers + per-phase scout + a 2-lens judge panel at Solution Design (risk-first + simplicity-first, then judge synthesis — `references/solution-design.md`) + red-team + validation. Cost: 3–5× baseline token cost. When cross review is *also* separately authorized (`--cross` or `crossReview.auto`), its findings upgrade from advisory to confidence-raising instead of merely advisory (`references/cross-review.md`) — `--deep` alone never triggers external egress. Auto-on via `haily.json` `deep.auto: true` (checked at Scope Check, same pattern as `crossReview.auto`); an explicit `--quick` always overrides `deep.auto`. Use for architecture decisions where the cost of a wrong approach is high. |
-| `--auto` | Autonomous — agent decides all trade-offs, no stops. Composes with `--deep` or `--quick`. |
-| `--tdd` | Behavioral modifier — adds a tests-first structure block to each phase |
-| `--resume` | Memory-augmented planning: load relevant memories (`feedback`, `project`) before Research; write new memories (rejected alternatives, discovered constraints, user preferences) after Red Team. Composes with all other flags. See `references/memory-bridge.md`. |
-| `--cross` | Cross-model review: after Red Team + Validation, send the final plan to an external AI model (different provider than the session) for a second opinion. Advisory only. Composes with all flags; auto-on via `haily.json crossReview.auto`. See `references/cross-review.md`. |
+| *(none)* | Interactive; auto-detect depth; pause at Checkpoints |
+| `--quick` | Skip Research, Red Team, and Validation; go straight to Codebase Analysis → Solution Design → Plan Writing |
+| `--deep` | Maximum scrutiny: 2–3 researchers, per-phase scout, 2-lens judge panel, red-team, and validation. Cross review stays off unless `--cross` or `crossReview.auto` authorizes it. `haily.json deep.auto` may default this on; explicit `--quick` wins. |
+| `--auto` | Resolve checkpoints autonomously |
+| `--tdd` | Add tests-first structure to each phase |
+| `--resume` | Read/write project memories around Research and Red Team; see `references/memory-bridge.md` |
+| `--cross` | Run external second-opinion review after Red Team + Validation; advisory unless `--deep` separately upgrades confidence; see `references/cross-review.md` |
 
 Flags compose freely: `--quick --auto`, `--deep --auto`, `--tdd --auto`, `--deep --tdd --auto`. `--quick` and `--deep` are mutually exclusive — `--deep` wins if both given.
 
-**Research depth auto-detection (default and `--auto`):** Agent assesses task complexity from description and codebase context — simple features get lightweight research; complex/cross-cutting changes get deeper research. Override with `--deep` when you know the decision warrants maximum scrutiny regardless of apparent complexity.
-
-**Parallel phase detection:** Agent builds a dependency graph from phase dependencies and identifies phases that can execute in parallel. Interactive: offers parallel; `--auto`: parallelizes automatically.
+Default depth is auto-detected from task complexity. Phase parallelism is derived from phase dependencies; interactive mode offers it, `--auto` uses it.
 
 ## Subcommands
 
@@ -55,16 +53,16 @@ Scope Check → Research → Codebase Analysis → Solution Design
 
 | Stage | Detail | Skip condition |
 |-------|--------|----------------|
-| **Scope Check** | Confirm task boundaries before spending research cycles. Also resolve `--deep`: explicit flag wins, else `haily.json` `deep.auto: true` behaves as if `--deep` was passed unless `--quick` was given. **Parity hint (downward):** when `HL_MODEL_TIER` ranks below `ultra` and the task touches a high-risk domain (`{skill:hc-cook}` `references/agent-invocations.md` § Domain-Risk Review), print one line suggesting `--deep` at this Scope Check (this skill's Route-equivalent stage) and proceed at the requested depth — advisory only. See `docs/engineering-standards.md` § Depth Tiers → Parity hint. | Trivially small task |
-| **Memory READ** | Load `references/memory-bridge.md` read protocol: type-filter MEMORY.md (feedback + project), keyword-scan descriptions against plan topic, inject top-5 relevant memories; flag entries >90 days as "verify before acting" | `--resume` absent; MEMORY.md not found |
-| **Research** | Spawn `haily-researcher` subagents in parallel — `references/research-phase.md` | `--quick`; research reports already provided |
-| **Codebase Analysis** | Read relevant files, patterns, constraints; mine git history for precedent commits (blind-spot detection) — `references/codebase-analysis.md`. Scout runs once with all aspects in one prompt — never one scout per aspect; session recon covering the task's modules replaces the Scout sub-step only (Precedent Mining + scout-report.md write always run) | Scout reports already provided |
-| **Solution Design** | Evaluate approach options, select best fit — `references/solution-design.md`. Under `--deep`: a judge panel (2 lenses + synthesis) replaces the single-pass evaluation | — |
-| **Plan Writing** | Produce `plan.md` + phase files — `references/plan-structure.md`, `references/plan-quality.md`. Auto-classify `tier` per phase: `fast` (mechanical/boilerplate), `medium` (logic/integration, default), `thinking` (arch/security/schema). Populate each phase's `## Assumptions` section — claim + confidence (high/medium/low) + how-to-verify — from claims made during Research/Codebase Analysis that were not directly grepped/read. These are the ASSUMED and PRIOR claims of `docs/engineering-standards.md` → Claim Provenance: a research finding or memory entry carried into the plan stays PRIOR until verified in this codebase, and never becomes OBSERVED by appearing in plan text. Each phase's `## Risk Assessment` names how the phase is undone and which part cannot be — `{skill:hl-reasoning}` `references/reasoning-primitives.md` → Rollback Check. See `references/phase-template.md`. | — |
+| **Scope Check** | Confirm boundaries, resolve `--deep` vs `deep.auto`, and emit the downward parity hint when `HL_MODEL_TIER < ultra` on a high-risk task. | Trivially small task |
+| **Memory READ** | Load top relevant `feedback` and `project` memories per `references/memory-bridge.md`; flag stale entries for verification. | `--resume` absent; MEMORY.md not found |
+| **Research** | Spawn parallel `haily-researcher` runs per `references/research-phase.md`. | `--quick`; research reports already provided |
+| **Codebase Analysis** | Read relevant files, mine precedent commits, and run scout once for all aspects. Reuse session recon only for the Scout sub-step; Precedent Mining and `scout-report.md` write still run. | Scout reports already provided |
+| **Solution Design** | Evaluate options; `--deep` swaps single-pass evaluation for the judge panel in `references/solution-design.md`. | — |
+| **Plan Writing** | Produce `plan.md` + phase files, auto-classify `tier`, record unverified claims in `## Assumptions`, keep PRIOR claims PRIOR until verified, and ensure each phase's `## Risk Assessment` names how the phase is undone and which part cannot be. See `references/phase-template.md`. | — |
 | **Red Team** | `{skill:hc-plan} red-team {plan-path}` — `references/red-team-workflow.md` | `--quick`; default: auto on `--deep`; Interactive: Checkpoint |
-| **Memory WRITE** | Write atomic memories per `references/memory-bridge.md` write protocol: one file per rejected alternative (type: feedback), discovered constraint (type: project), observed user preference (type: feedback); dedup-check before writing; update MEMORY.md index | `--resume` absent; Red Team triggered major revision (defer until re-plan completes) |
+| **Memory WRITE** | Write deduped atomic memories for rejected alternatives, discovered constraints, and observed user preferences; update MEMORY.md index. | `--resume` absent; Red Team triggered major revision (defer until re-plan completes) |
 | **Validation** | `{skill:hc-plan} validate {plan-path}` — `references/validate-workflow.md` | `--quick`; default: auto on `--deep`; Interactive: Checkpoint |
-| **Cross Review** | Run `hailykit cross-review --stage plan` on the final plan; present blind-spot findings for adjudication — `references/cross-review.md`. Under `--deep`, findings are confidence-raising rather than purely advisory (still evidence-gated) | `--cross` absent and `crossReview.auto` not set; no eligible reviewer CLI |
+| **Cross Review** | Run `hailykit cross-review --stage plan` and adjudicate blind-spot findings. Under `--deep`, findings become confidence-raising rather than purely advisory. | `--cross` absent and `crossReview.auto` not set; no eligible reviewer CLI |
 | **Task Hydration** | `TaskCreate` per phase when CLI available; falls back to `TodoWrite` | Fewer than 3 phases |
 | **Cook Handoff** | Print absolute plan path and `{skill:hc-cook}` invocation (MANDATORY) | — |
 | **Log** | `{skill:hl-log}` on completion — records plan decisions and outcomes to session log | — |
@@ -83,11 +81,7 @@ Phase file template: `references/phase-template.md`
 
 ## --resume Mode
 
-`--resume` is NOT about resuming a paused plan session — it is about cross-session memory injection. Activates a bidirectional bridge to `~/.claude/projects/<project>/memory/`.
-
-**Before Research:** scans MEMORY.md for entries matching the plan topic (type: `feedback` + `project`; keyword scan on `description:` fields against plan topic nouns; recency preference). Top-5 loaded into planning context; entries >90 days flagged as "verify before acting, not acting on." Gracefully skips if MEMORY.md is absent.
-
-**After Red Team (if Red Team passes):** writes one atomic memory file per: rejected alternative (type: `feedback`) · discovered constraint (type: `project`) · observed user preference (type: `feedback`). Dedup guard: updates existing entry if similar description found. Updates MEMORY.md index. Full protocol: `references/memory-bridge.md`.
+`--resume` means cross-session memory injection, not resuming a paused plan. Before Research, load top relevant `feedback` and `project` entries from MEMORY.md and flag items older than 90 days as verify-first. After a passing Red Team, write one atomic memory per rejected alternative, discovered constraint, or observed user preference. Full protocol: `references/memory-bridge.md`.
 
 ## Constraints
 

@@ -1,113 +1,46 @@
 # MCP Transports
 
-The wrapped server must support **stdio**, **SSE**, and **Streamable HTTP**. One core `Server` instance, three transport adapters.
+Register tools once on a transport-agnostic server. Expose the same schemas and behavior through `stdio`, legacy `SSE`, and preferred remote `Streamable HTTP`.
 
-## Transport selection
+## Selection
 
-Entry (`bin.ts`):
+Resolve `MCP_TRANSPORT`, then `--transport`, then default to `stdio`. Reject unknown values before startup.
 
-```ts
-const transport = process.env.MCP_TRANSPORT ?? flag("--transport") ?? "stdio";
-switch (transport) {
-  case "stdio": await startStdio(server); break;
-  case "sse": await startSse(server, { port }); break;
-  case "http": await startStreamableHttp(server, { port }); break;
-  default: die(`unknown transport: ${transport}`);
-}
-```
+| Transport | Use | State |
+|---|---|---|
+| stdio | local spawned agents | per process |
+| SSE | compatibility with older remote clients | per connection/session |
+| Streamable HTTP | preferred remote/PaaS/Workers | keyed by `mcp-session-id` |
 
 ## stdio
 
-Default for local agent processes (Claude Code, Cursor, etc.).
+- Trust the spawning parent; credentials use the local resolution chain.
+- Never write non-protocol bytes to stdout. Logs and diagnostics go to stderr.
+- Connect one `StdioServerTransport` to the shared server.
 
-```ts
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-const t = new StdioServerTransport();
-await server.connect(t);
-```
+## SSE
 
-- No auth at transport layer — trust the spawning parent
-- Never write non-protocol bytes to stdout; logs go to stderr
-- Credentials resolved from env + config files (same chain as CLI)
+- Create one transport per connection and pair `/sse` with its message endpoint.
+- Authenticate before upgrade and send heartbeats when proxies may idle the connection.
+- Keep only for client compatibility; document Streamable HTTP as preferred.
 
-## SSE (legacy)
+## Streamable HTTP
 
-Compatibility for older clients. Keep it, but document Streamable HTTP as preferred.
+- Serve POST requests and GET streams through one `/mcp` endpoint.
+- Generate and validate session IDs; map `mcp-session-id` to server state.
+- Support resumable streams where the SDK/runtime permits.
 
-```ts
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-app.get("/sse", async (c) => {
-  const t = new SSEServerTransport("/messages", c.res);
-  await server.connect(t);
-});
-app.post("/messages", (c) => t.handlePostMessage(c.req, c.res));
-```
+Remote state uses Durable Objects on Cloudflare or Redis/sticky sessions on Node deployments. Do not rely on local in-memory state when requests can reach different replicas.
 
-- Per-connection transport instance
-- Bearer token auth before upgrade
-- Heartbeats to keep proxies from idling the connection
+## Remote Auth
 
-## Streamable HTTP (preferred remote)
+Apply to SSE and HTTP only:
 
-Modern transport. Required for Cloudflare Workers and most PaaS.
+- require `Authorization: Bearer <token>` before creating a session;
+- reject invalid credentials with `401` without revealing which tokens exist;
+- rate-limit per token;
+- source secrets from Workers Secrets, a deployment secret manager, or protected environment variables—never the image or repository.
 
-```ts
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-app.all("/mcp", async (c) => {
-  const t = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => crypto.randomUUID(),
-  });
-  await server.connect(t);
-  return t.handleRequest(c.req.raw, c.res);
-});
-```
+## Observability
 
-- Single endpoint handles POST (requests) and GET (stream)
-- Session ID header `mcp-session-id` maps to server state
-- Works behind standard HTTP load balancers
-- Supports resumable streams
-
-## Session state
-
-Local (stdio): in-memory per process.
-Remote (SSE, HTTP): keyed by session ID. On Cloudflare Workers, use **Durable Objects** for per-session state. On Docker/Node, use Redis or in-memory with sticky sessions.
-
-## Auth
-
-Applies to SSE + HTTP only. stdio trusts the parent.
-
-```
-Authorization: Bearer <token>
-```
-
-Reject early with `401` and a clean MCP-level error on the first request. Do not leak which tokens exist. Rate-limit by token.
-
-Token sources per deployment:
-- Cloudflare: Workers Secrets (`wrangler secret put MCP_TOKEN`)
-- Docker: env var, ideally sourced from a secret manager, never baked into the image
-- Self-host: same, plus optional `.env` in production only if the host filesystem is trusted
-
-## Tool schema
-
-Every tool registered once against the core `Server`; all transports expose the same tool set.
-
-```ts
-server.tool(
-  "list_projects",
-  "List all projects for the authenticated user. Returns concise records (id, name, status). Use `format: detailed` for full data.",
-  {
-    format: z.enum(["concise", "detailed"]).default("concise"),
-    limit: z.number().int().min(1).max(100).default(25),
-  },
-  async (args, ctx) => core.listProjects({ ...args, auth: ctx.auth }),
-);
-```
-
-## Health & observability
-
-Expose on the HTTP transports:
-- `GET /healthz` → 200 when server is up and core dependencies reachable
-- `GET /readyz` → 200 when ready to serve
-- Structured logs (JSON) to stderr with `trace_id`, `session_id`, `tool_name`, `duration_ms`, never args
-
-Do not expose metrics without auth. If Prometheus is needed, mount on a separate internal port.
+HTTP deployments expose `/healthz` for liveness and `/readyz` for readiness. Emit structured logs with `trace_id`, `session_id`, `tool_name`, and `duration_ms`; never log tool arguments or credentials. Protect metrics or expose them only on an internal listener.

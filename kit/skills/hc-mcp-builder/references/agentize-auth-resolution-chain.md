@@ -1,95 +1,35 @@
 # Auth Resolution Chain
 
-One chain, used by both CLI and MCP-stdio. MCP-HTTP/SSE uses bearer tokens at transport layer, but tools may still need per-request values pulled from the chain.
+Use one resolver for CLI and MCP-stdio. MCP HTTP/SSE authenticates at the transport first, then passes per-request auth into the same resolver.
 
-## Resolution chain (first hit wins)
+## Precedence — First Hit Wins
 
-1. **Explicit flag** — `--api-key <v>`, `--token <v>`, etc. Never logged, never echoed.
-2. **Process env vars** — convention: `<TOOL>_<KEY>` (e.g. `ACME_API_KEY`).
-3. **dotenv files**, in this order:
-   - `.env.local` (git-ignored, highest priority)
-   - `.env.<NODE_ENV>` (e.g. `.env.production`)
-   - `.env`
-   Search starts in CWD and walks up to the nearest package root or repo root.
-4. **User config JSON**:
-   - Linux/macOS: `$XDG_CONFIG_HOME/<tool>/config.json` or `~/.config/<tool>/config.json`
-   - Windows: `%APPDATA%\<tool>\config.json`
-5. **Project config JSON**: `./.<tool>rc.json` or `./<tool>.config.json` in CWD.
-6. **OS keychain** via `keytar` — stored by the `login` command:
-   - macOS Keychain, Windows Credential Vault, libsecret on Linux
-   - Service name: `<tool>`, account = profile name
+1. Explicit flag or transport-provided token. Never log or echo it.
+2. Process environment, conventionally `<TOOL>_<KEY>`.
+3. Dotenv: `.env.local`, `.env.<NODE_ENV>`, then `.env`; walk only to the package/repository root.
+4. User config: XDG/`~/.config/<tool>/config.json` or `%APPDATA%\<tool>\config.json`.
+5. Project config: `.<tool>rc.json` or `<tool>.config.json` in the working directory.
+6. OS keychain via `keytar`, service `<tool>`, account/profile name.
 
-Document the chain in `docs/cli.md`. `doctor` command reports which layer supplied each value without revealing the value itself.
+Document this order. `doctor` reports each value's source without revealing sensitive values.
 
-## Config file shape
+## Indirection And Profiles
 
-```json
-{
-  "$schema": "https://<tool>.dev/schema/config.json",
-  "profiles": {
-    "default": {
-      "apiKey": "env:ACME_API_KEY",
-      "baseUrl": "https://api.acme.dev",
-      "timeoutMs": 30000
-    },
-    "staging": {
-      "apiKey": "keychain:acme/staging",
-      "baseUrl": "https://staging.api.acme.dev"
-    }
-  },
-  "activeProfile": "default"
-}
-```
+Support `env:NAME`, `keychain:<service>/<account>`, and `file:/absolute/path`. Treat unprefixed strings as literal values. Resolve `--profile` before configuration lookup; explicit/env values still outrank profile values.
 
-Resolver supports indirection:
-- `env:NAME` → read from process env
-- `keychain:<service>/<account>` → read from OS keychain
-- `file:/absolute/path` → read file contents (for mounted files)
-- plain string → literal value
+Scalar values replace lower-precedence values. Structured configuration merges shallowly, with higher layers replacing keys they define.
 
-## `login` and `logout`
+## Login Contract
 
-```
-<tool> login [--profile <name>]
-<tool> logout [--profile <name>]
-```
-
-`login` prompts interactively, writes to OS keychain, updates `activeProfile`. Never writes the value to a config file on disk unless the user passes `--save-plaintext` (explicit, discouraged).
+`login [--profile]` prompts interactively, writes the secret to the OS keychain, and updates the active profile. `logout` removes that entry. Never write plaintext credentials to config unless the user explicitly passes `--save-plaintext`; label that option discouraged.
 
 ## Redaction
 
-- Log redactor masks anything that looks sensitive: long entropy strings, `*key*`, `*token*`, `Authorization:` headers.
-- JSON output of `doctor`:
+- Mask high-entropy values, key/token fields, and Authorization headers.
+- Sensitive `doctor --json` entries expose only `resolved` and `source`; non-sensitive settings may include `value`.
+- Never log full request/response bodies or touch the keychain from `postinstall`.
+- Never bake secrets into container images.
 
-```json
-{
-  "apiKey":   { "resolved": true, "source": "keychain:acme/default" },
-  "baseUrl":  { "resolved": true, "source": "config:~/.config/acme/config.json", "value": "https://api.acme.dev" }
-}
-```
+## Remote Context
 
-Sensitive entries have `resolved` + `source` but never `value`. Non-sensitive config includes `value`.
-
-## Precedence rules
-
-- A value present at a higher layer fully overrides lower layers (no merging per-field for scalars).
-- Structured config objects merge shallowly: later layers replace keys they define.
-- `--profile <name>` selects the active profile before resolution runs; env-only values still win over profile values.
-
-## MCP-HTTP context
-
-Tools receive a per-request `ctx.auth` built by the transport's auth handler. Inside tool handlers:
-
-```ts
-const resolved = await resolveAuth({ token: ctx.auth.token, profile: ctx.auth.profile });
-```
-
-`resolveAuth` uses the same chain, but layer 1 is the transport-provided token instead of a CLI flag. Layer 6 (keychain) is disabled in non-local deployments.
-
-## Anti-patterns
-
-- Storing API keys in plain JSON by default.
-- Logging full request/response bodies.
-- `postinstall` scripts that touch the keychain.
-- Baking values into Docker images.
-- Reading `.env` from unbounded parent directories (limit to package/repo root).
+For MCP HTTP/SSE, layer 1 is `ctx.auth`, not a CLI flag. Disable keychain lookup in non-local deployments. Preserve the same remaining precedence and redaction rules.

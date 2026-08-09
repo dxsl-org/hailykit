@@ -1,88 +1,40 @@
 # Agent-Centric Design Rules
 
-Rules for choosing what to expose and how to shape it when wrapping code for CLI + MCP consumption by AI agents.
+Expose task-level capabilities that reduce agent orchestration and context cost.
 
-## Select capabilities
+## Capability Selection
 
-Keep a capability if **at least one** is true:
-- An agent can accomplish a user task by calling it
-- It's a workflow step that is awkward or error-prone to express in prose
-- It's idempotent or easily made so
+Keep a capability when it completes a user task, replaces an error-prone prose workflow, or can be safely idempotent. Drop thin duplicates, internal plumbing, and operations whose default output cannot fit useful context.
 
-Drop a capability if **all** are true:
-- It's a thin passthrough over another capability
-- It's purely internal plumbing
-- Its output is too large to be useful in context
+When documentation says “call X, then Y, then Z” for one outcome, prefer one workflow tool that performs the sequence and returns its result.
 
-## Consolidate workflows
+## Context Contract
 
-Bad: `list_items`, `get_item`, `check_quota`, `create_item` (4 tools, agent has to orchestrate).
-Good: `create_item(name, …)` that internally checks quota, deduplicates by name, and returns the created record.
+- Default to concise IDs, names, and status; provide `format: detailed`/`--detailed` as opt-in.
+- Paginate, normally 10–25 records.
+- Prefer human-readable names alongside opaque IDs.
+- Truncate long fields with an ellipsis plus original-length hint.
 
-Rule: if the README's "how to use" says "first call X, then Y, then Z" — that's one tool, not three.
+## Errors
 
-## Optimize for context
+Every error states what failed, why, and the next safe action. Include a stable `error.code` for branching and structured retry details such as `retry_after_s` when relevant.
 
-- Default responses are **concise**. Return IDs + names + status, not full payloads.
-- Offer `format: "detailed"` / `--detailed` opt-in for full data.
-- Paginate. Default page size small (10–25).
-- Prefer names over IDs in responses: `{ "project": "acme-web" }` beats `{ "project_id": "prj_7f3c2…" }`.
-- Truncate long fields with a `…` marker + length hint.
+## Mutation Safety
 
-## Actionable errors
+- Read-only tools need no confirmation semantics.
+- Mutations describe their side effect and should support `dry_run` with a diff/preview.
+- Destructive tools require explicit `confirm: true` or a unique token returned by a preceding `plan_*` tool.
 
-Every error must answer: what failed, why, and what to try next.
+## Naming And Idempotency
 
-Bad:
-```
-Error: 400 Bad Request
-```
+- MCP tools: `verb_noun` snake_case.
+- CLI commands: `noun verb` or `verb`; flags use long-form kebab-case.
+- Creates accept an idempotency key where possible.
+- Updates are PATCH-shaped.
+- Deletes may succeed when the target is already absent.
 
-Good:
-```
-Error: rate_limited
-Message: Exceeded 60 requests/minute. Retry after 12s, or pass --concurrency 2.
-```
+## Output Envelope
 
-Include an `error_code` machine field for agent branching.
+Success: `{ "ok": true, "data": {...}, "warnings": [], "next_actions": [] }`.
 
-## Safe vs mutating
-
-- Read-only tools: no confirmation semantics, safe to call speculatively.
-- Mutating tools: describe the mutation in the tool `description`; prefer `dry_run: true` support; return the diff/preview when dry-running.
-- Destructive tools (`delete_*`): require an explicit `confirm: true` or a unique token returned from a preceding `plan_*` tool.
-
-## Naming
-
-- Tools: `verb_noun`, snake_case: `list_projects`, `create_project`, `search_logs`.
-- CLI commands: `noun verb` or `verb`, kebab-case: `project list`, `project create`, `search`.
-- Flags: long-form kebab-case, short-form single-letter where universal (`-v`, `-h`).
-
-## Idempotency
-
-Where possible:
-- Creates accept a client-supplied idempotency key
-- Updates are PATCH-shaped (only send changed fields)
-- Deletes succeed if the target is already absent
-
-## Output shape
-
-JSON output (default when `--json` or MCP structured content):
-
-```json
-{
-  "ok": true,
-  "data": { … },
-  "warnings": [],
-  "next_actions": ["optional hints for the agent"]
-}
-```
-
-Errors:
-
-```json
-{
-  "ok": false,
-  "error": { "code": "rate_limited", "message": "…", "retry_after_s": 12 }
-}
-```
+Failure: `{ "ok": false, "error": { "code": "...", "message": "..." } }`.

@@ -1,155 +1,71 @@
-# Review Task Management Patterns
+# Review Task Pipeline
 
-Track review pipeline execution via Claude Native Tasks (TaskCreate, TaskUpdate, TaskList).
+Use Claude Tasks to expose review dependencies and parallel work. Tasks coordinate a session; they do not replace review artifacts or findings.
 
-## When to Create Tasks
+## Activation
 
-| Review Scope | Tasks? | Rationale |
-|--------------|--------|-----------|
-| Single-file fix | No | Scout + review + done, overhead not worth it |
-| Multi-file feature (3+ files) | Yes | Track scout → review → fix → verify chain |
-| Parallel reviewers (2+ scopes) | Yes | Coordinate independent reviews |
-| Review cycle with Critical fixes | Yes | Dependencies between fix → re-verify |
+- Skip task creation for a single-file review with fewer than 3 meaningful steps.
+- Create Tasks for multi-file reviews, parallel reviewers, or a fix/re-verify cycle.
+- If `TaskCreate` fails, continue sequentially; task tracking is not a correctness dependency.
 
-**3-Task Rule:** Skip task creation when review pipeline has <3 meaningful steps.
+## Dependency Graph
 
-## Review Pipeline as Tasks
+The canonical graph is:
 
-```
-TaskCreate: "Scout edge cases"         → pending          (omit when the Scout ladder resolved without a spawn)
-TaskCreate: "Review implementation"    → pending, blockedBy: [scout]
-TaskCreate: "Adversarial review"       → pending, blockedBy: [scout]   (NOT blocked by review — runs in parallel)
-TaskCreate: "Fix critical issues"      → pending, blockedBy: [review, adversarial]
-TaskCreate: "Verify fixes pass"        → pending, blockedBy: [fix]
+```text
+scout -> (review || adversarial) -> fix -> verify
 ```
 
-Dependency shape: scout → (review ∥ adversarial) → fix → verify. Review and adversarial spawn together in one message; fix unblocks only when both complete. When the scout task is omitted (ladder resolved without a spawn), drop `scout` from the review/adversarial `blockedBy` — both start unblocked.
+- Omit `scout` when the Scout ladder already resolved without a spawn.
+- `review` and `adversarial` start together and never block each other.
+- `fix` blocks on both review branches.
+- Create `fix` only when actionable findings exist.
+- `verify` blocks on the applied fix, or directly on both reviews when no fix is needed.
 
-## Task Schemas
+## Task Contract
 
-### Scout Task
+Every Task carries `reviewStage`, `priority`, and a concrete subject. Add evidence pointers needed by that stage:
 
-```
-TaskCreate(
-  subject: "Scout edge cases for {feature}",
-  activeForm: "Scouting edge cases",
-  description: "Identify affected files, data flows, boundary conditions. Changed: {files}",
-  metadata: { reviewStage: "scout", feature: "{feature}",
-              changedFiles: "src/auth.ts,src/middleware.ts",
-              priority: "P2", effort: "3m" }
-)
-```
+| Stage | Required metadata or description context |
+|---|---|
+| scout | feature, changed files, relevant boundaries |
+| review | feature, `baseSha`, `headSha`, plan/spec reference |
+| adversarial | feature, target risks, adversarial reference |
+| fix | severity, issue count, cited findings |
+| verify | commands or acceptance evidence to run |
 
-### Review Task
+Example dependency registration:
 
-```
-TaskCreate(
-  subject: "Review {feature} implementation",
-  activeForm: "Reviewing {feature}",
-  description: "Code-reviewer subagent reviews {BASE_SHA}..{HEAD_SHA}. Plan: {plan_ref}",
-  metadata: { reviewStage: "review", feature: "{feature}",
-              baseSha: "{BASE_SHA}", headSha: "{HEAD_SHA}",
-              priority: "P1", effort: "10m" },
-  addBlockedBy: ["{scout-task-id}"]
-)
+```text
+review = TaskCreate(metadata={ reviewStage: "review", baseSha, headSha }, addBlockedBy=[scout])
+adversarial = TaskCreate(metadata={ reviewStage: "adversarial" }, addBlockedBy=[scout])
+fix = TaskCreate(metadata={ reviewStage: "fix" }, addBlockedBy=[review, adversarial])
+verify = TaskCreate(metadata={ reviewStage: "verify" }, addBlockedBy=[fix])
 ```
 
-### Adversarial Task
+Lifecycle: `pending -> in_progress -> completed`. Complete a review Task only after its findings or verdict exists; complete verification only after commands have run.
 
-```
-TaskCreate(
-  subject: "Adversarial review for {feature}",
-  activeForm: "Red-teaming {feature}",
-  description: "Spawn adversarial reviewer to break the code. See references/review-adversarial.md",
-  metadata: { reviewStage: "adversarial", feature: "{feature}",
-              priority: "P1", effort: "10m" },
-  addBlockedBy: ["{scout-task-id}"]
-)
-```
+## Parallel Scopes
 
-### Fix Task (created after adversarial finds issues)
+For independent scopes, create one review Task per ownership boundary with no dependency between them. A shared fix Task blocks on every scoped review:
 
-```
-TaskCreate(
-  subject: "Fix {severity} issues from review",
-  activeForm: "Fixing {severity} review issues",
-  description: "Address: {issue_list}",
-  metadata: { reviewStage: "fix", severity: "critical",
-              issueCount: 3, priority: "P1", effort: "15m" },
-  addBlockedBy: ["{review-task-id}", "{adversarial-task-id}"]
-)
+```text
+backend-review --+
+                 +--> shared-fix --> verify
+frontend-review -+
 ```
 
-### Verify Task
+Never assign overlapping files to parallel fix owners.
 
-```
-TaskCreate(
-  subject: "Verify fixes pass tests and build",
-  activeForm: "Verifying fixes",
-  description: "Run test suite, build, confirm 0 failures. Evidence before claims.",
-  metadata: { reviewStage: "verify", priority: "P1", effort: "5m" },
-  addBlockedBy: ["{fix-task-id}"]
-)
-```
+## Re-review
 
-## Parallel Review Coordination
+When fixes alter reviewed behavior, create a new review Task blocked by the fix and set `cycle: 2` (then `3`). Stop after 3 cycles and escalate unresolved Critical or Important findings.
 
-For multi-scope reviews (e.g., backend + frontend changed independently):
+## Integration Rules
 
-```
-// Create scoped review tasks — no blockedBy between them
-TaskCreate(subject: "Review backend auth changes",
-  metadata: { reviewStage: "review", scope: "src/api/,src/middleware/",
-              agentIndex: 1, totalAgents: 2, priority: "P1" })
+1. Cook completes implementation before starting review Tasks.
+2. Run `review` and `adversarial` in parallel when both are required.
+3. Apply and verify all blocking findings.
+4. Mark the implementation phase reviewed only after verification completes.
 
-TaskCreate(subject: "Review frontend auth UI",
-  metadata: { reviewStage: "review", scope: "src/components/auth/",
-              agentIndex: 2, totalAgents: 2, priority: "P1" })
-
-// Both run simultaneously via separate haily-reviewer subagents
-// Fix task blocks on BOTH completing:
-TaskCreate(subject: "Fix all review issues",
-  addBlockedBy: ["{backend-review-id}", "{frontend-review-id}"])
-```
-
-## Task Lifecycle
-
-```
-Scout:       pending → in_progress → completed (scout report returned)
-Review:      pending → in_progress → completed (reviewer findings returned)
-Adversarial: pending → in_progress → completed (red-team findings adjudicated)
-Fix:         pending → in_progress → completed (all Critical/Important fixed)
-Verify:      pending → in_progress → completed (tests pass, build clean)
-```
-
-### Handling Re-Reviews
-
-When fixes introduce new issues → create new review cycle:
-
-```
-TaskCreate(subject: "Re-review after fixes",
-  addBlockedBy: ["{fix-task-id}"],
-  metadata: { reviewStage: "review", cycle: 2, priority: "P1" })
-```
-
-Limit to 3 cycles. If still failing after cycle 3 → escalate to user.
-
-## Integration with Planning Tasks
-
-Review tasks are **separate from** cook/planning phase tasks.
-
-**When cook spawns review:**
-1. Cook completes implementation phase → creates review pipeline tasks
-2. Review pipeline executes (scout → review ∥ adversarial → fix → verify)
-3. All review tasks complete → cook marks phase as reviewed
-4. Cook proceeds to next phase
-
-Review tasks reference the phase but don't block it directly — the orchestrator manages handoff.
-
-## Quality Check
-
-After pipeline registration: `Registered [N] review tasks (scout → review ∥ adversarial → fix → verify)`
-
-## Error Handling
-
-If `TaskCreate` fails: log warning, fall back to sequential review without task tracking. Review pipeline functions identically — tasks add visibility, not functionality.
+Output: `Registered [N] review tasks (scout -> review || adversarial -> fix -> verify)`.

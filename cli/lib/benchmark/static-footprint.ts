@@ -95,5 +95,13 @@ function staticMeta(row: BenchmarkObservation): StaticMeta {
 }
 
 function readGitText(repoRoot: string, relativePath: string, baseRef: string): string | null {
-  try { return execFileSync('git', ['show', `${baseRef}:${relativePath.replace(/\\/g, '/')}`], { cwd: repoRoot, encoding: 'utf8' }); } catch { return null; }
+  try {
+    return execFileSync('git', ['show', `${baseRef}:${relativePath.replace(/\\/g, '/')}`], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  } catch {
+    return null;
+  }
 }

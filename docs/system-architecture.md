@@ -101,6 +101,8 @@ The benchmark subsystem now has two Codex live backends with different evidence 
 
 Both backends preserve unknown telemetry as null instead of fabricating it. `codex_app_server` can measure TTFT, output bytes, token breakdowns, tool activity, approvals, and context-occupancy from streamed events; it does not infer observed USD cost, cache-write bytes, or compaction bytes unless the server emits them directly.
 
+The static inventory classifies source and installed footprints separately. In addition to rules, standards, hooks, agents, and skill bodies, it inventories `kit/contextual/*.md` as `contextual-rule` and recursively classifies skill references as `skill-reference-hot` or `skill-reference-cold`. These rows are descriptive byte/token estimates; only paired live workflow evidence can support behavior, provider-usage, or cost decisions.
+
 ## Skill Catalog (`kit/`) structure
 
 The `kit/` directory is a distributable snapshot of the skill catalog, versioned independently. It contains:

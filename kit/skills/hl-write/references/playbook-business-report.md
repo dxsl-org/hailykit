@@ -1,69 +1,41 @@
-# Business Report Playbook — Business Plan · Market Research Report · Business/Technical Report
+# Business Report Playbook
 
-One skeleton, three named variants. All three share an evidence-backed, exec-summary-first, findings-to-recommendations mode — they differ only in which sections are mandatory and how deep the market-sizing evidence goes. báo cáo hành chính theo thể thức NĐ30 (cơ quan context) → `playbook-vn-administrative.md`.
+Use for business plans, market-research reports, and business/technical reports. Vietnamese administrative reports governed by NĐ30 route to `playbook-vn-administrative.md`.
 
-## Shared Skeleton
+All variants use an evidence-backed, executive-summary-first flow and default to the short-form track. Long drafts remain one structured document rather than switching to a chaptered canon workspace.
 
-Exec Summary (stands alone, skims via bolded claims) → Context/Scope → Methodology or Market Analysis → Findings/Analysis → Recommendations or Ask → Appendix. Each variant below names the exact section sequence for that document type.
+## Business Plan
 
-## Track
+**Skeleton:** Executive Summary → Company/Problem → Market Analysis (TAM/SAM/SOM, competitors) → Product/Service → Organization → Marketing/Sales → Financial Projections → Funding Ask → Appendix.
 
-All three variants default to the short-form track — this genre's evidence model (exec summary, findings, recommendations) doesn't need chapter-level canon tracking even when a draft runs long. If a draft's length grows past the norms below, keep it a single long document rather than switching to a chaptered long-form workspace.
+**Evidence:** top-down TAM plus bottom-up SOM cross-check; named competitors; sourced unit-economics assumptions.
 
-## Variant: Business Plan
+**Review:** financial statements and funding ask agree; sizing formula is shown; differentiation is business-specific; use of funds maps to milestones.
 
-**Skeleton:** Exec Summary → Company/Problem → Market Analysis (TAM/SAM/SOM, competitors) → Product/Service → Org & Management → Marketing & Sales → Financial Projections → Funding Ask → Appendix.
+**Length:** confirm Lean Canvas (one page) versus traditional plan (about 7,500–15,000 words). One Build unit per skeleton section.
 
-**Mandatory evidence:** top-down TAM sized against a bottom-up SOM cross-check; named competitor comps; unit-economics assumptions bound to a source, never asserted from memory.
+## Market-Research Report
 
-**Fabrication risks:** invented market-size figures; fabricated competitor claims; revenue projections stated as fact rather than labeled assumptions.
+**Skeleton:** Objective/Scope → Methodology → Market Definition and Sizing → Segments/Customers → Competition → Findings/Implications → Limitations.
 
-**Review criteria:**
-1. Financials internally consistent — P&L, cash flow, and funding ask agree with each other
-2. Market-sizing method disclosed (formula shown), not just a bare number
-3. Differentiation claim is specific to this business, not generic category boilerplate
-4. Funding ask matches the stated use-of-funds and milestones
+**Evidence:** state sources, sample size, dates, direct and indirect alternatives, and the calculation path for TAM/SAM/SOM. When claiming primary research, require 5–10 interviews or a ≥30-response survey unless the approved methodology justifies another sample. Never invent interviews or survey responses.
 
-**Length:** traditional plan 20–40 pages (~7,500–15,000 words); a Lean Canvas variant is 1 page — confirm which format the brief wants before drafting rather than defaulting to full length.
+**Review:** methodology is explicit; sizing is triangulated independently; sources are dated/cited; limitations and bias are visible.
 
-**Unit:** one Build unit = one skeleton section (Market Analysis, Financial Projections, etc. each close as a unit).
+**Length:** use roughly 3,000–8,000 words only as a brief-adjustable default. One Build unit per section.
 
-## Variant: Market Research Report
+## Business Or Technical Report
 
-**Skeleton:** Objective/Scope → Methodology (sources, sample size, dates) → Market Definition & Sizing (TAM/SAM/SOM) → Segmentation & Customer Insight → Competitive Analysis → Findings/Implications → Limitations.
+**Skeleton:** Executive Summary → Background/Scope → Methodology/Approach → Findings/Analysis → Prioritized Recommendations → Conclusion → Appendices.
 
-**Mandatory evidence:** 5–10 interviews or a ≥30-response survey; at least one indirect competitor or status-quo alternative; every source dated.
+Choose consulting Situation–Complication–Resolution or engineering IMRaD-style conventions during the brief; do not blend them accidentally.
 
-**Fabrication risks:** invented survey or interview data; phantom competitors; TAM/SAM/SOM numbers presented without a stated calculation path.
+**Evidence:** every finding traces to data or the stated method. Engineering Methods must be reproducible.
 
-**Review criteria:**
-1. Methodology and sample size are stated, not implied
-2. TAM/SAM/SOM triangulated two independent ways
-3. Sources are dated and cited
-4. Limitations and bias are disclosed, not omitted
+**Review:** executive summary stands alone; findings trace to evidence; recommendations are prioritized/actionable; factual claims are sourced.
 
-**Length:** no rigid industry standard exists for this genre — treat 10–25 pages (~3,000–8,000 words) as a working default, not a hard rule, and adjust to the brief's stated depth.
+**Length:** derive from audience and brief rather than a universal norm. One Build unit per section.
 
-**Unit:** one Build unit = one skeleton section.
+## Evidence Guardrail
 
-## Variant: Business / Technical Report
-
-**Skeleton:** Executive Summary (Situation-Complication-Resolution) → Background/Scope → Methodology/Approach → Findings/Analysis → Recommendations (prioritized, actionable) → Conclusion → Appendices. Engineering-audience reports map Methods/Results directly onto Methodology/Findings (IMRaD-compatible) — confirm which tradition (consulting SCR vs. engineering IMRaD-style) the brief targets, since the two don't share one norm.
-
-**Mandatory evidence:** every finding traceable to the stated methodology or data source; engineering variants keep the Methods section detailed enough to reproduce.
-
-**Fabrication risks:** fabricated data or results; invented supporting citations; causal claims the described methodology cannot support.
-
-**Review criteria:**
-1. Exec summary stands alone and skims via bolded claims
-2. Findings trace back to the stated method/data
-3. Recommendations are prioritized and actionable, not a wish list
-4. Every claim is sourced
-
-**Length:** highly context-dependent — an internal memo runs ~5 pages, a board report 20+; there is no single norm, state the range the brief implies rather than assuming one.
-
-**Unit:** one Build unit = one skeleton section.
-
-## Anti-Fabrication Guardrail (all variants)
-
-> **Required — cite-before-claim:** every statistic, market-size figure, or competitor comp binds to a source note in `research/` before Ship. TAM/SAM/SOM figures require a stated calculation path (formula plus cross-check), never a bare number. Unsourced claims get flagged for the writer to source or hedge, never silently invented — this is the single highest cross-genre fabrication risk researched for this skill.
+> **Required — cite-before-claim:** bind every statistic, market-size figure, competitor comparison, or unit-economics assumption to a source note in `research/` before Ship. TAM/SAM/SOM requires a formula and cross-check. Source or hedge unsupported claims; never invent them.
