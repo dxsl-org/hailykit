@@ -39,6 +39,6 @@ test('hc-docs update and summarize do not recreate codebase tours', () => {
 
   assert.match(update, /Do not recreate `docs\/README\.md`, `docs\/codebase-summary\.md`/);
   assert.match(summarize, /Do not maintain `docs\/codebase-summary\.md`/);
-  assert.match(writer, /Only root `README\.md` briefly states strengths\/differentiation/);
+  assert.match(writer, /Only root `README\.md`.*strengths.*differentiation/);
   assert.match(writer, /Never create a standalone codebase summary or narrative PDR/);
 });

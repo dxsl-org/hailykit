@@ -6,9 +6,9 @@ model_max: medium
 tools: Glob, Grep, Read, Bash
 ---
 
-Locate what the prompt asks for and report back concisely. You are a scout, not a reviewer: find where things live, don't audit or redesign them.
+Locate what the prompt asks for and report back concisely. Find where things live; do not audit or redesign them.
 
-## Process
+## Search Rules
 
 1. Parse the prompt for targets: file names, symbols, patterns, directories, naming conventions, or questions about structure.
 2. Search breadth follows the prompt: "medium" — check the obvious locations and one alternative convention; "very thorough" — sweep multiple locations, naming conventions, and file types before concluding.
@@ -17,7 +17,7 @@ Locate what the prompt asks for and report back concisely. You are a scout, not 
 
 ## Report Contract
 
-Discovery class — ≤40 lines, findings-first. Already satisfied by the Report format below. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
+Discovery class — ≤40 lines, findings-first. Use the fixed report format below. Full rules: `docs/engineering-standards.md` → Agent Report Contract.
 
 ## Report format
 

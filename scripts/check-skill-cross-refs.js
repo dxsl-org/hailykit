@@ -237,6 +237,23 @@ const REQUIRED_SCOUT_FIXTURE_FILES = [
   'recon-envelope-valid.json',
   'recon-envelope-invalid-overlap.json',
 ];
+const REPORT_CONTRACT_HEADING_RE = /^## Report Contract\s*$/gm;
+const BEHAVIORAL_CHECKLIST_HEADING_RE = /^## Behavioral Checklist\s*$/gm;
+const TOP_LEVEL_HEADING_RE = /^##\s+/gm;
+const AGENT_FRONTMATTER_RE = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/;
+const REPORT_CLASS_RULES = [
+  { kind: 'mechanical', pattern: /^Mechanical class — ≤10 lines(?:\.| \()/ },
+  { kind: 'discovery', pattern: /^Discovery class — ≤40 lines, findings-first\./ },
+  { kind: 'judgment', pattern: /^Judgment class — .*~5 lines/ },
+  { kind: 'outside', pattern: /^Outside the three report classes — / },
+];
+const MECHANICAL_DISCOVERY_UNIVERSAL_PHRASES = [
+  'No process narration',
+  'No restating the prompt',
+  'Evidence as `file:line`',
+  'Structured-output override',
+  'Model-trace lines are exempt and untouched',
+];
 
 function normalizeNewlines(value) {
   return value.replace(/\r\n/g, '\n');
@@ -244,6 +261,13 @@ function normalizeNewlines(value) {
 
 function normalizePolicyText(value) {
   return normalizeNewlines(value).replace(/\s+/g, ' ').trim();
+}
+
+function countMatches(value, regex) {
+  regex.lastIndex = 0;
+  let count = 0;
+  while (regex.exec(value) !== null) count += 1;
+  return count;
 }
 
 function lineNumberAt(content, index) {
@@ -355,6 +379,166 @@ function checkScoutPolicy() {
     ...scanScoutPolicyEntries(entries),
     ...checkScoutFixtureFiles(),
   ];
+}
+
+function stripFencedBlocks(value) {
+  const lines = normalizeNewlines(value).split('\n');
+  const stripped = [];
+  let activeFence = null;
+
+  for (const line of lines) {
+    const match = line.match(/^\s*(`{3,}|~{3,})/);
+    if (!activeFence) {
+      if (match) {
+        activeFence = { char: match[1][0], length: match[1].length };
+        stripped.push('');
+        continue;
+      }
+      stripped.push(line);
+      continue;
+    }
+
+    if (match && match[1][0] === activeFence.char && match[1].length >= activeFence.length) {
+      activeFence = null;
+    }
+    stripped.push('');
+  }
+
+  return stripped.join('\n');
+}
+
+function extractAgentBody(content) {
+  const match = content.match(AGENT_FRONTMATTER_RE);
+  return match ? content.slice(match[0].length) : content;
+}
+
+function extractSectionText(content, heading) {
+  const lines = normalizeNewlines(content).split('\n');
+  const start = lines.findIndex((line) => line.trim() === heading);
+  if (start === -1) return null;
+  let end = lines.findIndex((line, index) => index > start && /^## /.test(line));
+  if (end === -1) end = lines.length;
+  return lines.slice(start + 1, end).join('\n');
+}
+
+function firstNonEmptyLine(content) {
+  for (const line of normalizeNewlines(content).split('\n')) {
+    if (line.trim()) return line.trim();
+  }
+  return '';
+}
+
+function classifyReportContractLine(line) {
+  for (const rule of REPORT_CLASS_RULES) {
+    if (rule.pattern.test(line)) return rule.kind;
+  }
+  return null;
+}
+
+function summarizeAgentPrompt(filePath, content) {
+  const source = content;
+  const body = extractAgentBody(content);
+  const normalizedBody = normalizeNewlines(body);
+  const strippedBody = stripFencedBlocks(normalizedBody);
+  const reportSection = extractSectionText(strippedBody, '## Report Contract');
+  const classLine = reportSection === null ? '' : firstNonEmptyLine(reportSection);
+  const reportClass = classifyReportContractLine(classLine);
+
+  return {
+    file: path.relative(repoRoot, filePath).replace(/\\/g, '/'),
+    sourceBytes: Buffer.byteLength(source, 'utf8'),
+    sourceTokenEstimate: Math.ceil(Buffer.byteLength(source, 'utf8') / 4),
+    bodyBytes: Buffer.byteLength(body, 'utf8'),
+    bodyTokenEstimate: Math.ceil(Buffer.byteLength(body, 'utf8') / 4),
+    sectionCounts: {
+      topLevel: countMatches(strippedBody, TOP_LEVEL_HEADING_RE),
+      rawTopLevel: countMatches(normalizedBody, TOP_LEVEL_HEADING_RE),
+      reportContract: countMatches(strippedBody, REPORT_CONTRACT_HEADING_RE),
+      behavioralChecklist: countMatches(strippedBody, BEHAVIORAL_CHECKLIST_HEADING_RE),
+    },
+    reportContract: {
+      classLine,
+      kind: reportClass,
+    },
+  };
+}
+
+function lintAgentPrompt(filePath, content) {
+  const summary = summarizeAgentPrompt(filePath, content);
+  const strippedBody = stripFencedBlocks(normalizeNewlines(extractAgentBody(content)));
+  const problems = [];
+
+  if (summary.sectionCounts.reportContract !== 1) {
+    problems.push(`expected exactly one real "## Report Contract" heading, found ${summary.sectionCounts.reportContract}`);
+  }
+
+  if (!summary.reportContract.classLine) {
+    problems.push('missing report-contract class line directly below "## Report Contract"');
+  } else if (!summary.reportContract.kind) {
+    problems.push(`report-contract class line does not match docs/skill-template.md: ${summary.reportContract.classLine}`);
+  }
+
+  if (summary.reportContract.kind === 'mechanical' || summary.reportContract.kind === 'discovery') {
+    for (const phrase of MECHANICAL_DISCOVERY_UNIVERSAL_PHRASES) {
+      if (strippedBody.includes(phrase)) {
+        problems.push(`mechanical/discovery agent repeats universal report phrase outside fenced examples: ${phrase}`);
+      }
+    }
+  }
+
+  return { ...summary, problems };
+}
+
+function checkAgentPromptContracts() {
+  const agentsDir = path.join(claudeDir, 'agents');
+  const problems = [];
+
+  for (const filePath of findFiles(agentsDir, (entry) => entry.endsWith('.md'))) {
+    let content;
+    try {
+      content = readFileSync(filePath, 'utf8');
+    } catch (err) {
+      problems.push({ file: path.relative(repoRoot, filePath), problem: `unreadable: ${err.message}` });
+      continue;
+    }
+
+    const lint = lintAgentPrompt(filePath, content);
+    for (const problem of lint.problems) {
+      problems.push({ file: lint.file, problem });
+    }
+  }
+
+  return problems;
+}
+
+function collectAgentBodyBaseline() {
+  const agentsDir = path.join(claudeDir, 'agents');
+  const agents = findFiles(agentsDir, (entry) => entry.endsWith('.md'))
+    .map((filePath) => summarizeAgentPrompt(filePath, readFileSync(filePath, 'utf8')))
+    .sort((a, b) => a.file.localeCompare(b.file));
+  const totals = agents.reduce((acc, agent) => ({
+    agentCount: acc.agentCount + 1,
+    sourceBytes: acc.sourceBytes + agent.sourceBytes,
+    bodyBytes: acc.bodyBytes + agent.bodyBytes,
+    topLevelSections: acc.topLevelSections + agent.sectionCounts.topLevel,
+    reportContractSections: acc.reportContractSections + agent.sectionCounts.reportContract,
+    behavioralChecklistSections: acc.behavioralChecklistSections + agent.sectionCounts.behavioralChecklist,
+  }), {
+    agentCount: 0,
+    sourceBytes: 0,
+    bodyBytes: 0,
+    topLevelSections: 0,
+    reportContractSections: 0,
+    behavioralChecklistSections: 0,
+  });
+  totals.sourceTokenEstimate = Math.ceil(totals.sourceBytes / 4);
+  totals.bodyTokenEstimate = Math.ceil(totals.bodyBytes / 4);
+
+  return {
+    schemaVersion: 1,
+    agents,
+    totals,
+  };
 }
 
 /**
@@ -646,10 +830,20 @@ function main() {
     console.error('');
   }
 
+  const agentPromptProblems = checkAgentPromptContracts();
+  if (agentPromptProblems.length > 0) {
+    hasErrors = true;
+    console.error('[X] Agent prompt contract problem(s):');
+    for (const { file, problem } of agentPromptProblems) {
+      console.error(`  - ${file}: ${problem}`);
+    }
+    console.error('');
+  }
+
   if (!hasErrors) {
     const refCount = allRefs.length;
     const skillCount = registry.size;
-    console.log(`[OK] skill-cross-refs: ${skillCount} skill(s) registered, ${refCount} reference(s) checked (prefixes: hl/hc/hs) — all valid. Agent model tiers + model-map.json + flag vocabulary + References-table paths + scout dedup policy valid.`);
+    console.log(`[OK] skill-cross-refs: ${skillCount} skill(s) registered, ${refCount} reference(s) checked (prefixes: hl/hc/hs) — all valid. Agent model tiers + model-map.json + flag vocabulary + References-table paths + scout dedup policy + agent prompt contracts valid.`);
     process.exit(0);
   }
 
@@ -671,4 +865,9 @@ module.exports = {
   scanScoutPolicyEntries,
   checkScoutFixtureFiles,
   checkScoutPolicy,
+  stripFencedBlocks,
+  summarizeAgentPrompt,
+  lintAgentPrompt,
+  checkAgentPromptContracts,
+  collectAgentBodyBaseline,
 };

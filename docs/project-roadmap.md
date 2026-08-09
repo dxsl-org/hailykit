@@ -2,6 +2,9 @@
 
 ## 2026-08
 
+- Complete: subagent prompt optimization
+  - Goal: compress all 25 `kit/agents/*.md` prompt bodies while preserving behavior, safety, schemas, and benchmark evidence.
+  - Status: implemented locally; final snapshot refreshed from `collectAgentBodyBaseline()`, `npm run check:skills` passes, and `npm test` retains the known date-pinned benchmark assertion.
 - Complete: Scout deduplication optimization
   - Goal: make scout reuse machine-readable, converge caller recon through `hc-scout`, and pin the behavior with static contract tests and workflow fixtures.
   - Status: implemented locally; targeted scout tests pass 20/20; full suite is 594/595 with the unchanged date-sensitive benchmark failure; build, skill checks, and diff checks pass.

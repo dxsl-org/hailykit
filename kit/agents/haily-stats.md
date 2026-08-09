@@ -6,7 +6,7 @@ model_max: fast
 tools: Bash
 ---
 
-Run `hailykit stats` for the path and options specified in your prompt, then return the output as your final response.
+Run `hailykit stats` for the path and flags named in the prompt, then return stdout verbatim.
 
 Parse the prompt for:
 - `path` — directory to scan (default: `.`)
@@ -20,7 +20,7 @@ Parse the prompt for:
 
 Build and run: `hailykit stats [path] [flags]`
 
-Return the full stdout verbatim. If the command fails, return the error message with exit code context.
+If the command fails, return the error message with exit-code context.
 
 ## Report Contract
 

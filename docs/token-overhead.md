@@ -166,3 +166,11 @@ The only fully honest test is an A/B: run comparable sessions with and without t
 The new effectiveness benchmark is the formal companion to this document: use `hailykit benchmark static` for source and installed-footprint snapshots, `hailykit benchmark hooks` for hook replay overhead, `hailykit benchmark plan` / `run` for live-equivalent workflow evidence, and `hailykit benchmark report` for normalized V2 artifacts. This keeps token-overhead observations in the same reporting surface as quality, safety, efficiency, and provenance metrics instead of treating them as a one-off script result.
 
 For decisions, read `quality` and `efficiency` separately. A footprint win is only descriptive if provider identity, live telemetry, or pair completeness is missing; the benchmark report encodes that distinction instead of collapsing everything into one score.
+
+## Agent prompt bodies
+
+`kit/agents/*.md` are outside `measure-kit-overhead.mjs`; they are the recurring prompt bodies loaded for the selected subagent, not the shared rules/standards/skill-description classes above.
+
+Fresh snapshot from `.agents/260808-2124-optimize-subagent-prompts/reports/final-agent-body-snapshot.json`: `89,005` bytes / `22,252` est. tokens down to `59,025` bytes / `14,757` est. tokens across 25 agents.
+
+That catalog total is not a per-spawn bill. A spawn pays the chosen agent body plus the shared subagent reminder and the caller's runtime context, not the sum of all 25 bodies each time.

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Completed the subagent prompt optimization pass: added agent-body linting/measurement, kept frontmatter stable across 25 agents, and reduced runtime agent-body footprint from `89,005` bytes / `22,252` est. tokens to `59,025` bytes / `14,757` est. tokens.
 - Verified scout dedup delivery: targeted scout tests pass 20/20, the full suite passes 594/595 with only the unchanged date-sensitive benchmark baseline failure, and the work stopped short of commit/push/release.
 - Added machine-readable `ReconEnvelope` coverage metadata and active-plan-first routing so scout work is reused when current, narrowed to uncovered deltas when partial, and partitioned by exclusive owned paths when parallel work is required.
 - Converged Scout steps in new/plan/docs/cook/review/fix/debug/goal workflows on `hc-scout`, while preserving separate Explore branches used only for hypothesis falsification.
