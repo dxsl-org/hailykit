@@ -1,0 +1,31 @@
+{
+  "fixtureId": "mcp-bounded-evaluation",
+  "fixtureClass": "skill-behavior-retention",
+  "promptHash": "c8e7aa413d9dab6f99416b372f5b90b1dac411cb737260d49ed8ba12089b3c74",
+  "prompt": "Based only on the supplied HailyKit treatment, define bounded startup testing and evaluation for an agentized MCP service. Cover process lifetime, evaluation dimensions, and failure handling. Do not execute tools or modify files.",
+  "localEvaluation": {
+    "schemaVersion": 1,
+    "mode": "text_contracts",
+    "split": "public-locked-validation",
+    "deterministicEvidence": {
+      "testsPassed": true,
+      "requiredArtifacts": [],
+      "observedArtifacts": [],
+      "requiredInstructions": [],
+      "satisfiedInstructions": [],
+      "forbiddenInstructions": [],
+      "violatedInstructions": [],
+      "allowedScopePaths": [],
+      "changedPaths": [],
+      "escalationRequired": false,
+      "escalationPerformed": false,
+      "rollbackRequired": false,
+      "rollbackProvided": false,
+      "necessaryToolCalls": 0
+    },
+    "checks": {
+      "requiredAnyOf": [["timeout 5s","five-second timeout","5-second timeout"],["background process","bounded process","terminate the process"],["tools/list","tool discovery","list tools"],["success rate","tool quality","correctness"],["latency","response time"],["token","context cost"],["failure","error"]],
+      "forbiddenSubstrings": ["leave the server running","unbounded process","I executed","I modified"]
+    }
+  }
+}

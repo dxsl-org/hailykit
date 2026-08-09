@@ -30,6 +30,8 @@ export function evaluateLocalAnswer(request: LocalAnswerEvaluationRequest): Loca
     ? { taskPassed: null, outputContractPassed: null, failedCheckIds: [] as string[] }
     : request.localEvaluation.mode === 'json_contract'
       ? evaluateJsonContract(request.rowKey, request.rawOutput, request.localEvaluation.checks)
+      : request.localEvaluation.mode === 'text_contracts'
+        ? evaluateTextContracts(request.rawOutput, request.localEvaluation.checks)
       : evaluateTextChecks(request.rawOutput, request.localEvaluation.checks);
   return {
     outputDigest,
@@ -111,6 +113,40 @@ function evaluateTextChecks(
     outputContractPassed: failedCheckIds.length === 0,
     failedCheckIds,
   };
+}
+
+function evaluateTextContracts(
+  rawOutput: string,
+  checks: Extract<WorkflowFixtureLocalEvaluation, { mode: 'text_contracts' }>['checks'],
+): { taskPassed: boolean; outputContractPassed: boolean; failedCheckIds: string[] } {
+  const output = normalizeText(rawOutput);
+  const failedCheckIds = [
+    ...checks.requiredAnyOf.flatMap((alternatives, index) => alternatives.some((value) => hasAffirmedMatch(output, normalizeText(value)))
+      ? []
+      : [boundedCheckId(`required_contract:${index + 1}:${sha256(alternatives.join('\0')).slice(0, 12)}`)]),
+    ...checks.forbiddenSubstrings.flatMap((value, index) => output.includes(normalizeText(value))
+      ? [boundedCheckId(`forbidden_contract:${index + 1}:${sha256(value).slice(0, 12)}`)]
+      : []),
+  ];
+  return {
+    taskPassed: failedCheckIds.length === 0,
+    outputContractPassed: failedCheckIds.length === 0,
+    failedCheckIds,
+  };
+}
+
+function normalizeText(value: string): string {
+  return value.toLocaleLowerCase('en-US').replace(/\s+/g, ' ').trim();
+}
+
+function hasAffirmedMatch(output: string, value: string): boolean {
+  let offset = output.indexOf(value);
+  while (offset >= 0) {
+    const prefix = output.slice(Math.max(0, offset - 64), offset);
+    if (!/(?:\b(?:no|not|never|without)\b|\bdo not\b|\bdon't\b|\bmust not\b|\bshould not\b)[^.!?;:\n]{0,40}$/u.test(prefix)) return true;
+    offset = output.indexOf(value, offset + value.length);
+  }
+  return false;
 }
 
 function boundedCheckId(value: string): string {

@@ -34,6 +34,10 @@ export interface WorkflowTextChecks {
   requiredSubstrings: string[];
   forbiddenSubstrings: string[];
 }
+export interface WorkflowTextContractChecks {
+  requiredAnyOf: string[][];
+  forbiddenSubstrings: string[];
+}
 export type WorkflowFixtureLocalEvaluation =
   | {
     schemaVersion: 1;
@@ -48,6 +52,13 @@ export type WorkflowFixtureLocalEvaluation =
     split: WorkflowFixtureSplit;
     deterministicEvidence: WorkflowFixtureLocalDeterministicEvidence;
     checks: WorkflowTextChecks;
+  }
+  | {
+    schemaVersion: 1;
+    mode: 'text_contracts';
+    split: WorkflowFixtureSplit;
+    deterministicEvidence: WorkflowFixtureLocalDeterministicEvidence;
+    checks: WorkflowTextContractChecks;
   };
 export interface WorkflowFixtureDefinition {
   fixtureId: string;
@@ -159,7 +170,7 @@ function validateWorkflowFixtureLocalEvaluation(value: unknown, relativePath: st
   assertKeys(record, LOCAL_EVALUATION_KEYS, `workflow fixture ${relativePath}.localEvaluation`);
   const schemaVersion = reqInt(record.schemaVersion, `workflow fixture ${relativePath}.localEvaluation.schemaVersion`);
   if (schemaVersion !== 1) throw new Error(`workflow fixture ${relativePath}.localEvaluation.schemaVersion must be 1`);
-  const mode = reqEnum(record.mode, ['json_contract', 'text_checks'], `workflow fixture ${relativePath}.localEvaluation.mode`);
+  const mode = reqEnum(record.mode, ['json_contract', 'text_checks', 'text_contracts'], `workflow fixture ${relativePath}.localEvaluation.mode`);
   const split = reqEnum(record.split, ['public-training', 'public-locked-validation', 'private-hash-only-holdout'], `workflow fixture ${relativePath}.localEvaluation.split`);
   const deterministicEvidence = validateWorkflowFixtureLocalDeterministicEvidence(record.deterministicEvidence, relativePath);
   if (mode === 'json_contract') {
@@ -177,6 +188,19 @@ function validateWorkflowFixtureLocalEvaluation(value: unknown, relativePath: st
     };
   }
   const checks = asRecord(record.checks, `workflow fixture ${relativePath}.localEvaluation.checks`);
+  if (mode === 'text_contracts') {
+    assertKeys(checks, ['requiredAnyOf', 'forbiddenSubstrings'], `workflow fixture ${relativePath}.localEvaluation.checks`);
+    return {
+      schemaVersion,
+      mode,
+      split,
+      deterministicEvidence,
+      checks: {
+        requiredAnyOf: flexibleStringMatrix(checks.requiredAnyOf, `workflow fixture ${relativePath}.localEvaluation.checks.requiredAnyOf`),
+        forbiddenSubstrings: flexibleStringArray(checks.forbiddenSubstrings, `workflow fixture ${relativePath}.localEvaluation.checks.forbiddenSubstrings`),
+      },
+    };
+  }
   assertKeys(checks, ['requiredSubstrings', 'forbiddenSubstrings'], `workflow fixture ${relativePath}.localEvaluation.checks`);
   return {
     schemaVersion,
@@ -215,6 +239,12 @@ function resolveNoLinks(root: string, relativePath: string): string { let curren
 function safeRelativePath(value: string): string { const normalized = value.replace(/\\/g, '/'); if (!normalized || path.posix.isAbsolute(normalized) || normalized.split('/').includes('..') || DENY_PATH.test(normalized)) throw new Error(`unsafe workflow path: ${value}`); return normalized; }
 function stringArray(value: unknown, name: string): string[] { if (!Array.isArray(value) || !value.length) throw new Error(`${name} must be a non-empty string array`); return value.map((entry, index) => reqString(entry, `${name}[${index}]`)); }
 function flexibleStringArray(value: unknown, name: string): string[] { if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) throw new Error(`${name} must be a string array`); return value as string[]; }
+function flexibleStringMatrix(value: unknown, name: string): string[][] {
+  if (!Array.isArray(value) || !value.length || value.some((group) => !Array.isArray(group) || !group.length || group.some((entry) => typeof entry !== 'string' || !entry.trim()))) {
+    throw new Error(`${name} must be an array of non-empty string arrays`);
+  }
+  return value as string[][];
+}
 function treatmentFileSets(value: unknown): { base: string[]; candidate: string[] } { const record = asRecord(value, 'workflow manifest.treatmentFiles'); assertKeys(record, ['base', 'candidate'], 'workflow manifest.treatmentFiles'); return { base: stringArray(record.base, 'workflow manifest.treatmentFiles.base'), candidate: stringArray(record.candidate, 'workflow manifest.treatmentFiles.candidate') }; }
 function boundedRepeats(value: unknown): number { const repeats = reqInt(value, 'workflow manifest.repeats', 1); if (repeats > 256) throw new Error('workflow repeats must be between 1 and 256'); return repeats; }
 function safeRequestedModel(value: string): string { if (!/^[A-Za-z0-9._:/-]+$/.test(value)) throw new Error('workflow requestedModel contains unsafe characters'); return value; }

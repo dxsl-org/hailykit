@@ -37,6 +37,8 @@ Persistent knowledge graph             → {skill:hl-mindmap}
 One-shot technical research            → {skill:hl-research}
 Market / competitor research           → {skill:hl-research} --type market
 Academic / literature review           → {skill:hl-research} --type academic
+Sequential structured analysis         → {skill:hl-reasoning}
+Options and trade-offs                  → {skill:hl-brainstorm}
 ```
 Disambiguate: authored prose deliverable goes to `{skill:hl-write}`; research artifact stays in `{skill:hl-research}`.
 
@@ -56,6 +58,8 @@ Formal feature spec                    → {skill:hc-spec}
 Quick spec                             → {skill:hc-spec} --quick
 Gate a build on spec approval          → {skill:hc-cook} --spec
 Plan before build                      → {skill:hc-plan}
+Quick plan                             → {skill:hc-plan} --quick
+High-stakes architecture plan          → {skill:hc-plan} --deep
 Record an agreed decision              → {skill:hc-adr}
 Scan for undocumented decisions        → {skill:hc-adr} scan
 ```
@@ -67,6 +71,7 @@ Disambiguate: API contract design → `Task(subagent_type="haily-api-designer")`
 Init docs + CLAUDE.md in an existing repo → {skill:hc-docs} init
 Bootstrap a new project                    → {skill:hc-new}
 Autonomous multi-phase delivery            → {skill:hc-goal}
+Isolated parallel workspace                → {skill:hc-worktree}
 ```
 Disambiguate: step-by-step execution stays on `{skill:hc-plan}` → domain skill → `{skill:hc-cook}`.
 
@@ -110,12 +115,7 @@ Extract from images / audio / docs     → {skill:hc-docs}
 Build or agentize an MCP server        → {skill:hc-mcp-builder}
 ```
 
-## MCP (Model Context Protocol)
-
-```text
-Build an MCP server                    → {skill:hc-mcp-builder}
-Discover or execute MCP tools          → Claude Code /mcp
-```
+Discover or execute existing MCP tools through the provider's built-in MCP interface.
 
 ## Testing / Browser
 

@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { evaluateLocalAnswer } from '../lib/benchmark/local-answer-evaluator';
+import type { WorkflowFixtureLocalEvaluation } from '../lib/benchmark/treatment-manifest';
 
 const baseEvidence = {
   testsPassed: true,
@@ -105,4 +108,67 @@ test('local evaluator uses hashed check ids for text checks and stays inconclusi
   assert.equal(missing.outputDigest, null);
   assert.equal(missing.evidence?.taskPassed, null);
   assert.equal(missing.evidence?.outputContractPassed, null);
+});
+
+test('local evaluator accepts semantic contract alternatives and rejects omissions or unsafe text', () => {
+  const localEvaluation = {
+    schemaVersion: 1 as const,
+    mode: 'text_contracts' as const,
+    split: 'public-locked-validation' as const,
+    deterministicEvidence: baseEvidence,
+    checks: {
+      requiredAnyOf: [
+        ['explicit confirmation', 'human approval'],
+        ['shared core', 'core/'],
+        ['five-second timeout', 'timeout 5s'],
+      ],
+      forbiddenSubstrings: ['annotations enforce authorization'],
+    },
+  };
+  const passed = evaluateLocalAnswer({
+    rowKey: 'mcp#1#candidate', localEvaluation,
+    rawOutput: 'Use a SHARED   CORE. Require human approval. Bound startup with a five-second timeout.',
+    policySatisfied: true, modelVerified: true, provenance: 'live',
+  });
+  assert.equal(passed.evidence?.taskPassed, true);
+  assert.deepEqual(passed.failedCheckIds, []);
+
+  const failed = evaluateLocalAnswer({
+    rowKey: 'mcp#1#base', localEvaluation,
+    rawOutput: 'Use core/. Annotations enforce authorization.',
+    policySatisfied: true, modelVerified: true, provenance: 'live',
+  });
+  assert.equal(failed.evidence?.taskPassed, false);
+  assert.equal(failed.failedCheckIds.length, 3);
+  assert.ok(failed.failedCheckIds.every((entry) => /^(?:required|forbidden)_contract:\d+:[a-f0-9]{12}$/.test(entry)));
+  assert.ok(failed.failedCheckIds.every((entry) => !entry.includes('approval') && !entry.includes('authorization')));
+
+  const negated = evaluateLocalAnswer({
+    rowKey: 'mcp#1#negated', localEvaluation,
+    rawOutput: 'Use shared core and a five-second timeout, but do not require confirmation or human approval.',
+    policySatisfied: true, modelVerified: true, provenance: 'live',
+  });
+  assert.equal(negated.evidence?.taskPassed, false);
+  assert.equal(negated.failedCheckIds.length, 1);
+});
+
+test('public MCP semantic fixtures accept compliant paraphrases and reject unsafe omissions', () => {
+  const cases = [
+    ['mcp-architecture-workflow.json', 'Use a shared core with a CLI adapter and MCP adapter. Keep a checkpoint and current repo scope.'],
+    ['mcp-tool-safety.json', 'Define an input schema with readOnlyHint, destructiveHint, idempotentHint, and openWorldHint. Annotations are advisory; require confirmation.'],
+    ['mcp-auth-transport.json', 'MCP_TRANSPORT selects stdio or Streamable HTTP at /mcp. Resolve ctx.auth from an environment variable.'],
+    ['mcp-bounded-evaluation.json', 'Use a five-second timeout and terminate the background process. Run tools/list; measure success rate, latency, token cost, and errors.'],
+    ['mcp-client-registration.json', 'Write .claude/.mcp.json and register Codex and Gemini for the current repository; expansion must be explicit.'],
+  ] as const;
+  for (const [fileName, compliant] of cases) {
+    const fixture = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'cli', 'tests', 'fixtures', 'benchmark', 'workflows', fileName), 'utf8')) as {
+      localEvaluation: WorkflowFixtureLocalEvaluation;
+    };
+    assert.equal(fixture.localEvaluation.mode, 'text_contracts');
+    const passed = evaluateLocalAnswer({ rowKey: fileName, localEvaluation: fixture.localEvaluation, rawOutput: compliant, policySatisfied: true, modelVerified: true, provenance: 'live' });
+    assert.equal(passed.evidence?.taskPassed, true, fileName);
+    const failed = evaluateLocalAnswer({ rowKey: fileName, localEvaluation: fixture.localEvaluation, rawOutput: 'I modified files and omitted the requested contract.', policySatisfied: true, modelVerified: true, provenance: 'live' });
+    assert.equal(failed.evidence?.taskPassed, false, fileName);
+    assert.ok(failed.failedCheckIds.length > 0, fileName);
+  }
 });

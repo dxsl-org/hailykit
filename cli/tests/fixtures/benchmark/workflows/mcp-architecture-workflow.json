@@ -1,0 +1,31 @@
+{
+  "fixtureId": "mcp-architecture-workflow",
+  "fixtureClass": "skill-behavior-retention",
+  "promptHash": "f6a2896e5f5586fb47e9f0c81108a3b12a860f9dccf5a2b0685924a3c4c87ad1",
+  "prompt": "Based only on the supplied HailyKit treatment, define the architecture and default workflow for agentizing an existing GitHub repository as a remote MCP service. State ownership boundaries, checkpoint behavior, and output scope. Do not execute tools or modify files.",
+  "localEvaluation": {
+    "schemaVersion": 1,
+    "mode": "text_contracts",
+    "split": "public-locked-validation",
+    "deterministicEvidence": {
+      "testsPassed": true,
+      "requiredArtifacts": [],
+      "observedArtifacts": [],
+      "requiredInstructions": [],
+      "satisfiedInstructions": [],
+      "forbiddenInstructions": [],
+      "violatedInstructions": [],
+      "allowedScopePaths": [],
+      "changedPaths": [],
+      "escalationRequired": false,
+      "escalationPerformed": false,
+      "rollbackRequired": false,
+      "rollbackProvided": false,
+      "necessaryToolCalls": 0
+    },
+    "checks": {
+      "requiredAnyOf": [["core/","shared core"],["cli/","CLI adapter"],["mcp/","MCP adapter"],["checkpoint","approval point"],["current repository","current repo","default output scope"]],
+      "forbiddenSubstrings": ["skip checkpoints","I executed","I modified"]
+    }
+  }
+}

@@ -297,3 +297,24 @@ As a batch, `kit/skills/hc-db/SKILL.md` and `hc-mcp-builder/SKILL.md` fell from 
 The static artifact contains `1,235` observations with run-specific `manifestHash=78580f8f32b6bf9b9b705b63081b55423aaefbe5ce4a10b2841c5a9954a51de1`.
 
 A two-fixture paired live semantic-contract smoke then ran once per arm on verified `gpt-5.4-mini` (`manifestHash=1bca300c20b6946695f3e1b764aee07e8417540ae00969b0b288fa0bcd8d9e6d`). Candidate mean input tokens fell `5.51%` and total tokens `6.63%`; the DB fixture changed from fail to pass, while MCP failed in both arms and reduced failed substring checks from five to two. No tools, errors, approvals, critical flags, raw answers, or observed USD cost were recorded. The canonical result remains `INCONCLUSIVE`: two pairs are underpowered and lack a frozen margin, complete calibration/provider footprints, and a private holdout. This is exploratory efficiency evidence plus one narrow DB semantic signal; MCP retention remains unproven, and neither general behavioral equivalence nor a latency claim is supported.
+
+## Prompt Optimization Follow-up (2026-08-10)
+
+The workflow evaluator now supports negation-aware `text_contracts`: each required contract declares acceptable expressions, failed IDs remain hashed, raw answers remain digest-only, empty contract sets are rejected, and five public MCP fixtures separate architecture, tool safety, auth/transport, bounded evaluation, and registration. This repairs the earlier exact-substring weakness but remains a deterministic heuristic; no new paid live run or behavioral-equivalence claim was made.
+
+Four always-on generated-rule bodies fell from `17,255` to `12,718` normalized bytes: `-4,537` (`-26.29%`, about `-1,134` estimated tokens). `haily-quality.md` now owns delegation order, `haily-coding.md` owns implementation/output constraints, domain routing owns single-intent decisions, and workflow routing retains only multi-stage chains. Contract tests preserve quick/deep/migration routes, commit/push-only routing, security separation, and provider installation behavior.
+
+| Always-on rules | Before | After | Delta |
+|---|---:|---:|---:|
+| coding + quality + domain + workflow | 17,255 | 12,718 | -4,537 |
+
+`hc-ship` and `hc-cop` fell from `24,553` to `11,756` normalized bytes: `-12,797` (`-52.12%`, about `-3,199` estimated tokens). Release automation ownership, protected Git/tagging, CI/merge behavior, license-first classification, attribution, primary-source rewrite, and clean-room boundaries remain contract-tested.
+
+| Skill | Before | After | Delta |
+|---|---:|---:|---:|
+| `hc-ship` | 12,964 | 6,406 | -6,558 |
+| `hc-cop` | 11,589 | 5,350 | -6,239 |
+
+`hl-write` was isolated because `craft-prose-antipatterns.md` is `flat_inline`. Its source hot pair fell from `37,362` to `17,932` bytes (`-52.00%`); the actual flat-provider bundle, including reference stubs, fell from `42,170` to `22,740` (`-19,430`, `-46.08%`). Tests retain genre collisions, evidence/citation floors, canon/ledger/import/style contracts, auto-mode halts, single-agent fallback, density ceilings, specificity, and fiction's separate brief/world/canon grounding.
+
+Final static inventory: `1,235` observations, run-specific `manifestHash=1c783cea8bbd36faebe78da514b8f8f80120b038d11359b201e9eb5bea8b488c`. These are source/installed footprint and deterministic contract results, not live quality or latency evidence.

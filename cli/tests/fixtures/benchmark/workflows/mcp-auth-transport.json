@@ -1,0 +1,31 @@
+{
+  "fixtureId": "mcp-auth-transport",
+  "fixtureClass": "skill-behavior-retention",
+  "promptHash": "fbe9992b923bf062ff255c5605d3ba12f3e5bbd7bf3a295ec3ce077288d51f2b",
+  "prompt": "Based only on the supplied HailyKit treatment, define authentication precedence and transport behavior for local stdio and remote HTTP MCP deployments. Include credential boundaries and endpoint behavior. Do not execute tools or modify files.",
+  "localEvaluation": {
+    "schemaVersion": 1,
+    "mode": "text_contracts",
+    "split": "public-locked-validation",
+    "deterministicEvidence": {
+      "testsPassed": true,
+      "requiredArtifacts": [],
+      "observedArtifacts": [],
+      "requiredInstructions": [],
+      "satisfiedInstructions": [],
+      "forbiddenInstructions": [],
+      "violatedInstructions": [],
+      "allowedScopePaths": [],
+      "changedPaths": [],
+      "escalationRequired": false,
+      "escalationPerformed": false,
+      "rollbackRequired": false,
+      "rollbackProvided": false,
+      "necessaryToolCalls": 0
+    },
+    "checks": {
+      "requiredAnyOf": [["MCP_TRANSPORT","transport setting"],["stdio","standard input"],["streamable HTTP"],["/mcp","MCP endpoint"],["ctx.auth","request-scoped auth","per-request auth"],["environment variable","credential store"]],
+      "forbiddenSubstrings": ["literal credentials","hard-coded credential","credential in tool arguments","query parameter token","stdout logging","I executed","I modified"]
+    }
+  }
+}

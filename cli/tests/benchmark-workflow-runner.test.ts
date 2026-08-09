@@ -98,6 +98,29 @@ test('workflow manifest identity changes when config, budget, or fixture set cha
   assert.equal(first, identityOnly);
 });
 
+test('workflow fixture loader validates text contract groups', () => {
+  const { repoRoot, fixtureRoot } = initWorkflowRepo();
+  fs.writeFileSync(path.join(fixtureRoot, 'invalid-contract.json'), JSON.stringify({
+    fixtureId: 'invalid-contract', fixtureClass: 'skill-behavior-retention', promptHash: 'cf07194ee232eb531e15f690000d19846dea69cf05504782658afcfacb9228a2', prompt: 'prompt',
+    localEvaluation: {
+      schemaVersion: 1, mode: 'text_contracts', split: 'public-training',
+      deterministicEvidence: {
+        testsPassed: true, requiredArtifacts: [], observedArtifacts: [], requiredInstructions: [], satisfiedInstructions: [], forbiddenInstructions: [], violatedInstructions: [], allowedScopePaths: [], changedPaths: [], escalationRequired: false, escalationPerformed: false, rollbackRequired: false, rollbackProvided: false, necessaryToolCalls: 0,
+      },
+      checks: { requiredAnyOf: [[]], forbiddenSubstrings: [] },
+    },
+  }), 'utf8');
+  execFileSync('git', ['add', '.'], { cwd: repoRoot, stdio: 'ignore' });
+  execFileSync('git', ['commit', '-m', 'add invalid fixture'], { cwd: repoRoot, stdio: 'ignore' });
+  assert.throws(() => loadWorkflowFixtures(resolveWorkflowManifest(repoRoot, manifest(repoRoot, fixtureRoot, { fixturePaths: ['invalid-contract.json'] }))), /array of non-empty string arrays/);
+  const empty = JSON.parse(fs.readFileSync(path.join(fixtureRoot, 'invalid-contract.json'), 'utf8'));
+  empty.localEvaluation.checks.requiredAnyOf = [];
+  fs.writeFileSync(path.join(fixtureRoot, 'invalid-contract.json'), JSON.stringify(empty), 'utf8');
+  execFileSync('git', ['add', '.'], { cwd: repoRoot, stdio: 'ignore' });
+  execFileSync('git', ['commit', '-m', 'empty invalid fixture'], { cwd: repoRoot, stdio: 'ignore' });
+  assert.throws(() => loadWorkflowFixtures(resolveWorkflowManifest(repoRoot, manifest(repoRoot, fixtureRoot, { fixturePaths: ['invalid-contract.json'] }))), /array of non-empty string arrays/);
+});
+
 test('scheduler is deterministic and balanced for a fixed seed', () => {
   const schedule = scheduleWorkflowPairs([{ fixtureId: 'a', repeat: 1 }, { fixtureId: 'a', repeat: 2 }, { fixtureId: 'b', repeat: 1 }, { fixtureId: 'b', repeat: 2 }], 11);
   assert.deepEqual(schedule, scheduleWorkflowPairs([{ fixtureId: 'a', repeat: 1 }, { fixtureId: 'a', repeat: 2 }, { fixtureId: 'b', repeat: 1 }, { fixtureId: 'b', repeat: 2 }], 11));

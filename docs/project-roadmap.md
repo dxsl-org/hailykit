@@ -2,6 +2,9 @@
 
 ## 2026-08
 
+- Complete: follow-up prompt optimization and MCP evaluator repair
+  - Goal: make MCP checks resilient to valid paraphrases, remove remaining generated-rule duplication, and compress the next high-exposure skill prompts without weakening release, licensing, canon, or evidence contracts.
+  - Status: grouped/negation-aware evaluator fixtures and all four prompt batches are implemented locally. Always-on rules fell 26.29%, `hc-ship`/`hc-cop` 52.12%, and the installed `hl-write` bundle 46.08%; final static inventory has 1,235 rows. No new paid live run or behavior-equivalence claim was made.
 - Complete: single-pass benchmark evaluation and routing-rule compression
   - Goal: score explicit workflow contracts without a second model call and remove repeated routing prose without losing unique behavior.
   - Status: implemented locally; raw answers are digest-only in artifacts, legacy `--evidence` remains available, and the two routing files are 41.59% smaller by normalized bytes. Build/skill checks and 635/635 tests pass; static benchmark emits 1,235 rows. No paid live run was performed in this implementation wave.

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added negation-aware grouped text contracts and five public MCP workflow fixtures, then compressed four generated AGENTS rule bodies by 26.29%, `hc-ship`/`hc-cop` by 52.12%, and the installed `hl-write` flat bundle by 46.08% while preserving focused safety/routing/writing contracts.
 - Added fixture-bound, single-pass workflow answer evaluation: raw output is checked in memory during the existing arm call, canonical observations persist only a SHA-256 digest and bounded evaluation metadata, and the legacy external-evidence path remains compatible.
 - Compressed domain/workflow routing rules from 18,714 to 10,930 normalized bytes (`-41.59%`, about `-1,946` estimated tokens) while contract tests preserve unique routes and security boundaries.
 - Verified this wave with build and skill checks, 635/635 tests, a 1,235-row static benchmark, and independent tester/reviewer/docs audits. Static manifest hashes remain run-specific; no paid live run was performed.

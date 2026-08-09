@@ -118,6 +118,7 @@ The `kit/` directory is a distributable snapshot of the skill catalog, versioned
   - `haily-quality.md` — step-by-step development workflow with skill routing
   - `haily-domain.md` — decision trees: when to invoke which skill by user intent
   - `haily-workflow.md` — multi-skill sequences (planning → implementation → testing → review → ship)
+  - Generated rules separate implementation constraints, delegation order, single-intent routing, and multi-stage chains; focused contracts prevent route duplication or loss.
   - `hailykit.md` — CI patterns, metadata deletion protocol, cross-reference integrity rules
   - Routing prose is intentionally compact; contract tests preserve unique routes and the code-security/running-system-security boundary while avoiding repeated skill catalogs.
   - `haily-documentation.md` — roadmap/changelog maintenance triggers

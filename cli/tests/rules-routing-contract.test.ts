@@ -43,8 +43,13 @@ test('domain routing keeps required sections and security distinctions', () => {
     'Implement shadcn/Tailwind components',
     '{skill:hl-design}',
     '{skill:hc-cook} --spec',
+    '{skill:hc-plan} --quick',
+    '{skill:hc-plan} --deep',
     '{skill:hc-lookup}',
     '{skill:hc-git} retro',
+    '{skill:hl-reasoning}',
+    '{skill:hl-brainstorm}',
+    '{skill:hc-worktree}',
     '/hl-advisor',
     'All `hs-*` routing is authorized-use only.',
   ]) {
@@ -59,22 +64,54 @@ test('workflow routing keeps the primary delivery routes', () => {
     '## Core Development',
     'Flow: `plan → cook → test → review → ship → log`',
     '## Bugfix',
-    '## Planning & Architecture',
-    '## Writing',
+    '## Investigation',
+    '## Content Pipeline',
     '## Shipping & Release',
     '## Security Operations (Systems)',
     '`{skill:hc-review}`',
     '`{skill:hc-review} --quick`',
     '`{skill:hc-review} --comment`',
     '`{skill:hc-ship}`',
-    '`{skill:hl-reasoning}`',
+    '`{skill:hc-cook} --quick`',
+    '`{skill:hc-cook} migrate',
+    '| Commit or push only | `{skill:hc-git}` |',
     '`{skill:hl-brainstorm}`',
-    '`{skill:hc-worktree}`',
     '`{skill:hc-security}` / `{skill:hc-fix}`',
-    '/hl-advisor',
   ]) {
     assert.ok(source.includes(anchor), `missing workflow anchor: ${anchor}`);
   }
+  for (const duplicatedSection of ['## Planning & Architecture', '## Writing', '## Setup', '## Thinking']) {
+    assert.ok(!source.includes(duplicatedSection), `single-domain route duplicated in workflow: ${duplicatedSection}`);
+  }
+});
+
+test('coding and quality rules separate implementation constraints from delegation order', () => {
+  const coding = read('kit/rules/haily-coding.md');
+  const quality = read('kit/rules/haily-quality.md');
+  for (const anchor of ['YAGNI', 'Real code only', 'Pre-commit / Push', 'Comment the **contract, not code**', 'Output Economy']) {
+    assert.ok(coding.includes(anchor), `missing coding anchor: ${anchor}`);
+  }
+  for (const anchor of ['haily-planner', 'haily-tester', 'haily-debugger', 'haily-reviewer', 'haily-project-manager', 'haily-docs-writer']) {
+    assert.ok(quality.includes(anchor), `missing quality workflow role: ${anchor}`);
+  }
+  assert.ok(!quality.includes('Clean, readable, maintainable'), 'quality rule repeats coding prose');
+  assert.ok(!quality.includes('Update existing files directly'), 'quality rule repeats direct-edit contract');
+});
+
+test('always-on coding, quality, domain, and workflow rules stay within the compressed budget', () => {
+  const budgets: Record<string, number> = {
+    'kit/rules/haily-coding.md': 3100,
+    'kit/rules/haily-quality.md': 1100,
+    'kit/rules/haily-domain.md': 6700,
+    'kit/rules/haily-workflow.md': 2400,
+  };
+  let total = 0;
+  for (const [file, ceiling] of Object.entries(budgets)) {
+    const bytes = Buffer.byteLength(read(file).replace(/\r\n/g, '\n'));
+    total += bytes;
+    assert.ok(bytes <= ceiling, `${file} is ${bytes} bytes; ceiling ${ceiling}`);
+  }
+  assert.ok(total <= 13_000, `rule batch is ${total} bytes; ceiling 13000`);
 });
 
 test('rules referenced by routing contract still exist', () => {

@@ -1,38 +1,12 @@
-# Quality Rules
+# Quality Workflow
 
-**IMPORTANT:** Activate the skills needed for the task. Token-efficient, high quality.
+Apply this order to implementation work:
 
-## 1. Code Implementation
+1. **Plan** — delegate non-trivial implementation planning to `haily-planner`; save TODO-bearing plans in `.agents/`. Use `haily-researcher` only for distinct uncertain topics.
+2. **Build** — follow the approved plan and public contracts. Compile/typecheck each changed code file.
+3. **Test** — delegate final-code verification to `haily-tester`. Never suppress failures or use fake behavior to turn CI green; fix and rerun.
+4. **Debug** — for a reported bug or failed verification, delegate root-cause analysis to `haily-debugger`, apply the fix, then return to Test.
+5. **Review** — after tests pass, delegate production-readiness review to `haily-reviewer`; resolve evidenced findings and reverify affected paths.
+6. **Integrate** — use `haily-project-manager` to sync plan state and `haily-docs-writer` when documentation triggers apply.
 
-- Delegate to the `haily-planner` agent to create implementation plan with TODO tasks in `.agents/`.
-- During planning, run multiple `haily-researcher` agents in parallel on distinct topics; they report back to `haily-planner`.
-- Write clean, maintainable code following architectural patterns and spec; handle edge cases + errors.
-- Update existing files directly — no parallel "enhanced" copies.
-- After creating/modifying code file, run the compile/typecheck command to catch errors.
-
-## 2. Testing
-
-- Delegate to the `haily-tester` agent: comprehensive unit tests, high coverage, error scenarios, performance.
-- Tests verify the FINAL code that will be reviewed and merged.
-- **Never** ignore failing tests or use fake data / mocks / shortcuts to pass build or CI.
-- Fix failures per recommendations, re-run `haily-tester`, and only finish when all tests pass.
-
-## 3. Code Quality
-
-- After tests pass, delegate to the `haily-reviewer` agent.
-- Follow coding standards; write self-documenting code; comment complex logic; optimize for performance + maintainability.
-
-## 4. Integration
-
-- Follow the `haily-planner` plan. Integrate cleanly, honor API contracts, maintain backward compatibility, document breaking changes.
-- Delegate to the `haily-docs-writer` agent to update `./docs` if warranted.
-
-## 5. Debugging
-
-- On reported bug or CI failure, delegate to the `haily-debugger` agent and read its report.
-- Implement fix, then re-run the `haily-tester` agent. If tests fail, fix per recommendations and repeat from Step 3.
-
-## 6. Visual Explanations
-
-When user asks to "explain"/"visualize" or topic has 3+ interacting components, use `{skill:hl-visualize}`:
-`--explain` (ASCII + Mermaid walkthrough) · `--diagram` (architecture/data flow) · `--slides` (step-by-step) · `--ascii` (terminal-only). Add `--html` for self-contained browser page (also supports `--diff [ref]`, `--plan-review`, `--recap [timeframe]`). Visuals save to plan folder (`## Plan Context`) or `.agents/visuals/`. See `coding.md` → Visual Aids.
+For explanations with three or more interacting components, route to `{skill:hl-visualize}`.
