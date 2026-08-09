@@ -111,7 +111,7 @@ function assertNoRawPromptFields(value: unknown): void {
 }
 function assertSafeHoldoutExtensions(extensions: Record<string, unknown>): void {
   assertAllowedKeys(extensions, ['evaluation', 'outputDigest', 'workflow', 'appServer'], 'private holdout extensions');
-  if (extensions.outputDigest !== undefined && !isHash(extensions.outputDigest)) throw new Error('private holdout outputDigest must be a hash');
+  if (extensions.outputDigest !== undefined && !isOutputDigest(extensions.outputDigest)) throw new Error('private holdout outputDigest must be a hash');
   if (extensions.evaluation) {
     const evaluation = objectValue(extensions.evaluation, 'private holdout evaluation');
     assertAllowedKeys(evaluation, ['deterministicComplete', 'criticalFlags', 'failedChecks', 'scopeDrift', 'unnecessaryWork', 'judgeEvidence', 'fixtureSplit', 'fixtureMetadataHash'], 'private holdout evaluation');
@@ -139,6 +139,7 @@ function objectValue(value: unknown, name: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 function isHash(value: unknown): boolean { return typeof value === 'string' && /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i.test(value); }
+function isOutputDigest(value: unknown): boolean { return isHash(value) || (typeof value === 'string' && /^sha256:[a-f0-9]{64}$/i.test(value)); }
 export function escapeReportText(value: unknown): string { return String(value ?? '').replace(/\u001b\[[0-9;]*m/g, '').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/[`*_#[\]|]/g, '\\$&'); }
 function yesNo(value: boolean): string { return value ? 'yes' : 'no'; }
 function format(value: number | null): string { return value === null ? 'n/a' : Number(value.toFixed(4)).toString(); }

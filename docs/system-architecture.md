@@ -101,6 +101,8 @@ The benchmark subsystem now has two Codex live backends with different evidence 
 
 Both backends preserve unknown telemetry as null instead of fabricating it. `codex_app_server` can measure TTFT, output bytes, token breakdowns, tool activity, approvals, and context-occupancy from streamed events; it does not infer observed USD cost, cache-write bytes, or compaction bytes unless the server emits them directly.
 
+Workflow fixtures can opt into a bounded local answer evaluator. It runs after the single provider response is received, derives deterministic contract evidence in memory, and passes only an output digest and evaluation summary into the paired observation. Raw answers are not persisted in V2 workflow rows; the external `--evidence` route remains available for fixtures whose behavior cannot be decided by the local contract.
+
 The static inventory classifies source and installed footprints separately. In addition to rules, standards, hooks, agents, and skill bodies, it inventories `kit/contextual/*.md` as `contextual-rule` and recursively classifies skill references as `skill-reference-hot` or `skill-reference-cold`. These rows are descriptive byte/token estimates; only paired live workflow evidence can support behavior, provider-usage, or cost decisions.
 
 ## Skill Catalog (`kit/`) structure
@@ -117,6 +119,7 @@ The `kit/` directory is a distributable snapshot of the skill catalog, versioned
   - `haily-domain.md` — decision trees: when to invoke which skill by user intent
   - `haily-workflow.md` — multi-skill sequences (planning → implementation → testing → review → ship)
   - `hailykit.md` — CI patterns, metadata deletion protocol, cross-reference integrity rules
+  - Routing prose is intentionally compact; contract tests preserve unique routes and the code-security/running-system-security boundary while avoiding repeated skill catalogs.
   - `haily-documentation.md` — roadmap/changelog maintenance triggers
 
 - **`agents/`** — 25 agent .md files (provider-neutral model assignment)

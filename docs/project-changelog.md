@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added fixture-bound, single-pass workflow answer evaluation: raw output is checked in memory during the existing arm call, canonical observations persist only a SHA-256 digest and bounded evaluation metadata, and the legacy external-evidence path remains compatible.
+- Compressed domain/workflow routing rules from 18,714 to 10,930 normalized bytes (`-41.59%`, about `-1,946` estimated tokens) while contract tests preserve unique routes and security boundaries.
+- Verified this wave with build and skill checks, 635/635 tests, a 1,235-row static benchmark, and independent tester/reviewer/docs audits. Static manifest hashes remain run-specific; no paid live run was performed.
 - Added first-class static-footprint rows for contextual rules and 319 hot/cold skill references, then compressed three recurring contextual prompts by 4,765 normalized bytes (34.7%) with full-build/cooldown equivalence coverage.
 - Completed the first two small skill-prompt batches: five core workflow bodies fell by 16,870 normalized bytes (20.76%), and `hl-help` moved cold catalogs into four references while its hot body fell by 24,907 bytes (84.32%). Frontmatter, flags, routing, safety markers, references, and byte ceilings are contract-tested.
 - Completed two bounded workflow-reference batches across `hc-plan`, `hc-cook`, `hc-review`, and `hc-fix`: four references fell by 11,244 normalized bytes (45.38%) while semantic gates preserved task graphs, review rules, agent invocations, thresholds, ownership, and tier routing; full suite passes 619/619. These are static footprint results, not a live behavior-equivalence claim.

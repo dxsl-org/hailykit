@@ -1,161 +1,77 @@
-# Monorepo Standards (Turborepo / pnpm workspaces / nx)
+# Monorepo Standards
 
-Detected via presence of `turbo.json`, `nx.json`, or `pnpm-workspace.yaml`.
+Detect via `turbo.json`, `nx.json`, or `pnpm-workspace.yaml`.
 
-## When a Monorepo is Worth It
+- Default stack: Turborepo + pnpm workspaces. Use nx only when generators or polyglot targets matter.
+- Keep `apps/` for end products and `packages/` for shared internals.
+- Internal dependencies use `workspace:*`; do not version local packages independently.
+- Do not mix package managers in one workspace.
+- Do not commit build artifacts.
+- Do not use hardcoded cross-package relative imports such as `../../packages/ui/...`; import by workspace name.
 
-- Multiple apps sharing a UI library, types, or config (web + admin + docs)
-- Microfrontends with shared backend client
-- Design system + consumer apps in one repo
-- Need build caching across CI runs
+## Typical layout
 
-**Not worth it for**: single app, < 3 packages, fully independent apps.
+Include only the orchestrator files the workspace actually uses.
 
-## Tool Comparison
-
-| Feature | Turborepo | pnpm workspaces | nx |
-|---|---|---|---|
-| Package manager | Any | pnpm only | Any |
-| Task pipeline | `turbo.json` | scripts only | `nx.json` + project.json |
-| Build cache | Local + remote | None | Local + remote (Nx Cloud) |
-| Affected detection | `--filter` | manual | `nx affected` |
-| Code generation | No | No | Yes (generators) |
-| Best for | JS/TS, simple pipelines | Workspace deps only | Polyglot, enterprise, generators |
-
-**Default stack:** Turborepo + pnpm workspaces. Pick nx only if you need generators or polyglot (JS + Python + Go in one repo).
-
-## Standard Structure
-
-```
-my-monorepo/
-├── apps/
-│   ├── web/              # Next.js / TanStack Start / etc.
-│   ├── admin/
-│   └── docs/
-├── packages/
-│   ├── ui/               # Shared components
-│   ├── config/           # ESLint, TS, Tailwind configs
-│   ├── types/            # Shared TS types
-│   └── utils/            # Pure helpers
-├── turbo.json            # If using Turborepo
-├── pnpm-workspace.yaml   # If using pnpm
-├── nx.json               # If using nx
-└── package.json
+```text
+apps/
+packages/
+turbo.json              # Turborepo only
+pnpm-workspace.yaml
+nx.json                 # nx only
+package.json
 ```
 
-Apps are end-products; packages are reusable internals.
+`pnpm-workspace.yaml`
 
-## pnpm Workspaces (Workspace Layer)
-
-`pnpm-workspace.yaml`:
 ```yaml
 packages:
   - "apps/*"
   - "packages/*"
 ```
 
-Internal dep in `apps/web/package.json`:
+`apps/web/package.json`
+
 ```json
 { "dependencies": { "@repo/ui": "workspace:*" } }
 ```
 
-- `workspace:*` — always use local version, never published
-- `workspace:^1.0.0` — local + SemVer range fallback for published consumers
-- `pnpm --filter web add lodash` — add to specific package
-- `pnpm --filter "./packages/*" build` — build all packages
-- `pnpm --filter ...web build` — build web + all its transitive deps
+## Turborepo contract
 
-## Turborepo (Task Pipeline)
+`turbo.json`
 
-`turbo.json`:
 ```json
 {
   "$schema": "https://turbo.build/schema.json",
-  "pipeline": {
+  "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
-    "dev": { "cache": false, "persistent": true },
-    "lint": {},
-    "test": { "dependsOn": ["build"] }
+    "dev": { "cache": false, "persistent": true }
   }
 }
 ```
 
-- `^build` — topological (dependencies build first)
-- `outputs` — what to cache; missing this = cache miss every time
-- `turbo run build --filter=web` — build only `apps/web` + its deps
-- `turbo run build --filter='[origin/main]'` — affected since main
+- `^build` means topological build order.
+- `outputs` must be explicit or cache reuse will miss.
+- Use `turbo run build --filter=web` for one app plus its deps.
+- Use `turbo run build --filter='[origin/main]'` for affected builds.
 
-## nx (Generators + Pipeline)
+## nx contract
 
-```bash
-npx create-nx-workspace@latest my-monorepo
-nx generate @nx/react:app web
-nx generate @nx/react:library shared-ui --directory=libs/ui
-nx affected --target=build
-nx graph                  # visualize dep graph
-```
+- `nx.json` and per-project `project.json` define targets.
+- Use `nx affected --target=build` for changed scope only.
+- Pick one orchestrator: nx or Turborepo, not both.
 
-`nx.json` + per-project `project.json` files define targets. Generators are nx's killer feature — they enforce structure across team.
+## Remote cache
 
-## Remote Caching
-
-Both Turborepo and nx support remote cache — share builds across CI machines and developer laptops.
-
-**Turborepo:**
-```bash
-npx turbo login
-npx turbo link
-# CI env: TURBO_TOKEN, TURBO_TEAM
-```
-
-**nx Cloud:**
-```bash
-npx nx connect-to-nx-cloud
-# CI env: NX_CLOUD_ACCESS_TOKEN
-```
-
-Cache hit on CI = build skipped entirely. Typical 50-80% pipeline time reduction.
-
-## CI Pattern (GitHub Actions example)
-
-```yaml
-- uses: pnpm/action-setup@v3
-- uses: actions/setup-node@v4
-  with: { node-version: 20, cache: 'pnpm' }
-- run: pnpm install --frozen-lockfile
-- run: pnpm turbo run build test lint
-  env:
-    TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-    TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-```
-
-For PRs, filter to affected only:
-```yaml
-- run: pnpm turbo run test lint --filter='[origin/${{ github.base_ref }}]'
-```
+- Turborepo CI env: `TURBO_TOKEN`, `TURBO_TEAM`
+- nx Cloud CI env: `NX_CLOUD_ACCESS_TOKEN`
 
 ## Anti-patterns
 
-- **Versioning each internal package independently** — use `workspace:*`, version at app/release boundary only
-- **Building everything on every PR** — always use `--filter` (Turborepo) or `affected` (nx)
-- **Mixing pnpm and npm in same workspace** — lockfile chaos
-- **Committing build artifacts** — let cache handle reuse
-- **One giant `tsconfig.json` at root** — each package needs its own with `references` for project refs
-- **Hardcoded relative imports across packages** (`../../packages/ui/...`) — always import via workspace name (`@repo/ui`)
-
-## Common Pitfalls
-
-- `outputs` in `turbo.json` missing or wrong → cache never hits
-- Forgetting to mark `dev` task with `"cache": false` → broken dev experience
-- pnpm + Docker: use `pnpm fetch` + `pnpm install --offline` in builder layer for cache efficiency
-- nx project.json + Turborepo turbo.json in same repo → pick one orchestrator, not both
-
-## Performance Wins
-
-- Remote cache → 50-80% CI time reduction on big monorepos
-- `dependsOn: ['^build']` topological sort → packages build in parallel where possible
-- `--filter` / `affected` → PR builds only touch changed paths
-- Package-level `tsconfig` with `incremental: true` → fast type-check
+- One giant root `tsconfig.json` without package-level refs
+- Missing or wrong `outputs`
+- Caching `dev`
+- Building every package on every PR instead of affected/filter scope

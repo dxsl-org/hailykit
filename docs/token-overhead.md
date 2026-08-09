@@ -253,3 +253,47 @@ One additional raw-answer capture pair used the same fixture, model, and treatme
 Fresh snapshot from `.agents/260808-2124-optimize-subagent-prompts/reports/final-agent-body-snapshot.json`: `89,005` bytes / `22,252` est. tokens down to `59,025` bytes / `14,757` est. tokens across 25 agents.
 
 That catalog total is not a per-spawn bill. A spawn pays the chosen agent body plus the shared subagent reminder and the caller's runtime context, not the sum of all 25 bodies each time.
+
+## Routing Rules Compression (2026-08-09)
+
+`kit/rules/haily-domain.md` plus `haily-workflow.md` fell from `18,714` to `10,930` normalized bytes: `-7,784` bytes (`-41.59%`), about `-1,946` estimated tokens. The six-file rules layout is unchanged. Contract tests retain unique routes, review modes, spec gating, worktree setup, thinking utilities, and the separation between code security and authorized running-system operations.
+
+This is a one-time cacheable-prefix reduction, not a per-turn saving. The deterministic single-pass evaluator added in the same wave removes the need for a separate raw-answer scoring call when a workflow fixture declares a complete local contract; no paid live run was performed for this implementation-only validation.
+
+## UI and Monorepo Standards Compression (2026-08-09)
+
+`kit/standards/framework-monorepo.md`, `framework-tailwind.md`, and `framework-shadcn.md` fell from `11,170` to `4,613` normalized bytes: `-6,557` bytes (`-58.70%`), about `-1,639` estimated tokens. This is detected-stack context, not universal per-request savings; it only applies when the hook injects these standards for a matching UI/monorepo workspace.
+
+| Standard | Before | After | Delta |
+|---|---:|---:|---:|
+| `framework-monorepo.md` | 5,178 | 1,929 | -3,249 |
+| `framework-tailwind.md` | 3,300 | 1,448 | -1,852 |
+| `framework-shadcn.md` | 2,692 | 1,236 | -1,456 |
+
+`cli/tests/standards-contracts.test.ts` locks the durable anchors for workspace detection, `workspace:*`, `^build`/`outputs`, affected/filter execution, remote-cache env names, Tailwind purge/theming/layer/a11y constraints, and shadcn ownership/theme/form/accessibility contracts. The batch passed `npm run pretest`, targeted contract tests, cross-reference validation, and `git diff --check`.
+
+## Deploy and Browser Skill Compression (2026-08-09)
+
+As a batch, `kit/skills/hc-deploy/SKILL.md` and `hc-browser/SKILL.md` fell from `13,075` to `6,418` normalized bytes: `-6,657` bytes (`-50.91%`), about `-1,664` estimated tokens. Each invocation loads one skill, so use the per-skill rows—not the combined batch total—to estimate a request's reduction. This is invoked-skill context, not universal per-request savings.
+
+| Skill | Before | After | Delta |
+|---|---:|---:|---:|
+| `hc-deploy` | 6,860 | 4,042 | -2,818 |
+| `hc-browser` | 6,215 | 2,376 | -3,839 |
+
+The deploy body retains credential and scope boundaries, detect-first routing, live pricing verification, documentation fields, all platform references, and infrastructure escalation. The browser body retains public-page fallback limits, fresh snapshot references, read-only commands, and routing to debug/test workflows. `cli/tests/deploy-browser-skill-contracts.test.ts` locks these contracts and the byte ceiling. These figures prove footprint reduction and static contract retention, not live behavioral equivalence.
+
+## DB and MCP Builder Skill Compression (2026-08-09)
+
+As a batch, `kit/skills/hc-db/SKILL.md` and `hc-mcp-builder/SKILL.md` fell from `13,840` to `8,068` normalized bytes: `-5,772` bytes (`-41.71%`), about `-1,443` estimated tokens. Each invocation loads one skill, so the per-skill rows—not the batch total—describe request-level prompt reduction.
+
+| Skill | Before | After | Delta |
+|---|---:|---:|---:|
+| `hc-db` | 7,792 | 3,988 | -3,804 |
+| `hc-mcp-builder` | 6,048 | 4,080 | -1,968 |
+
+`hc-db` retains datastore and access-layer routing, parameterization, pooling, migration/backup, Redis, and Supabase RLS contracts. `hc-mcp-builder` retains input/scope routing, workflow-first tools, bounded process testing, schemas/annotations, shared-core adapters, auth precedence, transport rules, registration, evaluation, and every reference path. `cli/tests/db-mcp-skill-contracts.test.ts` locks these markers and per-skill/batch byte ceilings.
+
+The static artifact contains `1,235` observations with run-specific `manifestHash=78580f8f32b6bf9b9b705b63081b55423aaefbe5ce4a10b2841c5a9954a51de1`.
+
+A two-fixture paired live semantic-contract smoke then ran once per arm on verified `gpt-5.4-mini` (`manifestHash=1bca300c20b6946695f3e1b764aee07e8417540ae00969b0b288fa0bcd8d9e6d`). Candidate mean input tokens fell `5.51%` and total tokens `6.63%`; the DB fixture changed from fail to pass, while MCP failed in both arms and reduced failed substring checks from five to two. No tools, errors, approvals, critical flags, raw answers, or observed USD cost were recorded. The canonical result remains `INCONCLUSIVE`: two pairs are underpowered and lack a frozen margin, complete calibration/provider footprints, and a private holdout. This is exploratory efficiency evidence plus one narrow DB semantic signal; MCP retention remains unproven, and neither general behavioral equivalence nor a latency claim is supported.

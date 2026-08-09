@@ -9,23 +9,15 @@ metadata:
   keywords: [deploy, hosting, Vercel, Netlify, Cloudflare]
 ---
 
-# Deploy — Auto-Detect & Ship
+# Deploy — Auto-Detect and Ship
 
-Auto-detect deployment target and deploy the current project. Supports 15 platforms with cost-optimized recommendations.
-
-**Scope:** project deployment, platform selection, `docs/deployment.md` creation/update.
-**Not in scope:** infrastructure provisioning, DB migrations, DNS management, SSL certificates, CI/CD pipeline creation. For those, activate `{skill:hc-devops}`.
+Deploy to the detected or user-selected platform and keep `docs/deployment.md` current. Infrastructure provisioning, database migrations, DNS, SSL, and CI/CD belong to `{skill:hc-devops}`.
 
 ## Usage
 
-```
-{skill:hc-deploy} [platform] [environment]
-```
-
-```
-{skill:hc-deploy}                         # auto-detect platform and deploy
-{skill:hc-deploy} vercel production        # deploy explicitly to Vercel prod
-{skill:hc-deploy} railway staging          # deploy to Railway staging env
+```text
+{skill:hc-deploy}
+{skill:hc-deploy} vercel production
 ```
 
 ## Constraints
@@ -36,96 +28,19 @@ Auto-detect deployment target and deploy the current project. Supports 15 platfo
 
 ## Process
 
-### 1. Detect Target (stop at first match)
-
-1. Read `docs/deployment.md` — parse platform and config if it exists
-2. Scan config files (Detection Signals below)
-3. Analyze project type → map to recommended platform
-4. `AskUserQuestion` with cost-optimized options (max 4)
-
-### 2. Detection Signals
-
-| File/Pattern | Platform |
-|---|---|
-| `vercel.json`, `.vercel/` | Vercel |
-| `netlify.toml`, `_redirects` | Netlify |
-| `wrangler.toml`, `wrangler.json` | Cloudflare |
-| `fly.toml` | Fly.io |
-| `railway.json`, `railway.toml` | Railway |
-| `render.yaml` | Render |
-| `Procfile` + `app.json` | Heroku |
-| `tose.yaml`, `tose.json` | TOSE.sh |
-| `docker-compose.yml` + `coolify` ref | Coolify |
-| `dokploy.yml` | Dokploy |
-| `.github/workflows/*pages*` | GitHub Pages |
-| `app.yaml` (GAE format) | GCP |
-| `amplify.yml`, `buildspec.yml` | AWS |
-| `.do/app.yaml` | Digital Ocean |
-
-### 3. Project Type → Platform
-
-| Project Type | Detection | Recommended (cost order) |
-|---|---|---|
-| Static site | No server files | GitHub Pages → Cloudflare Pages |
-| SPA (React/Vue/Svelte) | Framework config, no SSR | Vercel → Netlify → Cloudflare Pages |
-| SSR/Full-stack (Next/Nuxt) | `next.config.*`, `nuxt.config.*` | Vercel → Netlify → Cloudflare |
-| Node.js API | `server.js/ts`, Express/Fastify | Railway → Render → Fly.io → TOSE.sh |
-| Python API | `requirements.txt` + Flask/Django | Railway → Render → Fly.io |
-| Docker app | `Dockerfile` | Fly.io → Railway → TOSE.sh → Coolify |
-| Monorepo | `turbo.json`, workspaces | Vercel → Netlify |
-
-### 4. Platform Priority (Cost-Optimized)
-
-**Free tier — static/frontend:**
-1. GitHub Pages — unlimited bandwidth, free custom domain
-2. Cloudflare Pages — unlimited bandwidth, 500 builds/mo
-3. Vercel — 100GB bandwidth (hobby/non-commercial)
-4. Netlify — 100GB bandwidth, 300 build min/mo
-
-**Free tier — backend/full-stack:**
-1. Railway — $5 free credit/mo
-2. Render — 750 free hours/mo (cold starts after 15min idle)
-3. Fly.io — 3 shared VMs, 160GB outbound/mo
-
-**Pay-as-you-go:** TOSE.sh ($10 credit, ~$17-22/mo 1vCPU+1GB) · Cloudflare Workers ($5/mo 10M req) · Railway (usage-based)
-
-**Self-hosted (free, own server):** Coolify · Dokploy
-
-**Enterprise/Scale:** AWS, GCP, Digital Ocean, Vultr, Heroku
-
-### 5. Deploy Execution
-
-1. Check CLI installed → install if missing
-2. Check auth → login if needed
-3. Run deploy command (see `references/platform-deploy-commands.md`)
-4. Verify deployment URL
-5. Create/update `docs/deployment.md`
-
-### 6. Post-Deploy: `docs/deployment.md`
-
-After first successful deploy, create:
-```markdown
-# Deployment
-## Platform: [name]
-## URL: [production-url]
-## Deploy Command: [command]
-## Environment Variables: [list]
-## Custom Domain: [setup steps if applicable]
-## Rollback: [instructions]
-```
-On subsequent deploys, update if config changed.
-
-### 7. Troubleshooting
-
-1. Check error output, attempt auto-fix for common issues
-2. If unresolvable → activate `{skill:hc-devops}`
-3. Update `docs/deployment.md` with troubleshooting notes
+1. **Route — stop at first match:** use `docs/deployment.md`; otherwise detect platform config; otherwise map project shape; otherwise use `AskUserQuestion` with at most four cost-ordered options. Verify current pricing before recommending a platform.
+   - Config markers: `vercel.json`/`.vercel` → Vercel; `netlify.toml`/`_redirects` → Netlify; `wrangler.*` → Cloudflare; `fly.toml` → Fly.io; `railway.*` → Railway; `render.yaml` → Render; `Procfile` + `app.json` → Heroku; `tose.*` → TOSE.sh; `dokploy.yml` → Dokploy; Pages workflow → GitHub Pages; GAE `app.yaml` → GCP; `amplify.yml`/`buildspec.yml` → AWS; `.do/app.yaml` → Digital Ocean.
+   - Project shape: static/SPA → Pages, Vercel, or Netlify; SSR → its native platform; API → Railway, Render, or Fly.io; Docker → Fly.io, Railway, TOSE.sh, or self-hosted; monorepo → Vercel or Netlify.
+2. **Load:** read only the selected platform reference below and `references/platform-deploy-commands.md`.
+3. **Deploy:** verify CLI and authentication, execute the deployment, then verify the production URL. Never print credentials.
+4. **Document:** create or update `docs/deployment.md` from `references/platform-config-templates.md`. Record platform, URL, deploy command, environment-variable names, custom-domain steps, rollback, and troubleshooting.
+5. **Recover:** attempt one scoped correction for a common deployment error; escalate infrastructure failures to `{skill:hc-devops}`.
 
 ## References
 
-Load ONLY the platform reference needed:
+Load only the selected platform reference:
 
-| Platform | Reference File |
+| Platform | Reference |
 |---|---|
 | Vercel | `references/platforms/vercel.md` |
 | Netlify | `references/platforms/netlify.md` |
@@ -143,25 +58,21 @@ Load ONLY the platform reference needed:
 | Digital Ocean | `references/platforms/digitalocean.md` |
 | Vultr | `references/platforms/vultr.md` |
 
-- `references/platform-config-templates.md` — `docs/deployment.md` template
+## Escalation
 
-## When to Escalate to `{skill:hc-devops}`
+Stop and activate `{skill:hc-devops}` for:
 
-Stop and activate `{skill:hc-devops}` when any of these apply:
-
-| Trigger | Why hc-deploy can't handle it |
-|---|---|
-| Need a CI/CD pipeline (GitHub Actions, GitLab CI, CircleCI) | Pipeline config and secrets management is infrastructure work |
-| Need Docker + custom networking or multi-container orchestration | Container architecture goes beyond platform push |
-| Need Kubernetes — any cluster, namespace, or workload setup | K8s is infrastructure, not a hosting platform |
-| Need Cloudflare Workers, R2, D1, or KV (not just Pages) | Edge compute and storage is infrastructure, not static hosting |
-| Deploy command fails with infra-level errors (VPC, IAM, subnet) | Platform abstraction has broken down |
-| Need custom DNS records, SSL certificates, or reverse proxy | Network-layer configuration is infrastructure |
-| Need GitOps (Argo CD, Flux) or IaC (Terraform, Pulumi) | Declarative infra management is infrastructure |
-| Need RBAC, secrets management, or network policies | Security configuration is infrastructure |
+- CI/CD or release automation
+- Docker networking or multi-container orchestration
+- Kubernetes
+- Cloudflare Workers, R2, D1, or KV
+- VPC, IAM, or subnet failures
+- DNS, SSL, or reverse-proxy configuration
+- GitOps or IaC with Terraform or Pulumi
+- RBAC, secrets management, or network policies
 
 ## Workflow Position
 
 **Follows:** `{skill:hc-cook}` — deploy after implementing
-**Escalates to:** `{skill:hc-devops}` — when any escalation trigger above applies
+**Escalates to:** `{skill:hc-devops}` — for infrastructure work
 **Related:** `{skill:hc-ship}`

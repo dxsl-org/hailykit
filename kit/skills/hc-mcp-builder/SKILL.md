@@ -9,127 +9,41 @@ metadata:
   keywords: [MCP, server, build, agentize, cli, tools]
 ---
 
-# MCP Builder — Build & Agentize MCP Servers
+# MCP Builder — Build and Agentize
 
-Two modes: **build** a new MCP server from an API; **agentize** existing code into CLI + MCP server.
-
-> To manage or call existing MCP servers, use Claude Code's native `/mcp` command instead.
+Build an MCP server from an API description or expose code through CLI/MCP adapters. Use `/mcp` to manage an existing server.
 
 ## Usage
 
-```
-{skill:hc-mcp-builder} <API description | local-path | github-url> [--mcp|--cli] [--auto]
-```
-
-**Execution mode:**
-
-| Flag | Behavior |
-|---|---|
-| *(none)* | Interactive — pauses at Checkpoints for user approval |
-| `--auto` | Autonomous — no stops; composes with scope flags |
-
-**Input auto-detection:**
-
-| First argument | Mode |
-|---|---|
-| String description ("Wrap Stripe API") | **Build** — new MCP server from API spec |
-| Local path (`./src/payments/`) | **Agentize** — wrap existing code |
-| GitHub URL | **Agentize** — wrap repo code |
-
-**Agentize output scope** (user-specified intent, not code analysis):
-
-| Scope flag | Output |
-|---|---|
-| *(none)* | Monorepo — shared `core/` + thin `cli/` + `mcp/` packages (default, fullest) |
-| `--mcp` | MCP server only — add agent interface without touching existing CLI |
-| `--cli` | CLI only — npm-publishable CLI without MCP layer |
-
-Scope flags compose with `--auto`:
-```
+```text
 {skill:hc-mcp-builder} "Wrap Stripe API"
-{skill:hc-mcp-builder} "Wrap Stripe API" --auto
-{skill:hc-mcp-builder} ./src/payments/
-{skill:hc-mcp-builder} ./src/payments/ --mcp
-{skill:hc-mcp-builder} ./src/payments/ --mcp --auto
-{skill:hc-mcp-builder} https://github.com/owner/repo --cli --auto
+{skill:hc-mcp-builder} ./src/payments --mcp
 ```
+
+| Flag | Output |
+|---|---|
+| *(none)* | Interactive; pause at checkpoints. Output shared `core/` with thin `cli/` and `mcp/` adapters |
+| `--mcp` | MCP server only |
+| `--cli` | Distributable CLI only |
+| `--auto` | Resolve checkpoints autonomously; composes with either scope flag |
 
 ## Constraints
 
-> **Required — workflows not endpoints:** Design tools that map to user workflows, not 1:1 to API endpoints. `schedule_event` = check availability + create, not 3 separate calls.
+> **Required — workflows not endpoints:** Design tools around complete user workflows, not one tool per API endpoint; keep business logic in shared `core/` and adapters thin.
 
-> **Required — testing safety:** MCP servers are long-running stdio/http processes — running directly hangs your shell. Use `timeout 5s python server.py` for syntax check, or tmux (server in one pane, test harness in another).
+> **Required — testing safety:** MCP servers are long-running stdio/HTTP processes. Use `timeout 5s <server-command>` for a bounded syntax/startup check or run the server and harness in separate `tmux` panes.
 
-## Build Mode
+> **Required — trust boundaries:** Resolve credentials through the documented auth chain, never bake or print secrets, and require explicit confirmation for destructive tools. MCP annotations are hints, not authorization controls.
 
-New MCP server from an API or service. Four stages:
+## Process
 
-### Design
-
-Before writing code, define the tool surface:
-- Fetch MCP protocol spec: `WebFetch https://modelcontextprotocol.io/llms-full.txt`
-- Study the target API: auth, rate limits, pagination, error codes
-- Design response format: high-signal JSON + Markdown; `concise` vs `detailed` modes; names over IDs
-- Plan input validation (Pydantic/Zod), actionable error messages, tool annotations
-
-See `references/mcp-best-practices.md` for naming, pagination, character limits, security rules.
-
-### Implement
-
-| | Python | TypeScript |
-|--|---|---|
-| Validation | Pydantic v2 | Zod `.strict()` |
-| Registration | `@mcp.tool` decorator | `server.registerTool` |
-| Build check | `python -m py_compile server.py` | `npm run build` → `dist/index.js` |
-| Guide | `references/python-mcp-server.md` | `references/node-mcp-server.md` |
-
-Per-tool checklist:
-- Input schema with constraints (min/max, regex, ranges) and diverse examples
-- Docstring: one-line summary · parameters · return schema · usage example · error cases
-- Annotations: `readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`
-- Async/await for all I/O; truncation strategy for large responses (≤25 000 tokens)
-
-### Review
-
-- DRY: no duplicated code across tools
-- Consistent response format for similar operations
-- All external calls have error handling
-- Every tool has a comprehensive docstring
-
-### Evaluate
-
-Create 10 evaluation questions covering realistic multi-tool workflows:
-1. List available tools and understand capabilities via read-only operations
-2. Generate 10 complex, verifiable questions (single clear answer, stable over time)
-3. Solve each manually to produce ground-truth answers
-
-See `references/evaluation.md` for output XML format.
-
-## Agentize Mode
-
-Activated when first argument is a local path or GitHub URL. Converts an existing module or codebase into a distributable CLI + MCP server.
-
-Output scope is specified by the user via `--mcp` or `--cli` flags (see Usage). Default when no scope flag is given: monorepo with `core/` + `cli/` + `mcp/` packages.
-
-**Principles:** one source of truth (shared `core/`, thin adapters) · agent-centric tool design · credentials at every layer · ship with docs + tests + CI.
-
-## Register
-
-After building, add to `.claude/.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "my-server": {
-      "command": "python",
-      "args": ["server.py"],
-      "env": { "API_KEY": "..." }
-    }
-  }
-}
-```
-
-Restart → Claude Code, Cursor, Claude Desktop discover tools automatically.
+1. **Route:** a text/API description selects Build; a local path or GitHub URL selects Agentize. Apply the user-selected output scope from Usage.
+2. **Recon:** inspect auth, rate limits, pagination, errors, public contracts, and deployment. Load only relevant references.
+3. **Design:** group workflow-first tools; return concise structured results, names over IDs, actionable errors, and pagination with `limit`, `has_more`, and `next_offset` or `next_cursor`.
+4. **Build:** validate inputs with Pydantic v2 or strict Zod; use async I/O; document parameters, return shape, and errors; set `readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint`; truncate responses around `25,000` characters with continuation guidance. Return expected tool errors in result objects.
+5. **Agentize:** keep business logic in `core/`; let `cli/` and `mcp/` own translation, output, and lifecycle. Select with `MCP_TRANSPORT`: stdout is protocol-only for stdio; prefer Streamable HTTP at `/mcp`; keep SSE for compatibility. Resolve auth explicit token/flag → env → dotenv → user config → project config → keychain; remote HTTP/SSE uses `ctx.auth` first and disables keychain outside local development. Ship docs, tests, and CI.
+6. **Verify:** build, run bounded process tests, then create 10 stable and verifiable workflow questions with manual ground truth across read, mutation, failure, pagination, and multi-tool cases.
+7. **Register:** add `.claude/.mcp.json` using environment-variable names or secret references, never credentials; restart and verify discovery.
 
 ## Workflow Position
 
@@ -141,13 +55,13 @@ Restart → Claude Code, Cursor, Claude Desktop discover tools automatically.
 
 | File | Content |
 |---|---|
-| `references/mcp-best-practices.md` | Naming, pagination, character limits, security rules |
-| `references/python-mcp-server.md` | Python implementation guide |
-| `references/node-mcp-server.md` | TypeScript/Node implementation guide |
-| `references/evaluation.md` | Evaluation XML format and methodology |
-| `references/agentize-agent-centric-design.md` | Workflow-first tool design |
-| `references/agentize-auth-resolution-chain.md` | env → flag → keychain → OAuth |
-| `references/agentize-challenge-framework.md` | Clarifying questions before wrapping |
-| `references/agentize-deployment-guide.md` | npm publish, Cloudflare Workers, Docker |
-| `references/agentize-mcp-transports.md` | stdio, SSE, Streamable HTTP |
-| `references/agentize-monorepo-layout.md` | Shared core + thin CLI/MCP adapters |
+| `references/mcp-best-practices.md` | Core contracts |
+| `references/python-mcp-server.md` | Python |
+| `references/node-mcp-server.md` | TypeScript/Node |
+| `references/evaluation.md` | Evaluation |
+| `references/agentize-agent-centric-design.md` | Tool design |
+| `references/agentize-auth-resolution-chain.md` | Auth chain |
+| `references/agentize-challenge-framework.md` | Clarification |
+| `references/agentize-deployment-guide.md` | Deployment |
+| `references/agentize-mcp-transports.md` | Transports |
+| `references/agentize-monorepo-layout.md` | Layout |

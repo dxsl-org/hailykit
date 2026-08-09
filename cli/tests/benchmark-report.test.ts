@@ -48,7 +48,7 @@ test('report reaches GO only with matched live decision artifacts and confidence
         ...row, key: `${pairId}:${arm}`, fixtureId: pairId, repeat: 1, provenance: 'live' as const, decisionEligible: true,
         decisionIneligibleReason: null, pairId, blockId: pairId, manifestHash: manifest.manifestHash,
         fixture: { fixtureId: pairId, fixtureClass: 'workflow', fixtureHash: `fh-${pairId}`, promptHash: `ph-${pairId}`, treatmentHash: manifest.fixture.treatmentHash, variant: null },
-        providerExtensions: { outputDigest: String(arm === 'base' ? index : index + 3).repeat(64), evaluation: { deterministicComplete: true, criticalFlags: [], failedChecks: [], scopeDrift: false, unnecessaryWork: false, judgeEvidence: 'none', fixtureSplit: 'private-hash-only-holdout' } },
+        providerExtensions: { outputDigest: `sha256:${String(arm === 'base' ? index : index + 3).repeat(64)}`, evaluation: { deterministicComplete: true, criticalFlags: [], failedChecks: [], scopeDrift: false, unnecessaryWork: false, judgeEvidence: 'none', fixtureSplit: 'private-hash-only-holdout' } },
       };
     });
   });

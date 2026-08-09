@@ -4,6 +4,8 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { buildBenchmarkReport } from '../lib/benchmark/report';
+import { evaluateBenchmarkOutcome } from '../lib/benchmark/identity';
 import { buildWorkflowManifestHash, loadWorkflowFixtures, resolveWorkflowManifest, type WorkflowTreatmentManifest } from '../lib/benchmark/treatment-manifest';
 import { scheduleWorkflowPairs } from '../lib/benchmark/scheduler';
 import { assertCanStartWorkflowCall, createWorkflowBudgetState, consumeWorkflowBudget, validateWorkflowLiveBudget } from '../lib/benchmark/live-budget';
@@ -155,6 +157,7 @@ test('workflow benchmark emits paired observations for both arms', async () => {
   assert.ok(result.observations.every((entry) => !entry.decisionEligible));
   assert.equal(seenCwds.size, 2);
   assert.ok(result.observations.every((entry) => entry.legacy.commitSha));
+  assert.ok(result.observations.every((entry) => entry.legacy.finalAnswer === null));
 });
 
 test('codex app-server backend consumes projected reserve without fabricating observed cost', async () => {
@@ -180,11 +183,79 @@ test('codex app-server backend consumes projected reserve without fabricating ob
   assert.ok(result.observations.every((entry) => entry.backend === 'codex_app_server'));
   assert.ok(result.observations.every((entry) => entry.modelVerificationSource === 'thread_start_exact'));
   assert.ok(result.observations.every((entry) => entry.metrics.tokens.costUsd === null));
-  assert.ok(result.observations.every((entry) => entry.legacy.finalAnswer === 'final answer'));
+  assert.ok(result.observations.every((entry) => entry.legacy.finalAnswer === null));
+  assert.ok(result.observations.every((entry) => entry.providerExtensions.outputDigest === 'sha256:89cc8a2763c6c9b7cbc8058d68c260aedc026dba2b3a47b4e2cb44fcb8747efe'));
   assert.ok(result.observations.every((entry) => {
     const workflow = entry.providerExtensions.workflow as Record<string, unknown>;
     return workflow.projectedSpendReserveUsd === 0.5;
   }));
+});
+
+test('workflow runner promotes locally evaluated rows and never serializes raw answers', async () => {
+  const { repoRoot, fixtureRoot } = initWorkflowRepo();
+  const sentinel = 'secret sentinel final answer';
+  const localFixture = {
+    fixtureId: 'workflow-a',
+    fixtureClass: 'evidence_trap',
+    promptHash: '4efc8d44133e525ba7f9bfe51690671dd39d6c8a69b2276ff40a99c35fe99295',
+    prompt: 'Return the evidence-trap fixture result.',
+    localEvaluation: {
+      schemaVersion: 1,
+      mode: 'text_checks',
+      split: 'public-training',
+      deterministicEvidence: {
+        testsPassed: true,
+        requiredArtifacts: [],
+        observedArtifacts: [],
+        requiredInstructions: [],
+        satisfiedInstructions: [],
+        forbiddenInstructions: [],
+        violatedInstructions: [],
+        allowedScopePaths: ['cli/lib'],
+        changedPaths: ['cli/lib/benchmark/workflow-runner.ts'],
+        escalationRequired: false,
+        escalationPerformed: false,
+        rollbackRequired: false,
+        rollbackProvided: false,
+        necessaryToolCalls: 0,
+      },
+      checks: {
+        requiredSubstrings: ['sentinel final answer'],
+        forbiddenSubstrings: ['do not include'],
+      },
+    },
+  };
+  fs.writeFileSync(path.join(fixtureRoot, 'sample-fixture-a.json'), `${JSON.stringify(localFixture, null, 2)}\n`, 'utf8');
+  execFileSync('git', ['add', '.'], { cwd: repoRoot, stdio: 'ignore' });
+  execFileSync('git', ['commit', '-m', 'add local evaluator fixture'], { cwd: repoRoot, stdio: 'ignore' });
+  const result = await runWorkflowBenchmark(repoRoot, manifest(repoRoot, fixtureRoot, {
+    repeats: 1,
+    budget: { projectedCalls: 4, projectedSpendUsd: 1, maxCalls: 4, maxSpendUsd: 10, maxWallMs: 1000, maxOutputBytes: 1000 },
+  }), {
+    runTrial: ({ fixture }) => ({
+      ...response(),
+      rawOutput: fixture.fixtureId === 'workflow-a' ? sentinel : null,
+      metrics: { ...response().metrics, outputBytes: fixture.fixtureId === 'workflow-a' ? sentinel.length : 0 },
+    }),
+  });
+  const eligible = result.observations.filter((entry) => entry.fixtureId === 'workflow-a');
+  const legacy = result.observations.filter((entry) => entry.fixtureId === 'workflow-b');
+  assert.equal(eligible.length, 2);
+  assert.ok(eligible.every((entry) => entry.decisionEligible));
+  assert.ok(eligible.every((entry) => entry.metrics.outcomeScore === 1));
+  assert.ok(eligible.every((entry) => entry.legacy.finalAnswer === null));
+  assert.ok(eligible.every((entry) => typeof entry.providerExtensions.outputDigest === 'string'));
+  assert.ok(legacy.every((entry) => !entry.decisionEligible));
+  const lines = [
+    JSON.stringify(result.manifest),
+    ...result.observations.map((entry) => JSON.stringify(entry)),
+    JSON.stringify(evaluateBenchmarkOutcome(result.manifest, result.observations)),
+  ];
+  const artifactText = `${lines.join('\n')}\n`;
+  assert.doesNotMatch(artifactText, /secret sentinel final answer/);
+  assert.match(artifactText, /sha256:/);
+  const report = buildBenchmarkReport(artifactText);
+  assert.doesNotMatch(JSON.stringify(report), /secret sentinel final answer/);
 });
 
 test('workflow treatment is loaded from each pinned commit and bound to each arm', async () => {

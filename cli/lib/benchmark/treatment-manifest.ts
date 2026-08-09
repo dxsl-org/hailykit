@@ -3,14 +3,65 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { sha256, stableStringify } from '../reasoning-harness/hash';
 import { validateCalibration, validateMarginRegistry } from './schema-fixture';
-import { asRecord, assertKeys, optString, reqBoolean, reqEnum, reqInt, reqString } from './schema-helpers';
+import { asRecord, assertKeys, reqBoolean, reqEnum, reqInt, reqString } from './schema-helpers';
 import { validateWorkflowLiveBudget, type WorkflowLiveBudget } from './live-budget';
 import type { BenchmarkCalibrationState, BenchmarkMarginRegistry, BenchmarkProvider, BenchmarkProvenance, BenchmarkWorkflowBackend } from './types';
 import type { EvalTier } from '../reasoning-harness/types';
 
 export type WorkflowPolicy = 'read_only' | 'workspace_write';
-export interface WorkflowFixtureDefinition { fixtureId: string; fixtureClass: string; promptHash: string; prompt?: string; }
-export interface WorkflowFixtureRecord extends Omit<WorkflowFixtureDefinition, 'prompt'> { fixtureHash: string; relativePath: string; prompt: string | null; }
+export type WorkflowFixtureSplit = 'public-training' | 'public-locked-validation' | 'private-hash-only-holdout';
+export interface WorkflowFixtureLocalDeterministicEvidence {
+  testsPassed: boolean | null;
+  requiredArtifacts: string[];
+  observedArtifacts: string[];
+  requiredInstructions: string[];
+  satisfiedInstructions: string[];
+  forbiddenInstructions: string[];
+  violatedInstructions: string[];
+  allowedScopePaths: string[];
+  changedPaths: string[];
+  escalationRequired: boolean;
+  escalationPerformed: boolean;
+  rollbackRequired: boolean;
+  rollbackProvided: boolean;
+  necessaryToolCalls: number | null;
+}
+export interface WorkflowJsonContractChecks {
+  requiredTopLevelKeys: string[];
+  forbiddenTopLevelKeys: string[];
+}
+export interface WorkflowTextChecks {
+  requiredSubstrings: string[];
+  forbiddenSubstrings: string[];
+}
+export type WorkflowFixtureLocalEvaluation =
+  | {
+    schemaVersion: 1;
+    mode: 'json_contract';
+    split: WorkflowFixtureSplit;
+    deterministicEvidence: WorkflowFixtureLocalDeterministicEvidence;
+    checks: WorkflowJsonContractChecks;
+  }
+  | {
+    schemaVersion: 1;
+    mode: 'text_checks';
+    split: WorkflowFixtureSplit;
+    deterministicEvidence: WorkflowFixtureLocalDeterministicEvidence;
+    checks: WorkflowTextChecks;
+  };
+export interface WorkflowFixtureDefinition {
+  fixtureId: string;
+  fixtureClass: string;
+  promptHash: string;
+  prompt?: string;
+  localEvaluation?: WorkflowFixtureLocalEvaluation;
+}
+export interface WorkflowFixtureRecord extends Omit<WorkflowFixtureDefinition, 'prompt' | 'localEvaluation'> {
+  fixtureHash: string;
+  relativePath: string;
+  prompt: string | null;
+  localEvaluation: WorkflowFixtureLocalEvaluation | null;
+}
 export interface WorkflowTreatmentManifest {
   provider: BenchmarkProvider; tier: EvalTier; requestedModel: string; policy: WorkflowPolicy; provenance: BenchmarkProvenance;
   liveEquivalent: boolean; budgetAcknowledged: boolean; budget: WorkflowLiveBudget; baseRef: string; candidateRef: string;
@@ -23,7 +74,9 @@ export interface WorkflowTreatmentManifest {
 export interface ResolvedWorkflowManifest extends Omit<WorkflowTreatmentManifest, 'providerFootprintArtifactHash' | 'backend'> { backend: BenchmarkWorkflowBackend; providerFootprintArtifactHash: string | null; baseCommitSha: string; candidateCommitSha: string; fixtureRoot: string; }
 
 const MANIFEST_KEYS = ['provider', 'tier', 'requestedModel', 'policy', 'provenance', 'liveEquivalent', 'budgetAcknowledged', 'budget', 'baseRef', 'candidateRef', 'fixtureRoot', 'fixturePaths', 'repeats', 'randomSeed', 'cliVersion', 'configSnapshotHash', 'componentClass', 'ablations', 'marginRegistry', 'calibration', 'evaluatorEvidenceHash', 'backend', 'providerFootprintArtifactHash', 'treatmentFiles'] as const;
-const FIXTURE_KEYS = ['fixtureId', 'fixtureClass', 'promptHash', 'prompt'] as const;
+const FIXTURE_KEYS = ['fixtureId', 'fixtureClass', 'promptHash', 'prompt', 'localEvaluation'] as const;
+const LOCAL_EVALUATION_KEYS = ['schemaVersion', 'mode', 'split', 'deterministicEvidence', 'checks'] as const;
+const LOCAL_EVIDENCE_KEYS = ['testsPassed', 'requiredArtifacts', 'observedArtifacts', 'requiredInstructions', 'satisfiedInstructions', 'forbiddenInstructions', 'violatedInstructions', 'allowedScopePaths', 'changedPaths', 'escalationRequired', 'escalationPerformed', 'rollbackRequired', 'rollbackProvided', 'necessaryToolCalls'] as const;
 const DENY_PATH = /(^|\/)\.(env|aws|ssh)(\/|$)|id_rsa|credentials/i;
 
 export function resolveWorkflowManifest(repoRoot: string, value: WorkflowTreatmentManifest): ResolvedWorkflowManifest {
@@ -78,7 +131,15 @@ export function loadWorkflowFixtures(manifest: ResolvedWorkflowManifest): Workfl
     const promptHash = reqString(record.promptHash, `workflow fixture ${relativePath}.promptHash`);
     if (prompt && sha256(prompt) !== promptHash) throw new Error(`workflow fixture ${relativePath} promptHash mismatch`);
     if (manifest.provenance === 'live' && !prompt) throw new Error(`live workflow fixture ${relativePath} requires prompt text`);
-    return { fixtureId: reqString(record.fixtureId, 'workflow fixture.fixtureId'), fixtureClass: reqString(record.fixtureClass, 'workflow fixture.fixtureClass'), promptHash, prompt, fixtureHash: sha256(raw.replace(/\r\n/g, '\n')), relativePath: normalized };
+    return {
+      fixtureId: reqString(record.fixtureId, 'workflow fixture.fixtureId'),
+      fixtureClass: reqString(record.fixtureClass, 'workflow fixture.fixtureClass'),
+      promptHash,
+      prompt,
+      localEvaluation: record.localEvaluation === undefined ? null : validateWorkflowFixtureLocalEvaluation(record.localEvaluation, relativePath),
+      fixtureHash: sha256(raw.replace(/\r\n/g, '\n')),
+      relativePath: normalized,
+    };
   });
 }
 
@@ -93,11 +154,70 @@ function resolveFixtureRoot(repoRoot: string, relativePath: string): string {
   if (!fs.statSync(resolved).isDirectory()) throw new Error('workflow fixtureRoot must be a directory');
   return resolved;
 }
+function validateWorkflowFixtureLocalEvaluation(value: unknown, relativePath: string): WorkflowFixtureLocalEvaluation {
+  const record = asRecord(value, `workflow fixture ${relativePath}.localEvaluation`);
+  assertKeys(record, LOCAL_EVALUATION_KEYS, `workflow fixture ${relativePath}.localEvaluation`);
+  const schemaVersion = reqInt(record.schemaVersion, `workflow fixture ${relativePath}.localEvaluation.schemaVersion`);
+  if (schemaVersion !== 1) throw new Error(`workflow fixture ${relativePath}.localEvaluation.schemaVersion must be 1`);
+  const mode = reqEnum(record.mode, ['json_contract', 'text_checks'], `workflow fixture ${relativePath}.localEvaluation.mode`);
+  const split = reqEnum(record.split, ['public-training', 'public-locked-validation', 'private-hash-only-holdout'], `workflow fixture ${relativePath}.localEvaluation.split`);
+  const deterministicEvidence = validateWorkflowFixtureLocalDeterministicEvidence(record.deterministicEvidence, relativePath);
+  if (mode === 'json_contract') {
+    const checks = asRecord(record.checks, `workflow fixture ${relativePath}.localEvaluation.checks`);
+    assertKeys(checks, ['requiredTopLevelKeys', 'forbiddenTopLevelKeys'], `workflow fixture ${relativePath}.localEvaluation.checks`);
+    return {
+      schemaVersion,
+      mode,
+      split,
+      deterministicEvidence,
+      checks: {
+        requiredTopLevelKeys: flexibleStringArray(checks.requiredTopLevelKeys, `workflow fixture ${relativePath}.localEvaluation.checks.requiredTopLevelKeys`),
+        forbiddenTopLevelKeys: flexibleStringArray(checks.forbiddenTopLevelKeys, `workflow fixture ${relativePath}.localEvaluation.checks.forbiddenTopLevelKeys`),
+      },
+    };
+  }
+  const checks = asRecord(record.checks, `workflow fixture ${relativePath}.localEvaluation.checks`);
+  assertKeys(checks, ['requiredSubstrings', 'forbiddenSubstrings'], `workflow fixture ${relativePath}.localEvaluation.checks`);
+  return {
+    schemaVersion,
+    mode,
+    split,
+    deterministicEvidence,
+    checks: {
+      requiredSubstrings: flexibleStringArray(checks.requiredSubstrings, `workflow fixture ${relativePath}.localEvaluation.checks.requiredSubstrings`),
+      forbiddenSubstrings: flexibleStringArray(checks.forbiddenSubstrings, `workflow fixture ${relativePath}.localEvaluation.checks.forbiddenSubstrings`),
+    },
+  };
+}
+function validateWorkflowFixtureLocalDeterministicEvidence(value: unknown, relativePath: string): WorkflowFixtureLocalDeterministicEvidence {
+  const record = asRecord(value, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence`);
+  assertKeys(record, LOCAL_EVIDENCE_KEYS, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence`);
+  return {
+    testsPassed: nullableBoolean(record.testsPassed, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence.testsPassed`),
+    requiredArtifacts: flexibleStringArray(record.requiredArtifacts, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence.requiredArtifacts`),
+    observedArtifacts: flexibleStringArray(record.observedArtifacts, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence.observedArtifacts`),
+    requiredInstructions: flexibleStringArray(record.requiredInstructions, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence.requiredInstructions`),
+    satisfiedInstructions: flexibleStringArray(record.satisfiedInstructions, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence.satisfiedInstructions`),
+    forbiddenInstructions: flexibleStringArray(record.forbiddenInstructions, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence.forbiddenInstructions`),
+    violatedInstructions: flexibleStringArray(record.violatedInstructions, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence.violatedInstructions`),
+    allowedScopePaths: flexibleStringArray(record.allowedScopePaths, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence.allowedScopePaths`),
+    changedPaths: flexibleStringArray(record.changedPaths, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence.changedPaths`),
+    escalationRequired: reqBoolean(record.escalationRequired, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence.escalationRequired`),
+    escalationPerformed: reqBoolean(record.escalationPerformed, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence.escalationPerformed`),
+    rollbackRequired: reqBoolean(record.rollbackRequired, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence.rollbackRequired`),
+    rollbackProvided: reqBoolean(record.rollbackProvided, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence.rollbackProvided`),
+    necessaryToolCalls: record.necessaryToolCalls === null
+      ? null
+      : reqInt(record.necessaryToolCalls, `workflow fixture ${relativePath}.localEvaluation.deterministicEvidence.necessaryToolCalls`),
+  };
+}
 function resolveNoLinks(root: string, relativePath: string): string { let current = root; for (const part of relativePath.split('/')) { current = path.join(current, part); if (fs.lstatSync(current).isSymbolicLink()) throw new Error(`workflow path cannot contain a symlink or junction: ${relativePath}`); } const real = fs.realpathSync.native(current); const rel = path.relative(root, real); if (rel.startsWith('..') || path.isAbsolute(rel)) throw new Error(`workflow path escapes root: ${relativePath}`); return real; }
 function safeRelativePath(value: string): string { const normalized = value.replace(/\\/g, '/'); if (!normalized || path.posix.isAbsolute(normalized) || normalized.split('/').includes('..') || DENY_PATH.test(normalized)) throw new Error(`unsafe workflow path: ${value}`); return normalized; }
 function stringArray(value: unknown, name: string): string[] { if (!Array.isArray(value) || !value.length) throw new Error(`${name} must be a non-empty string array`); return value.map((entry, index) => reqString(entry, `${name}[${index}]`)); }
+function flexibleStringArray(value: unknown, name: string): string[] { if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) throw new Error(`${name} must be a string array`); return value as string[]; }
 function treatmentFileSets(value: unknown): { base: string[]; candidate: string[] } { const record = asRecord(value, 'workflow manifest.treatmentFiles'); assertKeys(record, ['base', 'candidate'], 'workflow manifest.treatmentFiles'); return { base: stringArray(record.base, 'workflow manifest.treatmentFiles.base'), candidate: stringArray(record.candidate, 'workflow manifest.treatmentFiles.candidate') }; }
 function boundedRepeats(value: unknown): number { const repeats = reqInt(value, 'workflow manifest.repeats', 1); if (repeats > 256) throw new Error('workflow repeats must be between 1 and 256'); return repeats; }
 function safeRequestedModel(value: string): string { if (!/^[A-Za-z0-9._:/-]+$/.test(value)) throw new Error('workflow requestedModel contains unsafe characters'); return value; }
 function assertCleanRepo(root: string): void { if (execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim()) throw new Error('workflow benchmark refuses dirty source trees'); }
 function resolveCommitSha(root: string, ref: string): string { const value = execFileSync('git', ['rev-parse', '--verify', `${ref}^{commit}`], { cwd: root, encoding: 'utf8' }).trim(); if (!/^[0-9a-f]{40}$/i.test(value)) throw new Error(`ref did not resolve to a commit SHA: ${ref}`); return value; }
+function nullableBoolean(value: unknown, name: string): boolean | null { return value === null ? null : reqBoolean(value, name); }

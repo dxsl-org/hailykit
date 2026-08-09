@@ -6,6 +6,7 @@ import type { BenchmarkObservation, BenchmarkWorkflowBackend } from './types';
 import type { BenchmarkManifest } from './types';
 import { sha256, stableStringify } from '../reasoning-harness/hash';
 import { hashMarginIdentity } from './identity';
+import { evaluateLocalAnswer } from './local-answer-evaluator';
 import { createWorkflowWorkspaces } from './workflow-workspaces';
 import { finalizeWorkflowPairs, makeWorkflowFailureObservation, makeWorkflowObservation, validateWorkflowProviderResponse } from './workflow-observation';
 import { buildWorkflowTreatmentPrompt, combineTreatmentAndFixture, type WorkflowTreatmentPrompt } from './workflow-treatment';
@@ -59,6 +60,7 @@ async function executeSchedule(
   deps: WorkflowRunnerDeps,
 ): Promise<BenchmarkObservation[]> {
   const rows: BenchmarkObservation[] = [];
+  const localEvaluations = new Map<string, ReturnType<typeof evaluateLocalAnswer>>();
   let state = createWorkflowBudgetState();
   let stopReason: string | null = null;
   for (const scheduledArm of scheduled) {
@@ -75,14 +77,33 @@ async function executeSchedule(
       const response = await deps.runTrial({ backend: manifest.backend, manifest, fixture, arm: scheduledArm.arm, pairId: scheduledArm.pairId, blockId: scheduledArm.blockId, cwd: armCwd[scheduledArm.arm], prompt: combineTreatmentAndFixture(treatment, fixture.prompt), treatment: { bytes: treatment.bytes, digest: treatment.digest, files: treatment.files }, remainingBudget: remainingBudget(state, manifest) });
       const validated = validateWorkflowProviderResponse(response, manifest);
       state = consumeWorkflowBudget(state, manifest.budget, usageFromResponse(manifest, validated), manifest.liveEquivalent);
-      rows.push(makeWorkflowObservation(manifest, fixture, scheduledArm, manifestHash, validated, deps.now?.() ?? new Date().toISOString(), { bytes: treatment.bytes, digest: treatment.digest, files: treatment.files }));
+      const rowKey = `${fixture.fixtureId}#${scheduledArm.repeat}#${scheduledArm.arm}`;
+      const localEvaluation = evaluateLocalAnswer({
+        rowKey,
+        localEvaluation: fixture.localEvaluation,
+        rawOutput: validated.rawOutput,
+        policySatisfied: validated.policySatisfied,
+        modelVerified: validated.modelVerified,
+        provenance: manifest.provenance,
+      });
+      localEvaluations.set(rowKey, localEvaluation);
+      rows.push(makeWorkflowObservation(
+        manifest,
+        fixture,
+        scheduledArm,
+        manifestHash,
+        validated,
+        deps.now?.() ?? new Date().toISOString(),
+        { bytes: treatment.bytes, digest: treatment.digest, files: treatment.files },
+        localEvaluation.outputDigest,
+      ));
     } catch (error) {
       const reason = errorMessage(error);
       rows.push(makeWorkflowFailureObservation(manifest, fixture, scheduledArm, manifestHash, reason));
       if (isBudgetFailure(reason)) stopReason = reason;
     }
   }
-  return finalizeWorkflowPairs(rows);
+  return finalizeWorkflowPairs(rows, localEvaluations);
 }
 
 function remainingBudget(state: WorkflowBudgetState, manifest: ResolvedWorkflowManifest): WorkflowTrialRequest['remainingBudget'] {

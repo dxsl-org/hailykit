@@ -1,3 +1,5 @@
+import { applyObservationEvaluation, evaluateObservation } from './evaluators';
+import type { LocalAnswerEvaluationResult } from './local-answer-evaluator';
 import type { BenchmarkProviderResponse } from './provider-contract';
 import { validateMeasuredProviderMetrics } from './schema-metrics';
 import type { ScheduledWorkflowArm } from './scheduler';
@@ -15,7 +17,16 @@ export function validateWorkflowProviderResponse(response: BenchmarkProviderResp
   return { ...response, metrics };
 }
 
-export function makeWorkflowObservation(manifest: ResolvedWorkflowManifest, fixture: WorkflowFixtureRecord, arm: ScheduledWorkflowArm, manifestHash: string, response: BenchmarkProviderResponse, createdAt: string, treatment: { bytes: number; digest: string; files: string[] }): BenchmarkObservation {
+export function makeWorkflowObservation(
+  manifest: ResolvedWorkflowManifest,
+  fixture: WorkflowFixtureRecord,
+  arm: ScheduledWorkflowArm,
+  manifestHash: string,
+  response: BenchmarkProviderResponse,
+  createdAt: string,
+  treatment: { bytes: number; digest: string; files: string[] },
+  outputDigest: string | null,
+): BenchmarkObservation {
   if (response.actualModel !== null && !response.modelSatisfied) throw new Error(`workflow model mismatch: expected ${manifest.requestedModel}, got ${response.actualModel}`);
   return baseObservation(manifest, fixture, arm, manifestHash, {
     actualModel: response.actualModel, modelSatisfied: response.modelSatisfied, modelVerified: response.modelVerified,
@@ -36,6 +47,7 @@ export function makeWorkflowObservation(manifest: ResolvedWorkflowManifest, fixt
         ? manifest.budget.projectedSpendUsd / manifest.budget.projectedCalls
         : null,
     },
+    outputDigest,
   });
 }
 
@@ -43,23 +55,31 @@ export function makeWorkflowFailureObservation(manifest: ResolvedWorkflowManifes
   return baseObservation(manifest, fixture, arm, manifestHash, {
     actualModel: null, modelSatisfied: false, modelVerified: false, modelVerificationSource: 'unknown',
     status: failureStatus(reason), statusClass: 'unmeasured', metrics: emptyMetrics(), reason,
-    response: null, extensions: { failureClass: failureClass(reason) },
+    response: null, extensions: { failureClass: failureClass(reason) }, outputDigest: null,
   });
 }
 
-export function finalizeWorkflowPairs(rows: BenchmarkObservation[]): BenchmarkObservation[] {
+export function finalizeWorkflowPairs(rows: BenchmarkObservation[], localEvaluations: Map<string, LocalAnswerEvaluationResult> = new Map()): BenchmarkObservation[] {
   const byPair = new Map<string, BenchmarkObservation[]>();
   for (const row of rows) { if (!row.pairId) continue; if (!byPair.has(row.pairId)) byPair.set(row.pairId, []); byPair.get(row.pairId)!.push(row); }
   return [...byPair.values()].flatMap((pair) => {
     const arms = new Set(pair.map((row) => row.arm));
     const complete = pair.length === 2 && arms.has('base') && arms.has('candidate') && pair.every((row) => row.statusClass === 'measured');
-    return pair.map((row) => ({ ...row, pairStatus: complete ? 'paired' as const : 'missing_pair' as const, decisionEligible: false, decisionIneligibleReason: complete ? 'raw workflow observation awaits deterministic evaluation' : 'paired arm failed or was not measured' }));
+    return pair.map((row) => applyLocalEvaluation(
+      {
+        ...row,
+        pairStatus: complete ? 'paired' as const : 'missing_pair' as const,
+        decisionEligible: false,
+        decisionIneligibleReason: complete ? 'raw workflow observation awaits deterministic evaluation' : 'paired arm failed or was not measured',
+      },
+      complete ? localEvaluations.get(row.key) ?? null : null,
+    ));
   });
 }
 
 function baseObservation(manifest: ResolvedWorkflowManifest, fixture: WorkflowFixtureRecord, arm: ScheduledWorkflowArm, manifestHash: string, state: {
   actualModel: string | null; modelSatisfied: boolean; modelVerified: boolean; modelVerificationSource: BenchmarkObservation['modelVerificationSource'];
-  status: BenchmarkStatus; statusClass: BenchmarkObservation['statusClass']; metrics: BenchmarkMetrics; reason: string; response: BenchmarkProviderResponse | null; extensions: Record<string, unknown>;
+  status: BenchmarkStatus; statusClass: BenchmarkObservation['statusClass']; metrics: BenchmarkMetrics; reason: string; response: BenchmarkProviderResponse | null; extensions: Record<string, unknown>; outputDigest: string | null;
 }): BenchmarkObservation {
   return {
     v: 2, kind: 'benchmark_observation', source: 'benchmark_v2', backend: manifest.backend, key: `${fixture.fixtureId}#${arm.repeat}#${arm.arm}`, fixtureId: fixture.fixtureId, repeat: arm.repeat,
@@ -69,11 +89,35 @@ function baseObservation(manifest: ResolvedWorkflowManifest, fixture: WorkflowFi
     pairId: arm.pairId, blockId: arm.blockId, arm: arm.arm, pairStatus: 'missing_pair',
     fixture: { fixtureId: fixture.fixtureId, fixtureClass: fixture.fixtureClass, fixtureHash: fixture.fixtureHash, promptHash: fixture.promptHash, treatmentHash: manifestHash, variant: null }, manifestHash,
     metrics: state.metrics,
-    providerExtensions: { ...(state.response?.providerExtensions ?? {}), workflow: { baseCommitSha: manifest.baseCommitSha, candidateCommitSha: manifest.candidateCommitSha, budget: manifest.budget, evaluatorEvidenceHash: manifest.evaluatorEvidenceHash, ...state.extensions } },
-    legacy: { baselineEligible: null, attemptedComplete: state.statusClass === 'measured', actualPolicy: state.response?.policy ?? 'read_only', policySatisfied: state.response?.policySatisfied ?? false, coverage: null, hardChecksPassed: null, hardChecksTotal: null, finalAnswer: state.response?.rawOutput ?? null, note: state.response?.note ?? state.reason, commitSha: arm.arm === 'base' ? manifest.baseCommitSha : manifest.candidateCommitSha, providerFootprintArtifactHash: null },
+    providerExtensions: {
+      ...(state.response?.providerExtensions ?? {}),
+      ...(state.outputDigest ? { outputDigest: state.outputDigest } : {}),
+      workflow: { baseCommitSha: manifest.baseCommitSha, candidateCommitSha: manifest.candidateCommitSha, budget: manifest.budget, evaluatorEvidenceHash: manifest.evaluatorEvidenceHash, ...state.extensions },
+    },
+    legacy: { baselineEligible: null, attemptedComplete: state.statusClass === 'measured', actualPolicy: state.response?.policy ?? 'read_only', policySatisfied: state.response?.policySatisfied ?? false, coverage: null, hardChecksPassed: null, hardChecksTotal: null, finalAnswer: null, note: state.response?.note ?? state.reason, commitSha: arm.arm === 'base' ? manifest.baseCommitSha : manifest.candidateCommitSha, providerFootprintArtifactHash: null },
   };
 }
 
 function emptyMetrics(): BenchmarkMetrics { return { outcomeLabel: 'not_measured', outcomeScore: null, wallMs: null, ttftMs: null, outputBytes: null, tokens: { inputTokens: null, outputTokens: null, totalTokens: null, costUsd: null, cacheReadTokens: null, cacheWriteTokens: null, reasoningTokens: null, costSource: 'unknown' }, contextOccupancy: null, contextCompactionBytes: null, toolCalls: null, toolErrors: null, toolRetries: null, approvals: null, subagentCount: null, subagentDepth: null, hookCalls: null, hookLatencyMs: null, hookContextBytes: null }; }
 function failureStatus(reason: string): BenchmarkStatus { if (/auth|quota|rate limit/i.test(reason)) return 'auth_failure'; if (/timeout|timed out/i.test(reason)) return 'timeout'; if (/model mismatch/i.test(reason)) return 'model_mismatch'; return 'incomplete'; }
 function failureClass(reason: string): string { if (/budget|maxCalls|maxSpendUsd|maxWallMs|maxOutputBytes|requires known/i.test(reason)) return 'budget_stop'; if (/auth|quota|rate limit/i.test(reason)) return 'provider_auth'; if (/timeout/i.test(reason)) return 'provider_timeout'; return 'provider_failure'; }
+function applyLocalEvaluation(row: BenchmarkObservation, localEvaluation: LocalAnswerEvaluationResult | null): BenchmarkObservation {
+  if (!localEvaluation?.evidence) return row;
+  const baseEvaluation = evaluateObservation(row, localEvaluation.evidence);
+  const evaluated = applyObservationEvaluation(row, {
+    ...baseEvaluation,
+    failedChecks: localEvaluation.failedCheckIds.length ? localEvaluation.failedCheckIds : baseEvaluation.failedChecks,
+  });
+  const prior = evaluated.providerExtensions.evaluation as Record<string, unknown>;
+  return {
+    ...evaluated,
+    providerExtensions: {
+      ...evaluated.providerExtensions,
+      evaluation: {
+        ...prior,
+        fixtureSplit: localEvaluation.fixtureSplit,
+        fixtureMetadataHash: row.fixture.fixtureHash,
+      },
+    },
+  };
+}

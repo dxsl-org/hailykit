@@ -2,6 +2,9 @@
 
 ## 2026-08
 
+- Complete: single-pass benchmark evaluation and routing-rule compression
+  - Goal: score explicit workflow contracts without a second model call and remove repeated routing prose without losing unique behavior.
+  - Status: implemented locally; raw answers are digest-only in artifacts, legacy `--evidence` remains available, and the two routing files are 41.59% smaller by normalized bytes. Build/skill checks and 635/635 tests pass; static benchmark emits 1,235 rows. No paid live run was performed in this implementation wave.
 - Complete: hook, guardrail, harness, and skill prompt optimization
   - Goal: measure every injected Markdown class, remove storytelling/repeated simple HOW, and process skills in small independently tested batches.
   - Status: Phases 0-6 complete locally — net source footprint fell by 81,896 normalized bytes, static/hook artifacts and semantic gates pass, and the full suite passes 628/628. Two live pairs averaged 10.36% fewer total tokens; an exploratory rubric scored both arms 8/8, while canonical behavior equivalence remains inconclusive and observed USD cost is unavailable.
