@@ -12,7 +12,7 @@ metadata:
 
 # Security Audit — STRIDE + OWASP
 
-Structured security audit on a given scope. Produces a severity-ranked findings report. With `--fix`, applies patches iteratively against a guard (tests or lint) per finding.
+Run a scoped security audit and produce a severity-ranked findings report. With `--fix`, remediate iteratively behind a guard.
 
 ## Usage
 
@@ -20,24 +20,14 @@ Structured security audit on a given scope. Produces a severity-ranked findings 
 {skill:hc-security} [<scope>] [--quick] [--deep] [--fix] [--iterations N] [--cross]
 ```
 
-`scope` is a file glob or `full` — defaults to `full` when omitted.
+`scope` is a file glob or `full`; omitted means `full`.
 
-| Flag | Behavior |
-|------|----------|
-| *(none)* | Full STRIDE + OWASP audit → severity-ranked report |
-| `--quick` | Secrets + deps + common vuln patterns only. No STRIDE. ~2 min. |
-| `--deep` | Every Critical finding gets refuter votes before it can block — pointer to `{skill:hc-review}` `references/review-adversarial.md` → `## --deep: Refuter Votes` (survival table, skeptic contract; do not duplicate here). Mutually exclusive with `--quick` — `--deep` wins if both are given. Auto-on via `haily.json` `deep.auto`; an explicit `--quick` overrides it. See `--deep Mode` below for the cross-review egress rule. |
-| `--fix` | Audit then apply fixes iteratively (default 10 iterations) |
-| `--iterations N` | Cap fix loop at N iterations; only meaningful with `--fix` |
-| `--cross` | Send the finished findings report through `hailykit cross-review --stage code` for an external second opinion. Only meaningful combined with `--deep` (see `--deep Mode`) — standalone it has no effect. Never auto-activates; `haily.json crossReview.auto` is the config equivalent. |
-
-```
-{skill:hc-security}                              # Full codebase audit
-{skill:hc-security} src/api/**/*.ts              # Audit API layer only
-{skill:hc-security} --quick                      # Pre-commit fast scan
-{skill:hc-security} --deep --cross               # Max-scrutiny audit + refuter votes + external second opinion
-{skill:hc-security} src/ --fix --iterations 15   # Audit + bounded fix loop
-```
+- *(none)* Full STRIDE + OWASP audit.
+- `--quick` Secrets, deps, and common vuln patterns only.
+- `--deep` Every Critical finding gets refuter votes before it can block. Mutually exclusive with `--quick`; `--deep` wins if both are given. `haily.json` `deep.auto` can enable it by default, but explicit `--quick` still wins.
+- `--fix` Audit then apply fixes iteratively (default 10 iterations).
+- `--iterations N` Cap the fix loop.
+- `--cross` Run `hailykit cross-review --stage code` on the finished deep-audit report only.
 
 ## Constraints
 
@@ -45,66 +35,41 @@ Structured security audit on a given scope. Produces a severity-ranked findings 
 
 ## Process
 
-1. **Scope** — expand `<scope>` glob or `full` into file list; read all in-scope files. Emit: `✓ Scope: N files`
-2. **STRIDE scan** — check each dimension against `references/quality-stride-owasp.md`: Spoofing, Tampering, Repudiation, Information Disclosure, DoS, Elevation of Privilege
-3. **OWASP mapping** — map each finding to A01–A10; check full checklist in `references/quality-stride-owasp.md`
-4. **Dependency audit** — run `npm audit` / `pip-audit` / `govulncheck` / `cargo audit` per detected stack. Independent of step 5 — issue both in the same batch, not sequentially
-5. **Secret detection** — grep in-scope files with patterns from `references/tech-secret-patterns.md`; redact actual values in report
-6. **Categorize** — rank findings Critical → High → Medium → Low → Info; assign `file:line` citations. **Under `--deep`:** run refuter votes on every Critical finding before it can appear as blocking (see `--deep Mode`).
-7. **Report** — produce findings table; save to `.agents/reports/security-YYMMDD-HHMM-{slug}.md`. **Under `--deep` with `--cross`/`crossReview.auto`:** run the Cross Review pass on the finished report (see `--deep Mode`) before finalizing.
+1. Expand scope, read every in-scope file, and report `✓ Scope: N files`.
+2. Run STRIDE against `references/quality-stride-owasp.md`.
+3. Map findings to OWASP A01-A10.
+4. Run dependency audit for the detected stack.
+5. Run secret detection with `references/tech-secret-patterns.md`; redact actual values.
+6. Rank findings Critical → High → Medium → Low → Info with `file:line` evidence.
+7. Save `.agents/reports/security-YYMMDD-HHMM-{slug}.md`.
 
-Emit: `✓ Audit: N files — X critical, Y high, Z medium, W low, V info`
+Emit `✓ Audit: N files — X critical, Y high, Z medium, W low, V info`.
 
-### Finding Severity
-
-| Severity | Description | Fix Priority |
-|----------|-------------|-------------|
-| Critical | Exploitable now, data breach or RCE risk | Immediate — block release |
-| High | Exploitable with moderate effort, significant impact | This sprint |
-| Medium | Limited exploitability or impact | Next sprint |
-| Low | Theoretical risk, defense-in-depth improvement | Backlog |
-| Info | Best practice suggestion, no direct risk | Optional |
+Critical means exploitable now or breach/RCE risk and must block release. High is significant and this-sprint; Medium next-sprint; Low backlog defense-in-depth; Info optional best practice.
 
 ## --quick Mode
 
-Skips STRIDE and OWASP mapping. Runs:
-
-- **Secret detection** — `hailykit secrets <scope> --json` (redacted, exits non-zero on findings). Native, zero-dep, gitignore-aware. For deep/historical git-history scans use `gitleaks` instead.
-- **Dependency audit** — for detected stack
-- **Common vuln patterns** — `hailykit vuln-scan <scope> --json` (SQL injection, XSS, command injection, path traversal, `eval()`, unsafe deserialization, disabled TLS). A fast regex complement — treat findings as leads; use `semgrep` for data-flow/AST-grade analysis.
-- **`.env` exposure check** — verify no tracked `.env` files in git
-
-Pattern packs ship in the CLI (`cli/commands/scan/patterns-*.ts`); `references/tech-secret-patterns.md` and `references/tech-vulnerability-patterns.md` document them and remain the source for manual/extended grep audits.
+Skip STRIDE/OWASP mapping. Run `hailykit secrets <scope> --json`, dependency audit, `hailykit vuln-scan <scope> --json`, and tracked-`.env` check. Patterns: `references/tech-secret-patterns.md`, `references/tech-vulnerability-patterns.md`.
 
 Emit: `✓ Quick scan: N files — X findings`
 
 ## --fix Mode
 
-After audit, sort findings Critical → Low then for each:
-
-1. Apply patch via `{skill:hc-fix}`
-2. Run guard — tests or lint; if guard fails, halt and report; do not continue
-3. Commit `security(fix): <desc>`
-
-`--iterations N` caps total fix cycles (default: 10). Both `--quick` and full audit modes support `--fix`.
+Sort by severity. For each: patch via `{skill:hc-fix}`, run the guard, halt on failure, commit `security(fix): <desc>`. `--iterations N` caps cycles; quick/full modes both support `--fix`.
 
 ## --deep Mode
 
-Every Critical finding gets refuter votes before it can appear as blocking in the report — 2–3 independent `haily-reviewer` subagents check each Critical finding, same skeptic contract and survival table as `{skill:hc-review}` `references/review-adversarial.md` → `## --deep: Refuter Votes` (pointer, not a copy — vote thresholds live there). A finding that fails to survive votes demotes to advisory, attached with the refutation evidence, never silently dropped. `--quick` and `--deep` are mutually exclusive — `--deep` wins if both are given. Auto-on via `haily.json` `deep.auto`; an explicit `--quick` overrides the config default.
+Every Critical finding gets refuter votes before it can block. Reuse `{skill:hc-review}` `references/review-adversarial.md` → `## --deep: Refuter Votes`. A finding that fails to survive votes demotes to advisory with refutation evidence, never disappears. `--deep` wins over simultaneous `--quick`; explicit `--quick` overrides configured `deep.auto`.
 
-**Cross Review (egress-gated):** an audit report describes exploitable vulnerabilities, so sending it externally matters twice as much as an ordinary diff — `--deep` alone never authorizes this. Only when `--cross` is also passed, or `haily.json crossReview.auto` is true, run `hailykit cross-review --stage code` on the finished report for an external second opinion; findings merge as confidence-raising, tagged `[cross: <cli>/<model>]`. Skips silently when no eligible reviewer CLI is installed.
+**Cross Review (egress-gated):** `--deep` never authorizes egress. Only `--cross` or `crossReview.auto` permits `hailykit cross-review --stage code` on the final report. Tag merged notes `[cross: <cli>/<model>]`. Skips silently when no eligible reviewer CLI is installed.
 
-**Parity hint (upward):** on an `ultra`-tier session, `--deep` still spawns refuter votes when requested — the tier only adds an advisory note that the marginal gain over the default audit is smaller. See `docs/engineering-standards.md` § Depth Tiers → Parity hint.
-
-## Session Model
-
-Judgment agents (`haily-planner`, `haily-implementor`, `haily-reviewer`, `haily-brainstormer`, `haily-debugger`, ...) inherit the session model — running on `{model:ultra}` passes that model through automatically. Mechanical agents stay capped at their `model_max` tier and never escalate. Depth tiers use the canonical vocabulary (`fast|medium|thinking|ultra`, compared by ordinal rank — never the literal string) and are surfaced to every subagent via `HL_MODEL_TIER`; see `docs/engineering-standards.md` → Depth Tiers.
+On an `ultra` session, requested `--deep` still runs votes; only note the smaller marginal gain. See `docs/engineering-standards.md` § Depth Tiers.
 
 ## Workflow Position
 
-**Follows:** `{skill:hc-plan}` — integrate as a verification step before shipping; `{skill:hl-brainstorm} --debate` — when security persona flags concerns
-**Precedes:** `{skill:hc-ship}` — resolve Critical/High findings before release
-**Related:** `{skill:hc-review}`, `{skill:hl-brainstorm} --debate` — deeper auth/authorization edge case coverage via 12-dimension sweep
+**Follows:** `{skill:hc-plan}`; `{skill:hl-brainstorm} --debate`
+**Precedes:** `{skill:hc-ship}` — resolve Critical/High first
+**Related:** `{skill:hc-review}`, `{skill:hl-brainstorm} --debate`
 
 ## References
 

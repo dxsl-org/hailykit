@@ -318,3 +318,23 @@ Four always-on generated-rule bodies fell from `17,255` to `12,718` normalized b
 `hl-write` was isolated because `craft-prose-antipatterns.md` is `flat_inline`. Its source hot pair fell from `37,362` to `17,932` bytes (`-52.00%`); the actual flat-provider bundle, including reference stubs, fell from `42,170` to `22,740` (`-19,430`, `-46.08%`). Tests retain genre collisions, evidence/citation floors, canon/ledger/import/style contracts, auto-mode halts, single-agent fallback, density ceilings, specificity, and fiction's separate brief/world/canon grounding.
 
 Final static inventory: `1,235` observations, run-specific `manifestHash=1c783cea8bbd36faebe78da514b8f8f80120b038d11359b201e9eb5bea8b488c`. These are source/installed footprint and deterministic contract results, not live quality or latency evidence.
+
+## Remaining Rules and Skill Prompt Compression (2026-08-10)
+
+The remaining approved hot-prompt wave fell from `128,200` to `78,731` normalized bytes: `-49,469` (`-38.59%`, about `-12,367` estimated tokens). The total includes the two contributor/documentation rule bodies, fourteen skill bodies, and the deliberately strengthened `hl-write` contract. It is a catalog total, not a per-request saving: a request pays only the rules and skills actually injected.
+
+| Batch | Before | After | Delta |
+|---|---:|---:|---:|
+| contributor + documentation rules | 6,616 | 3,441 | -3,175 |
+| thinking/productivity skills | 47,803 | 28,565 | -19,238 |
+| OCR/optimize/security/test skills | 32,527 | 16,327 | -16,200 |
+| reasoning/mindmap/stats/Git/lookup skills | 29,352 | 18,440 | -10,912 |
+| `hl-write` contract repair | 11,902 | 11,958 | +56 |
+
+The evaluator now distinguishes negated safety statements such as “never invent citations” from affirmed forbidden behavior. Focused tests lock frontmatter, routing, evidence, destructive Git separation, security boundaries, fallback order, and byte ceilings. Final gates pass: build, `664/664` tests, `40` skills / `1,046` cross-references, and `git diff --check`.
+
+Static evidence contains `1,235` observations with run-specific `manifestHash=bccf9f7230e0c8927990304702319b86b2290b2d04314d06920f2973cf51030b`, measured against immutable baseline `491c6aa4d1f765c91dc7cb0965f6244176254d58`. Static footprint and deterministic contracts do not establish live behavioral equivalence, latency, or cost.
+
+A minimum-budget live smoke then ran one `hl-write` contract fixture once per arm on verified `gpt-5.4-mini` (`manifestHash=206b082a6111e46d561e269ab79cb8d99a77117047a6f50c36d2c3ce3d7682e4`). The base passed all seven contract groups; the candidate omitted the explicit single-agent fallback and failed group 7. Candidate total tokens fell `0.29%`, while input tokens rose `0.31%`; these one-pair differences are descriptive only. The result is a negative smoke signal and does not support behavioral equivalence. Observed USD cost remained unavailable; `$0.15` was the hard reserve ceiling.
+
+The emitted outcome was `no_go`, but the compare/report bridge rejected `observedMeanScore=-1` because its schema currently requires a non-negative value. This is a reporting-harness defect; no extra calls were spent and the two raw observations remain valid.

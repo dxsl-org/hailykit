@@ -25,6 +25,7 @@ flat_inline: [references/craft-prose-antipatterns.md]
 `));
   for (const marker of [
     '**Required — research-before-write:**',
+    'If evidence is missing, state unknown and request a source',
     'Never fabricate citations, interviews, testimonials, legal grounds, achievements, or survey data',
     '**Required — canon-first:**',
     'retcons append `supersedes:`',
@@ -43,7 +44,8 @@ flat_inline: [references/craft-prose-antipatterns.md]
     'scripts/style-stats.mjs',
     'missing career facts',
     'unconfirmed international grant funder/call',
-    'Single-agent hosts perform writer, editor, and researcher roles sequentially in separate turns',
+    'Single-agent hosts perform researcher → writer → editor sequentially in separate turns',
+    'if subagents are unavailable, continue in order and never skip a role',
   ]) assert.ok(skill.includes(marker), `hl-write lost: ${marker}`);
   for (const reference of [
     'workspace-schema.md', 'import-mode.md', 'context-assembly.md', 'review-passes.md', 'citation-styles.md',

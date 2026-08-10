@@ -9,9 +9,9 @@ metadata:
   keywords: [docs, llms-txt, api, library, context7, versioned, comparison, migration]
 ---
 
-# Lookup — context7 Documentation Discovery
+# Lookup — Current, Versioned Documentation
 
-Script-first documentation discovery using the llms.txt standard. Supports precise topic queries, version-pinned lookups, library comparisons, and migration guides — no manual URL construction needed.
+Discover current library docs through context7 `llms.txt`, including version, comparison, migration, and repository fallback.
 
 ## Usage
 
@@ -19,94 +19,58 @@ Script-first documentation discovery using the llms.txt standard. Supports preci
 {skill:hc-lookup} [library[@version]] [topic]
 {skill:hc-lookup} [lib1] vs [lib2] [topic]
 {skill:hc-lookup} [library] migration [version-range]
+
+{skill:hc-lookup} react@19 useOptimistic
+{skill:hc-lookup} hono vs express middleware
+{skill:hc-lookup} next.js migration 14-to-15
 ```
 
-```
-{skill:hc-lookup} shadcn "date picker"
-{skill:hc-lookup} next.js "app router data fetching"
-{skill:hc-lookup} react@19 useOptimistic          ← version-specific
-{skill:hc-lookup} prisma@5 transactions            ← version-specific
-{skill:hc-lookup} hono vs express middleware        ← parallel comparison
-{skill:hc-lookup} react vs vue lifecycle            ← parallel comparison
-{skill:hc-lookup} next.js migration 14-to-15       ← migration guide
-{skill:hc-lookup} prisma 4-to-5 breaking-changes   ← upgrade planning
-```
+Query shape selects topic, version, overview, comparison, migration, or repo fallback.
 
-## Execution Modes
+## Constraints
 
-| Mode | Trigger | Speed | Agents | Use when |
-|---|---|---|---|---|
-| **Topic-specific** | feature keyword in query | ⚡ 10–15s | 2–3 | Precise API/feature lookup |
-| **Version-specific** | `library@version` syntax | ⚡ 10–30s | 2–3 | Version-pinned behavior (API changed!) |
-| **Library-level** | library name only | ⚡⚡ 30–60s | 3–7 | Library overview or broad concepts |
-| **Comparison** | `vs` between two library names | ⚡⚡ 30–90s | parallel pairs | Choosing between libraries or porting |
-| **Migration** | `migration` / `changelog` / `upgrade` in query | ⚡⚡ 30–120s | 3–5 | Upgrade planning, breaking change audit |
-| **Repo analysis** | no llms.txt on context7 | ⚡⚡⚡ 5–10min | varies | Unlisted or private libraries |
+> **Required — source freshness:** Fetch documentation during this run and attribute claims to returned sources. Do not answer changing API/version questions from model memory alone.
 
-**Mode is auto-detected** from the query shape — no flag needed.
+> **Required — version fidelity:** Preserve an explicit `@version`. If version-specific docs return 404, fall back to general docs and disclose that the evidence is not version-pinned.
 
 ## Process
 
-Execute scripts in order — scripts handle URL construction, fallback chains, and error handling automatically:
+Run in order; scripts own URL construction and fallback:
 
-1. **Detect query type and extract metadata**
-   ```bash
-   node scripts/detect-topic.js "<user query>"
-   # → {topic, library, version?, isTopicSpecific}
-   # → {isComparison: true, libraries: ["lib1","lib2"], topic?}
-   # → {isMigration: true, library, migrationQuery}
-   ```
+1. **Detect** — `node scripts/detect-topic.js "<query>"`; preserve library, version, topic, comparison, and migration metadata.
+2. **Fetch** — `node scripts/fetch-docs.js "<query>"`; for comparison, run one chain per library in parallel.
+3. **Distribute** — for multiple URLs, pipe content to `node scripts/analyze-llms-txt.js -` and follow its strategy.
+4. **Synthesize** — answer with sources, version scope, and disclosed fallback.
 
-2. **Fetch documentation** (per library; run in parallel for comparison mode)
-   ```bash
-   node scripts/fetch-docs.js "<user query>"
-   # → llms.txt content or error
-   ```
+For versioned queries, try `/v2/llms.txt` or `/tags/v5.0.0/llms.txt` before general docs. Comparisons load `references/flow-library-search.md` per branch and use equal criteria. Migrations load `references/flow-repo-analysis.md` and prioritize official migration guides, changelogs, upgrade notes, and breaking changes. If context7 lacks the library, identify repository-fallback sources.
 
-3. **Analyze and distribute** (when multiple URLs returned)
-   ```bash
-   cat llms.txt | node scripts/analyze-llms-txt.js -
-   # → {totalUrls, distribution, strategy}
-   ```
+## Output
 
-### Version-specific lookup
-When `@version` is detected, `fetch-docs.js` appends the version to the context7 URL path
-(`/v2/llms.txt`, `/tags/v5.0.0/llms.txt`). Fall back to general llms.txt if version-specific
-URL returns 404, then note the fallback in the response.
+Return direct source links, queried versions, and any general-doc or repository fallback.
 
-### Comparison mode
-Spawn two parallel lookup chains (one per library). Present side-by-side once both complete.
-Load `references/flow-library-search.md` for each branch.
+Scripts:
 
-### Migration mode
-Route to `references/flow-repo-analysis.md` with migration-specific prompt: focus on
-CHANGELOG, migration guides, and breaking-changes docs. Filter URL list to entries matching
-`migration`, `changelog`, `upgrade`, `breaking`.
+| Script | Output |
+|---|---|
+| `scripts/detect-topic.js` | query type, libraries, topic, version |
+| `scripts/fetch-docs.js` | fetched `llms.txt` or error |
+| `scripts/analyze-llms-txt.js` | URL categories and distribution strategy |
 
-## Scripts
+Environment search order: `process.env` → `.claude/skills/hc-lookup/.env` → `.claude/skills/.env` → `.claude/.env`. `CONTEXT7_API_KEY` raises rate limits; `GITHUB_TOKEN` supports repository fallback.
 
-| Script | Purpose | Output |
-|---|---|---|
-| `detect-topic.js` | Classify query: topic/version/comparison/migration/general | `{topic, library, version?, isTopicSpecific, isComparison?, isMigration?}` |
-| `fetch-docs.js` | Construct context7.com URLs + fetch | llms.txt content or error |
-| `analyze-llms-txt.js` | Categorize URLs, recommend agent distribution | `{totalUrls, distribution, strategy}` |
+## Workflow Position
 
-**Environment:** Load `.env` from (first match): `process.env` → `.claude/skills/hc-lookup/.env` → `.claude/skills/.env` → `.claude/.env`.
-Set `CONTEXT7_API_KEY` for higher rate limits; `GITHUB_TOKEN` for repo-analysis fallback.
+**Precedes:** `{skill:hc-plan}` or `{skill:hl-research}` — current API evidence informs decisions
+**Used alongside:** `{skill:hl-brainstorm}`
+**Related:** `{skill:hc-docs}` — generates `llms.txt`
 
 ## References
 
 | File | Content |
 |---|---|
-| `references/flow-topic-search.md` | Topic-specific and version-specific query workflow |
-| `references/flow-library-search.md` | General library search + comparison workflow |
-| `references/flow-repo-analysis.md` | Repo fallback + migration/changelog workflow |
-| `references/context7-patterns.md` | URL patterns, known repositories, versioned URL formats |
-| `references/errors.md` | Error handling, fallback strategies |
-| `references/advanced.md` | Edge cases, versioning, multi-language, conflict resolution |
-
-## Workflow Position
-
-**Used alongside:** any skill that needs up-to-date library or framework documentation
-**Common callers:** `{skill:hl-brainstorm}`, `{skill:hc-plan}`, `{skill:hl-research}`
-**Related:** `{skill:hc-docs}` (generates llms.txt), `{skill:hl-research}` (multi-source research)
+| `references/flow-topic-search.md` | Topic and version lookup |
+| `references/flow-library-search.md` | Library and comparison lookup |
+| `references/flow-repo-analysis.md` | Repository and migration fallback |
+| `references/context7-patterns.md` | Repository and version URL patterns |
+| `references/errors.md` | Errors and fallbacks |
+| `references/advanced.md` | Version conflicts and edge cases |

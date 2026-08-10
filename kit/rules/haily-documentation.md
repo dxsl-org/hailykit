@@ -1,49 +1,35 @@
-# Project Documentation Management
+# Project documentation management
 
-## Living Docs
+## Living docs
 
-Keep these current in `./docs`:
+Keep these current in `./docs`: `project-roadmap.md`, `project-changelog.md`, `system-architecture.md`, `code-standards.md`.
 
-| File | Holds |
-|------|-------|
-| `project-roadmap.md` | phases, milestones, progress |
-| `project-changelog.md` | significant changes, features, fixes |
-| `system-architecture.md` | architecture + significant structural changes |
-| `code-standards.md` | codebase structure + code standards |
+## Update triggers
 
-## Update Triggers
-
-The `haily-project-manager` agent MUST update docs above when: phase status changes (e.g. In Progress → Complete) · major feature ships · significant bug/security patch lands · timeline or scope shifts · external dependency or breaking change occurs.
-
-**Protocol:** read current state first → keep version + formatting consistent → verify links/dates/cross-refs after → confirm updates match actual implementation progress.
+`haily-project-manager` updates the living docs when phase status changes, a major feature ships, a significant bug or security fix lands, scope/timeline changes, or an external dependency/breaking change appears. Protocol: read current state first, keep format/versioning consistent, then verify links, dates, and cross-references against the actual implementation state.
 
 ## Plans
 
-Save plans in `.agents/` (gitignored — never ships). Folder name from the `## Naming` pattern injected by hooks, e.g. `.agents/251101-1505-auth-and-profile/`.
+Save plans under `.agents/` and never ship them. Layout:
 
-```
+```text
 .agents/<plan-name>/
-├── research/        # haily-researcher-XX-report.md
-├── reports/         # scout, review, agent reports
-├── plan.md          # overview access point
+├── research/
+├── reports/
+├── plan.md
 └── phase-NN-<slug>.md
 ```
 
-**Templates:** ship with HailyKit, installed to `.claude/templates/` (source: `kit/templates/`).
+Templates install to `.claude/templates/` from `kit/templates/`.
 
-### Report Retention
+## Report retention
 
-- Active plans (<30 days): keep all reports
-- Completed plans: archive `reports/` → `.agents/archive/YYYYMM/<plan-name>/`
-- Stale (>90 days, no active plan): delete
-- >20 reports in one plan: consolidate older ones into `consolidated-summary.md`
+- Active plans under 30 days: keep all reports.
+- Completed plans: archive `reports/` to `.agents/archive/YYYYMM/<plan-name>/`.
+- Stale plans over 90 days with no activity: delete.
+- More than 20 reports: consolidate older ones into `consolidated-summary.md`.
 
-`haily-project-manager` triggers archival when closing plan.
+## Required plan files
 
-### plan.md
-
-Generic, <80 lines: each phase with status/progress, links to phase files, key dependencies.
-
-### phase-NN-<slug>.md
-
-Respect `coding.md`. Each phase file contains: **Context Links** · **Overview** (priority, status, description) · **Key Insights** (research findings, critical considerations) · **Requirements** (functional + non-functional) · **Architecture** (design, interactions, data flow) · **Related Code Files** (modify/create/delete) · **Implementation Steps** (numbered) · **Todo List** (checkboxes) · **Success Criteria** (done definition + validation) · **Risk Assessment** (issues + mitigation) · **Security Considerations** · **Next Steps** (dependencies, follow-ups).
+- `plan.md`: generic, under 80 lines, one entry per phase with status/progress, links, and key dependencies.
+- `phase-NN-<slug>.md`: must include Context Links, Overview, Key Insights, Requirements, Architecture, Related Code Files, Implementation Steps, Todo List, Success Criteria, Risk Assessment, Security Considerations, and Next Steps. These fields are mandatory because they lock scope, ownership, validation, and follow-up state into one reviewable artifact.

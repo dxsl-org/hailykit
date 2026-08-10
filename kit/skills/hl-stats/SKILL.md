@@ -11,7 +11,7 @@ metadata:
 
 # Stats — Project Code Metrics
 
-Collect and display code statistics for a codebase path: file counts, nLOC, language breakdown (with comment density), complexity hotspots, LLM token estimate, COCOMO effort/cost estimate, test ratio, TODO/FIXME/HACK debt markers, oversized files, and git-history insights (risk hotspots, bus factor, ownership, stale files, 12-week commit velocity, contributor activity, release cadence). Runs on Haiku — fast and cheap.
+Measure code size, languages, comments, complexity, context tokens, tests, debt, COCOMO cost, and Git ownership/activity risk.
 
 ## Usage
 
@@ -20,76 +20,44 @@ Collect and display code statistics for a codebase path: file counts, nLOC, lang
 ```
 
 | Flag | Behavior |
-|------|----------|
-| *(none)* | Human-readable table — language breakdown, COCOMO estimate, hotspots, git insights |
-| `--json` | Compact JSON schema (`v`, `summary`, `cocomo`, `git`, `hotspots`, `thresholds`) |
-| `--lang ts,py` | Filter to specific languages (name or extension) |
-| `--top N` | Show top N complexity hotspots (default: 10) |
-| `--exclude pattern` | Skip paths containing this substring |
-| `--since <days>` | Git churn window in days (default: 180) |
-| `--salary <n>` | Average annual salary for COCOMO cost (default: 56286 USD, scc-compatible) |
-| `--no-git` | Skip git-history insights — also auto-skipped outside a git repo |
+|---|---|
+| `--json` | Compact schema: `v`, `summary`, `tests`, `cocomo`, `git`, `hotspots`, `thresholds` |
+| `--lang ts,py` | Filter languages by name or extension |
+| `--top N` | Hotspot count; default 10 |
+| `--exclude pattern` | Skip paths containing substring |
+| `--since days` | Git churn window; default 180 |
+| `--salary n` | Annual salary for COCOMO cost; default 56286 USD |
+| `--no-git` | Skip Git metrics; automatic outside a Git repo |
 
 ```
-{skill:hl-stats}                     # scan current directory
-{skill:hl-stats} ./src               # scan ./src subtree
-{skill:hl-stats} ./cli --lang ts     # TypeScript files only
-{skill:hl-stats} . --json            # machine-readable output
-{skill:hl-stats} . --since 90        # churn over the last quarter
-{skill:hl-stats} . --salary 120000   # COCOMO cost at local salary levels
+{skill:hl-stats} ./src
+{skill:hl-stats} ./cli --lang ts --top 20
+{skill:hl-stats} . --json --since 90
+{skill:hl-stats} . --salary 120000
 ```
 
 ## Process
 
-Spawn `Task(subagent_type="haily-stats")` with the target path and all provided flags. Present the returned output directly.
+Delegate `Task(subagent_type="haily-stats")` with the target path and every supplied flag. Return its output unchanged.
 
 ## Output
 
-**Table mode (default):** per-language rows (files · nLOC · comments + density % · complexity), COCOMO estimate, test ratio, debt markers, oversized files, complexity hotspots, then git insights — risk hotspots (churn × complexity), bus factor with top owners, stale files, 12-week activity sparkline, contributors, release cadence.
+Default table includes language files/nLOC/comments/complexity, token estimate, COCOMO, test ratio, debt, oversized files, hotspots, bus factor/owners, stale files, 12-week activity, contributors, and release cadence.
 
-**JSON mode (`--json`):** structured schema — use for agent pipelines or follow-up analysis.
+JSON preserves `summary` (files, ncloc, complexity, token_est), `tests` (file counts, nLOC ratio), `debt_markers`, `oversized`, `cocomo` (effort, schedule, people, cost, salary), `git` (window, bus factor, owners, risk hotspots, stale files, activity), `hotspots`, and `thresholds`.
 
-```json
-{
-  "summary": { "files": 54, "ncloc": 4376, "complexity": 1002, "token_est": 78768 },
-  "tests": { "test_files": 10, "source_files": 49, "test_ncloc": 1145, "test_ncloc_ratio": 0.29 },
-  "debt_markers": { "todo": 3, "fixme": 3, "hack": 3, "top": [{ "file": "report.ts", "total": 3 }] },
-  "oversized": { "threshold": 200, "count": 4, "top": [{ "file": "merger.ts", "ncloc": 372 }] },
-  "cocomo": { "effort_months": 12.2, "schedule_months": 6.5, "people": 1.9, "cost_usd": 137473, "salary_usd": 56286 },
-  "git": {
-    "window_days": 180, "bus_factor": 2,
-    "owners": [{ "author": "alice", "share": 48 }],
-    "risk_hotspots": [{ "file": "cli/installer/merger.ts", "risk": 710, "churn": 5, "complexity": 142 }],
-    "stale_days": 365, "stale_total": 3, "stale": [{ "file": "legacy/parser.ts", "last": "2024-01-02" }],
-    "activity": {
-      "weekly_commits": [0, 1, 4, 2, 0, 3, 5, 2, 1, 0, 2, 8], "avg_per_week": 2.3,
-      "active_authors_90d": 2, "total_authors": 3,
-      "last_release": { "tag": "v1.6.7", "date": "2026-06-12" }, "releases_per_month": 1.3
-    }
-  },
-  "hotspots": [{ "file": "cli/installer/merger.ts", "ncloc": 372, "complexity": 142 }],
-  "thresholds": { "complexity_warn": 15, "complexity_error": 25, "file_loc_warn": 200 }
-}
-```
+- `token_est = ncloc × 18` estimates context budget.
+- `risk = churn × complexity` prioritizes frequently changed complex files.
+- `bus_factor` is the minimum contributors whose owned files cover at least 50% of nLOC.
+- `cocomo` is directional COCOMO 81 organic-mode replacement cost, not a bid.
+- `tests.test_ncloc_ratio` is test nLOC/source nLOC, not runtime coverage.
+- `debt_markers` counts word-boundary TODO/FIXME/HACK matches, including strings.
+- `activity.weekly_commits` has 12 buckets, oldest to newest.
+- `git: null` means non-Git input or `--no-git`; other metrics remain valid.
 
-Reading the metrics:
-
-- `token_est = ncloc × 18` — budget how many files fit in an LLM context window before loading them.
-- `risk = churn × complexity` — files that are both complex and frequently changed; the highest-priority refactor targets (CodeScene's hotspot model).
-- `bus_factor` — minimum number of contributors whose owned files cover ≥50% of nLOC; 1 means a single knowledge island.
-- `cocomo` — COCOMO 81 organic-mode replacement-cost estimate (same model as scc); directional, not a bid.
-- `tests.test_ncloc_ratio` — test nLOC / source nLOC; a fast coverage proxy without running a test runner.
-- `debt_markers` — lines containing TODO/FIXME/HACK (word-boundary match); strings that merely mention the words also count, as in any grep-based counter.
-- `activity.weekly_commits` — 12 weekly buckets, oldest → newest; rendered as a sparkline in table mode.
-- `git: null` — path is not a git repo or `--no-git` was passed; all other metrics still work.
-
-Thresholds: `⚠ complexity ≥ 15` · `✗ complexity ≥ 25` · file size warn ≥ 200 lines.
-
-Auto-excluded: `node_modules` · `dist` · `.git` · `.next` · `coverage` · `__pycache__` · `target` · `.venv`.
+Thresholds: complexity warning 15, error 25; file warning 200 lines. Auto-excludes `node_modules`, `dist`, `.git`, `.next`, `coverage`, `__pycache__`, `target`, `.venv`.
 
 ## Workflow Position
 
-**Standalone** — no required predecessor or successor.
-**Use before:** {skill:hc-plan}, {skill:hl-research} — understand codebase scope before planning work.
-**Use after:** implementation phases — verify complexity and file-size budgets stayed within thresholds.
-**Related:** {skill:hc-scout} (file search + dependency map), Task(subagent_type="haily-tech-analyst") (full tech debt inventory).
+**Precedes:** `{skill:hc-plan}` or `{skill:hl-research}` — size and risk inform scope
+**Related:** `{skill:hc-scout}`; `Task(subagent_type="haily-tech-analyst")`

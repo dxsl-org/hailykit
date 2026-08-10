@@ -11,7 +11,7 @@ metadata:
 
 # Test — Test Suite Execution Pipeline
 
-Runs the full validation pipeline: typecheck → tests → coverage → build verification. Detects language and framework automatically. `--web` loads web-specific tooling (Playwright, k6, a11y, visual regression, Core Web Vitals).
+Run the validation pipeline for the final code that will be reviewed and merged: typecheck → tests → coverage → build. Detect language and framework automatically.
 
 ## Usage
 
@@ -19,91 +19,49 @@ Runs the full validation pipeline: typecheck → tests → coverage → build ve
 {skill:hc-test} [scope] [--web] [--mutation]
 ```
 
-| Flag | Behavior |
-|------|----------|
-| *(none)* | Run project test suite: typecheck → tests → coverage → build |
-| `--web` | Web-specific testing: load Playwright, k6, a11y, visual regression, CWV references |
-| `--mutation` | Run mutation testing (Stryker/mutmut) scoped to critical-path modules — nightly/pre-merge tier, not the inner loop |
+- *(none)* Standard pipeline: typecheck → tests → coverage → build.
+- `--web` Load Playwright, k6, a11y, visual regression, and Core Web Vitals references.
+- `--mutation` Run mutation testing on critical-path modules; nightly/pre-merge tier, not the inner loop.
 
-```
-{skill:hc-test}                   # full suite
-{skill:hc-test} src/auth/         # scoped to auth module
-{skill:hc-test} --web             # full web test suite
-{skill:hc-test} --web src/checkout # web tests scoped to checkout flow
-{skill:hc-test} src/auth --mutation # mutation score for the auth module
-```
-
-No arguments: run the full project test suite. Add `--web` for web-specific testing. Add `--mutation` for a periodic mutation-score audit on critical-path modules.
+No args runs the full project. Scope may be a path; `--web` enables browser checks and `--mutation` enables periodic mutation audit.
 
 ## Constraints
 
-> **Required — never-ignore-failures:** Fix root causes. Do not mock, stub, or skip tests to force a passing build. A passing build with hidden failures is worse than a failing build.
+> **Required — never-ignore-failures:** Fix root causes. Never mock, stub, or skip tests merely to force green.
 
-> **Required — evidence-before-claims:** Run the full test command and read its output before reporting pass/fail status.
+> **Required — evidence-before-claims:** Run and read the full test command before claiming pass/fail.
 
 ## Process
 
-1. **Route** — parse scope from args; select mode (standard or `--web`). Log `✓ Route: mode=[standard|web], scope=[arg or 'all']`
-
-2. **Recon** — run `hailykit test-detect <path> --json` to identify the framework, runner command, test globs, and coverage threshold from config deterministically (returns `framework: "unknown"` when nothing matches — then fall back to manual inspection). Log `✓ Recon: framework=[name], test files=[N]`
-
-3. **Verify** — execute validation pipeline via `references/flow-execution.md`:
-   - Run typecheck/lint (catch compile errors before tests)
-   - Run test suite; on failure, classify: configuration issue (missing dep, wrong env var, broken import) → fix config and re-run; code bug (logic error, assertion failure, regression) → stop and escalate per § When NOT to Use
-   - Generate coverage; normalize the report with `hailykit coverage-parse <file> --json` (LCOV/Istanbul/pytest/gocover → total % + per-file %) and compare against threshold
-   - Run build verification (production build must exit 0)
-   - For `--web`: load and run web-specific suites (see `## --web Mode`)
-   - Log `✓ Verify: [N/N] tests passed — coverage=[X%] — build=[PASS|FAIL]`
-
-4. **Report** — produce structured QA report to `.agents/reports/` via `references/quality-report.md`. Log `✓ Report: saved to .agents/reports/[filename]`
+1. **Route** — parse scope/mode; log `✓ Route: mode=[standard|web], scope=[arg or 'all']`.
+2. **Recon** — run `hailykit test-detect <path> --json`; if framework is unknown, inspect manually.
+3. **Verify** — follow `references/flow-execution.md`: typecheck/lint, tests, `hailykit coverage-parse <file> --json` against threshold, production build. Retry configuration failures; stop and escalate code regressions.
+4. **Report** — write `.agents/reports/` QA evidence using `references/quality-report.md`.
 
 ## --web Mode
 
-Activated by `--web`. Load these references and run suites in the order that applies to the project:
+With `--web`, load the relevant subset: `references/tech-playwright.md`, `references/tech-k6.md`, `references/tech-a11y.md`, `references/tech-visual-regression.md`, `references/tech-core-web-vitals.md`, `references/quality-cross-browser.md`, `references/flow-ui.md`.
 
-| Reference | Coverage |
-|-----------|----------|
-| `references/tech-playwright.md` | E2E — authoring, selectors, fixtures, parallel execution |
-| `references/tech-k6.md` | Load — scripts, thresholds, ramp-up patterns |
-| `references/tech-a11y.md` | Accessibility — axe-core, ARIA audits, WCAG compliance |
-| `references/tech-visual-regression.md` | Visual regression — screenshot diffing, baseline management |
-| `references/tech-core-web-vitals.md` | Core Web Vitals — LCP, CLS, INP via Lighthouse CI |
-| `references/quality-cross-browser.md` | Cross-browser — Safari/Firefox compat checklist |
-| `references/flow-ui.md` | UI testing workflow — browser automation, auth, reporting |
-
-Use `{skill:hc-browser}` for interactive browser sessions and screenshot analysis. Use `gemini` CLI for describing UI issues from screenshots.
+Use `{skill:hc-browser}` for interactive sessions/screenshots; use `gemini` for screenshot issue descriptions.
 
 ## --mutation Mode
 
-Activated by `--mutation`. Load `references/tech-mutation.md`, detect the project's mutation tool (Stryker for JS/TS, mutmut for Python), scope the run to critical-path modules (policy/validation, orchestrators, auth, payment) or the given scope arg, and run it. Report mutation score plus surviving mutants as findings — weak or assertion-free tests to strengthen, never auto-fixed. This is a nightly/pre-merge/critical-path audit, explicitly not part of the standard typecheck→tests→coverage→build pipeline and never a per-commit gate.
+With `--mutation`, load `references/tech-mutation.md`, detect Stryker/mutmut, limit to passed or critical-path scope, and report score plus surviving mutants. It is never a per-commit gate.
 
-## When NOT to Use
+## Routing
 
-- Tests failing due to a code bug → `{skill:hc-debug}` to investigate, then `{skill:hc-fix}` to fix
-- STRIDE/OWASP security audit → `{skill:hc-security}`
-- Complex test failure analysis → activate `{skill:hl-reasoning}`
+Code failure → `{skill:hc-debug}` then `{skill:hc-fix}`; security audit → `{skill:hc-security}`; complex analysis → `{skill:hl-reasoning}`.
 
 ## Workflow Position
 
-**Follows:** `{skill:hc-cook}` — test after implementation
-**Follows:** `{skill:hc-fix}` — test after bug fix
-**Precedes:** `{skill:hc-review}` — review after tests pass
-**Precedes:** `{skill:hc-optimize}` — when coverage or performance falls short of target
+**Follows:** `{skill:hc-cook}`, `{skill:hc-fix}`
+**Precedes:** `{skill:hc-review}`, `{skill:hc-optimize}`
 **Related:** `{skill:hc-cook}`, `{skill:hc-fix}`
 
-`--mutation` runs as an optional periodic quality audit after the standard suite passes — nightly, pre-merge, or on explicit request, never bundled into the pipeline above.
+Run `--mutation` only after the standard suite, nightly/pre-merge or explicitly.
 
 ## References
 
-| File | Content |
-|------|---------|
-| `references/flow-execution.md` | Test execution per framework, coverage analysis, build verification |
-| `references/quality-report.md` | QA report template and formatting guidelines |
-| `references/tech-mutation.md` | Mutation testing — Stryker/mutmut/cargo-mutants detection, critical-path scoping, score interpretation |
-| `references/tech-playwright.md` | Playwright e2e testing — selectors, fixtures, parallel, sharding |
-| `references/tech-k6.md` | k6 load testing — scripts, thresholds, stress tests |
-| `references/tech-a11y.md` | Accessibility testing — axe-core, WCAG, manual checks |
-| `references/tech-visual-regression.md` | Visual regression — screenshot diffing, baseline management |
-| `references/tech-core-web-vitals.md` | Core Web Vitals — LCP/CLS/INP measurement, Lighthouse CI |
-| `references/quality-cross-browser.md` | Cross-browser and responsive testing checklist |
-| `references/flow-ui.md` | UI testing workflow — browser automation, auth injection, reporting |
+Core: `references/flow-execution.md`, `references/quality-report.md`, `references/tech-mutation.md`.
+
+Web: `references/tech-playwright.md`, `references/tech-k6.md`, `references/tech-a11y.md`, `references/tech-visual-regression.md`, `references/tech-core-web-vitals.md`, `references/quality-cross-browser.md`, `references/flow-ui.md`.

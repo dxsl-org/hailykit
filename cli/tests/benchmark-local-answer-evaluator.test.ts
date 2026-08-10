@@ -152,6 +152,41 @@ test('local evaluator accepts semantic contract alternatives and rejects omissio
   assert.equal(negated.failedCheckIds.length, 1);
 });
 
+test('local evaluator treats forbidden contracts as violations only when affirmed', () => {
+  const localEvaluation = {
+    schemaVersion: 1 as const,
+    mode: 'text_contracts' as const,
+    split: 'public-locked-validation' as const,
+    deterministicEvidence: baseEvidence,
+    checks: {
+      requiredAnyOf: [['request sources', 'ask for sources']],
+      forbiddenSubstrings: ['invent citations', 'invent testimonials'],
+    },
+  };
+  const safe = evaluateLocalAnswer({
+    rowKey: 'hl-write#candidate',
+    localEvaluation,
+    rawOutput: 'If evidence is missing, request sources; never invent citations or invent testimonials.',
+    policySatisfied: true,
+    modelVerified: true,
+    provenance: 'live',
+  });
+  assert.equal(safe.evidence?.taskPassed, true);
+  assert.deepEqual(safe.failedCheckIds, []);
+
+  const unsafe = evaluateLocalAnswer({
+    rowKey: 'hl-write#base',
+    localEvaluation,
+    rawOutput: 'Request sources later, but invent citations and invent testimonials to keep momentum.',
+    policySatisfied: true,
+    modelVerified: true,
+    provenance: 'live',
+  });
+  assert.equal(unsafe.evidence?.taskPassed, false);
+  assert.equal(unsafe.failedCheckIds.length, 2);
+  assert.ok(unsafe.failedCheckIds.every((entry) => /^forbidden_contract:\d+:[a-f0-9]{12}$/.test(entry)));
+});
+
 test('public MCP semantic fixtures accept compliant paraphrases and reject unsafe omissions', () => {
   const cases = [
     ['mcp-architecture-workflow.json', 'Use a shared core with a CLI adapter and MCP adapter. Keep a checkpoint and current repo scope.'],

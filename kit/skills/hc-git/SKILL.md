@@ -14,85 +14,66 @@ metadata:
 ## Usage
 
 ```
-{skill:hc-git} cm|cp|pr|merge|analyze|retro [args]
+{skill:hc-git} cm|cp|pr|merge|analyze|retro|issues [args]
 ```
 
-| Subcommand | Description |
+| Command | Contract |
 |---|---|
-| `cm` | Stage files & create commits |
-| `cp` | Stage files, create commits, and push |
-| `pr [to] [from]` | Create Pull Request (defaults: main / current branch) |
-| `pr --merge <refs...>` | Review-gate, label, and merge the given PRs in order; watch post-merge CI to green |
-| `merge [to] [from]` | Merge branches (defaults: main / current branch) |
-| `analyze [ref]` | Impact analysis: intent, arch delta, tech debt, risk radar, open gaps |
-| `retro [timeframe]` | Data-driven sprint retrospective from git history |
-| `issues [--auto] [--loop] [--filter <label>]` | Discover, prioritize, and delegate GitHub issues |
+| `cm` | Stage and commit |
+| `cp` | Stage, commit, then push |
+| `pr [to] [from]` | Create PR; defaults main/current branch |
+| `pr --merge <refs...>` | Review, label, ordered merge, then post-merge CI watch |
+| `merge [to] [from]` | Merge branches; defaults main/current branch |
+| `analyze [ref]` | Intent, architecture delta, debt, risk, gaps |
+| `retro [timeframe]` | Git-history sprint retrospective |
+| `issues [--auto] [--loop] [--filter label]` | Prioritize and delegate GitHub issues |
 
-No arguments: `AskUserQuestion` (header "Git Operation") with primary options `cm / cp / pr / merge`; note "For analysis: `{skill:hc-git} analyze` | For retro: `{skill:hc-git} retro` | For issues: `{skill:hc-git} issues`".
+Without arguments, ask which operation and include analysis, retro, and issues.
 
 ## Constraints
 
-> **Required — secrets check (cm/cp):** Scan staged diff before every commit. Secrets found → STOP, warn user, suggest `.gitignore`. Never commit secrets.
+> **Required — secrets check:** Before every `cm` or `cp`, scan the staged diff. On any API key, token, password, secret, or credential: stop, name affected files, and suggest `.gitignore`; never commit it.
 
-> **Required — analysis only (analyze/retro):** Do not implement, commit, checkout, merge, or push unless explicitly requested.
+> **Required — explicit mutation:** `analyze` and `retro` are read-only. `cm` never pushes; only `cp` or an explicit push request may push. Do not checkout, merge, commit, or push outside the selected command.
 
-> **Required — merge gate (pr --merge):** Never merge a PR that has not passed the `haily-reviewer` gate (zero Critical/Important findings, no conflicts, required checks green). Merge in input order, delete the head branch on success, and monitor post-merge CI until green or a documented blocker. Never force-push; never direct-push to protected branches.
+> **Required — merge safety:** `pr --merge` requires `haily-reviewer` with zero Critical/Important findings, no conflicts, and green required checks. Merge in order, delete successful head branches, monitor post-merge CI, and never force-push or direct-push protected branches.
 
-## Execution Model
+## Process
 
-**cm / cp / pr / merge** — delegate to `haily-git-manager` subagent; execute in ≤4 tool calls per operation.  
-**pr --merge** — delegates review to `haily-reviewer`, merge mechanics to `haily-git-manager`, and CI-fix convergence to `{skill:hc-fix}`; full protocol in `references/workflow-merge-pr.md`.  
-**analyze / retro** — run inline; require reasoning. Full protocols in `references/workflow-analyze.md` and `references/workflow-retro.md`.  
-**issues** — run inline; full protocol in `references/workflow-issues.md`. Delegates implementation to `{skill:hc-goal}`.
+- `cm`, `cp`, `pr`, `merge`: delegate mechanics to `haily-git-manager`, at most four tool calls per operation.
+- `pr --merge`: use `haily-reviewer`, then `haily-git-manager`; route CI failures to `{skill:hc-fix}`. Load `references/workflow-merge-pr.md`.
+- `analyze`, `retro`, `issues`: run their referenced protocols inline. `issues` delegates implementation to `{skill:hc-goal}`.
 
-## Commit Process (cm / cp)
+For `cm`/`cp`:
 
-1. `git add -A && git diff --cached --stat && git diff --cached --name-only`
-2. Security: `git diff --cached | grep -iE "(api[_-]?key|token|password|secret|credential)"`
-3. Split decision (full logic in `references/workflow-commit.md`):
-   - `.claude/` files: `feat`/`fix`/`perf` only — never `docs`
-   - Split: mixed types, multiple scopes, config+code mixed, FILES > 10 unrelated
-   - Single: same type/scope, FILES ≤ 3, LINES ≤ 50
-4. `git commit -m "type(scope): description"` — search related issues, add to body. No AI attribution.
+1. Stage; inspect staged stat and filenames.
+2. Scan staged content for secrets.
+3. Load `references/workflow-commit.md`; split mixed types/scopes, config+code, or more than 10 unrelated files. Keep a single commit for same type/scope when files ≤3 and lines ≤50. `.claude/` changes use `feat`, `fix`, or `perf`, never `docs`.
+4. Match recent commit style, link issues, omit AI attribution. Push only for `cp`.
 
-## Output Format
-
-```
-✓ staged: N files (+X/-Y lines)
-✓ security: passed
-✓ commit: HASH type(scope): description
-✓ pushed: yes/no
-```
-
-## Error Handling
-
-| Error | Action |
-|-------|--------|
-| Secrets detected | Block commit, show files |
-| No changes | Exit cleanly |
-| Push rejected | Suggest `git pull --rebase` |
-| Merge conflicts | Suggest manual resolution |
+Report staged counts, secret-scan result, commit hash/message, and whether push occurred. On no changes, exit cleanly; on rejected push, suggest `git pull --rebase`; on conflicts, request manual resolution.
 
 ## Workflow Position
 
-**Follows:** `{skill:hc-cook}`, `{skill:hc-fix}` — commit after implementing or fixing
-**Precedes:** `{skill:hc-ship}` — git is part of the release pipeline
-**Related:** `{skill:hc-review}` — run `analyze` before PR review for intent + risk context
-**Related:** `{skill:hc-scout}` — scout for codebase context; `analyze` for change impact
+**Follows:** `{skill:hc-cook}` or `{skill:hc-fix}` — after verified changes
+**Precedes:** `{skill:hc-ship}`
+**Related:** `{skill:hc-review}`, `{skill:hc-scout}`
 
 ## References
 
-- `references/workflow-commit.md` — commit workflow with full split logic
-- `references/workflow-push.md` — push workflow with error handling
-- `references/workflow-pr.md` — PR creation with remote diff analysis
-- `references/workflow-merge.md` — branch merge workflow
-- `references/workflow-analyze.md` — impact analysis protocol (ref forms, data sources, 5-section output)
-- `references/workflow-retro.md` — sprint retrospective protocol (flags, metrics, output)
-- `references/commit-standards.md` — conventional commit format rules
-- `references/safety-protocols.md` — secret detection, branch protection
-- `references/branch-management.md` — naming, lifecycle, strategies
-- `references/gh-cli-guide.md` — GitHub CLI commands reference
-- `references/retro-metrics.md` — metric definitions, git commands, health thresholds
-- `references/retro-report.md` — retro report template with all sections
-- `references/workflow-issues.md` — issue triage protocol: priority playbook, delegation, close logic
-- `references/workflow-merge-pr.md` — pr --merge pipeline: validate, review-gate, label, ordered merge, post-merge CI convergence
+| File | Content |
+|---|---|
+| `references/workflow-commit.md` | Commit and split logic |
+| `references/workflow-push.md` | Push and failures |
+| `references/workflow-pr.md` | PR creation |
+| `references/workflow-merge.md` | Branch merge |
+| `references/workflow-analyze.md` | Impact analysis |
+| `references/workflow-retro.md` | Retrospective |
+| `references/commit-standards.md` | Commit format |
+| `references/safety-protocols.md` | Secrets and branch protection |
+| `references/branch-management.md` | Branch lifecycle |
+| `references/gh-cli-guide.md` | GitHub CLI |
+| `references/retro-metrics.md` | Metric definitions |
+| `references/retro-report.md` | Report template |
+| `references/workflow-issues.md` | Issue triage and delegation |
+| `references/workflow-merge-pr.md` | Review, ordered merge, CI convergence |

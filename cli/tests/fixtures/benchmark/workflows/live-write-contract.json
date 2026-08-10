@@ -1,0 +1,39 @@
+{
+  "fixtureId": "write-contract-v2",
+  "fixtureClass": "skill-behavior-retention",
+  "promptHash": "d0e07b093a5ab59d2763c610e6c69297f50273f0292e654bcf2ae42dd9cd8499",
+  "prompt": "Based only on the supplied HailyKit treatment, define the writing contract for fiction and evidence-bearing nonfiction. Cover grounding, citations, anti-fabrication, canon continuity, unresolved decisions, and the fallback when subagents are unavailable. Do not write the requested document; return only the contract.",
+  "localEvaluation": {
+    "schemaVersion": 1,
+    "mode": "text_contracts",
+    "split": "public-locked-validation",
+    "deterministicEvidence": {
+      "testsPassed": true,
+      "requiredArtifacts": [],
+      "observedArtifacts": [],
+      "requiredInstructions": [],
+      "satisfiedInstructions": [],
+      "forbiddenInstructions": [],
+      "violatedInstructions": [],
+      "allowedScopePaths": [],
+      "changedPaths": [],
+      "escalationRequired": false,
+      "escalationPerformed": false,
+      "rollbackRequired": false,
+      "rollbackProvided": false,
+      "necessaryToolCalls": 0
+    },
+    "checks": {
+      "requiredAnyOf": [
+        ["fiction", "story"],
+        ["nonfiction", "non-fiction"],
+        ["citation", "source"],
+        ["fabricat", "invent"],
+        ["canon", "story bible"],
+        ["unresolved", "halt", "stop"],
+        ["single", "inline", "directly", "without subagents", "subagents unavailable"]
+      ],
+      "forbiddenSubstrings": ["invent citations", "fabricate sources", "ignore canon", "I executed", "I modified"]
+    }
+  }
+}

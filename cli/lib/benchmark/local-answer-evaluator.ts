@@ -124,7 +124,7 @@ function evaluateTextContracts(
     ...checks.requiredAnyOf.flatMap((alternatives, index) => alternatives.some((value) => hasAffirmedMatch(output, normalizeText(value)))
       ? []
       : [boundedCheckId(`required_contract:${index + 1}:${sha256(alternatives.join('\0')).slice(0, 12)}`)]),
-    ...checks.forbiddenSubstrings.flatMap((value, index) => output.includes(normalizeText(value))
+    ...checks.forbiddenSubstrings.flatMap((value, index) => hasAffirmedMatch(output, normalizeText(value))
       ? [boundedCheckId(`forbidden_contract:${index + 1}:${sha256(value).slice(0, 12)}`)]
       : []),
   ];
