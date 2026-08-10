@@ -45,6 +45,8 @@ No `--deep`: each unit already receives the full writer/editor Review Circuit.
 
 > **Required — style-is-voice-only:** `--style` samples may seed diction, cadence, register, POV, and emergent prose rules. Their facts/entities never enter research, `facts.md`, citations, or canon.
 
+> **Required — single-agent fallback:** If subagents are unavailable, perform researcher → writer → editor sequentially in separate turns; never skip or combine roles.
+
 ## Scope Contract
 
 - **Deliverables:** manuscript; long-form also produces characters/glossary/timeline/bibliography appendices.
@@ -96,7 +98,7 @@ Auto-proceeds checkpoints but halts on unresolved Critical after three rounds, b
 └── contradictions.md                    # IMPORT only
 ```
 
-Single-agent hosts perform researcher → writer → editor sequentially in separate turns; if subagents are unavailable, continue in order and never skip a role. Marker/brief/style/outline/ledger/summaries remain mandatory; writer and editor never collapse into one pass; checkpoints and `style-stats.mjs` behavior stay unchanged.
+Marker/brief/style/outline/ledger/summaries remain mandatory; checkpoints and `style-stats.mjs` behavior stay unchanged.
 
 ## Session Model
 

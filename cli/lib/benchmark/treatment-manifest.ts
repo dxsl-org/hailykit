@@ -36,6 +36,7 @@ export interface WorkflowTextChecks {
 }
 export interface WorkflowTextContractChecks {
   requiredAnyOf: string[][];
+  requiredNegatedAnyOf?: string[][];
   forbiddenSubstrings: string[];
 }
 export type WorkflowFixtureLocalEvaluation =
@@ -189,7 +190,7 @@ function validateWorkflowFixtureLocalEvaluation(value: unknown, relativePath: st
   }
   const checks = asRecord(record.checks, `workflow fixture ${relativePath}.localEvaluation.checks`);
   if (mode === 'text_contracts') {
-    assertKeys(checks, ['requiredAnyOf', 'forbiddenSubstrings'], `workflow fixture ${relativePath}.localEvaluation.checks`);
+    assertKeys(checks, ['requiredAnyOf', 'requiredNegatedAnyOf', 'forbiddenSubstrings'], `workflow fixture ${relativePath}.localEvaluation.checks`);
     return {
       schemaVersion,
       mode,
@@ -197,6 +198,9 @@ function validateWorkflowFixtureLocalEvaluation(value: unknown, relativePath: st
       deterministicEvidence,
       checks: {
         requiredAnyOf: flexibleStringMatrix(checks.requiredAnyOf, `workflow fixture ${relativePath}.localEvaluation.checks.requiredAnyOf`),
+        requiredNegatedAnyOf: checks.requiredNegatedAnyOf === undefined
+          ? []
+          : flexibleStringMatrix(checks.requiredNegatedAnyOf, `workflow fixture ${relativePath}.localEvaluation.checks.requiredNegatedAnyOf`),
         forbiddenSubstrings: flexibleStringArray(checks.forbiddenSubstrings, `workflow fixture ${relativePath}.localEvaluation.checks.forbiddenSubstrings`),
       },
     };

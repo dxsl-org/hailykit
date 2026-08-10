@@ -108,3 +108,21 @@ test('NDJSON parser rejects nested metric drift and bad JSON lines', () => {
   assert.throws(() => parseBenchmarkNdjson(`${brokenMetric}\n`), /outcomeScore must be <= 1/);
   assert.throws(() => parseBenchmarkNdjson('not json\n'), /line 1 is not valid JSON/);
 });
+
+test('benchmark outcome accepts a signed paired delta but keeps it bounded', () => {
+  const outcome = {
+    v: 2,
+    kind: 'benchmark_outcome',
+    source: 'benchmark_v2',
+    decision: 'no_go',
+    reasons: ['candidate regressed'],
+    observedMeanScore: -1,
+    threshold: 0,
+    comparedRows: 1,
+  };
+  assert.equal(parseBenchmarkNdjson(`${JSON.stringify(outcome)}\n`)[0].kind, 'benchmark_outcome');
+  assert.throws(
+    () => parseBenchmarkNdjson(`${JSON.stringify({ ...outcome, observedMeanScore: -1.01 })}\n`),
+    /observedMeanScore must be between -1 and 1/,
+  );
+});

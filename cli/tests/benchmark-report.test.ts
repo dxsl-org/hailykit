@@ -31,6 +31,25 @@ test('report escapes HTML, markdown, ANSI, and control characters', () => {
   assert.match(JSON.stringify(report), /&lt;script&gt;/);
 });
 
+test('report round-trips a persisted negative paired outcome', () => {
+  const manifest: BenchmarkManifest = {
+    v: 2, kind: 'benchmark_manifest', source: 'benchmark_v2', provider: 'codex', providerLabel: 'codex', tier: 'fast', requestedModel: 'gpt-5.4-mini',
+    fixture: { fixtureId: 'fixture-a', fixtureClass: 'workflow', fixtureHash: 'fh', promptHash: 'ph', treatmentHash: 'th', variant: null }, provenance: 'live', createdAt: '2026-08-07T00:00:00.000Z', manifestHash: 'mh',
+    modelVerificationWaiver: false, marginRegistry: { metric: 'outcomeScore', threshold: 0, exploratoryBatches: 2, firstDecisionBatch: 3, frozen: false, frozenAt: null, identityHash: 'exploratory' }, calibration: { completedLiveBatches: 1, firstDecisionBatch: 3 }, snapshot: null,
+    legacy: { attemptedComplete: true, baselineEligible: null, commitSha: 'abc', providerFootprintArtifactHash: null },
+  };
+  const base = sampleObservation('base', 10);
+  const candidate = sampleObservation('candidate', 9);
+  base.provenance = candidate.provenance = 'live';
+  base.decisionEligible = candidate.decisionEligible = true;
+  base.decisionIneligibleReason = candidate.decisionIneligibleReason = null;
+  candidate.metrics = { ...candidate.metrics, outcomeLabel: 'fail', outcomeScore: 0 };
+  const outcome: BenchmarkOutcome = { v: 2, kind: 'benchmark_outcome', source: 'benchmark_v2', decision: 'no_go', reasons: ['candidate regressed'], observedMeanScore: -1, threshold: 0, comparedRows: 1 };
+  const report = buildBenchmarkReport(stringifyBenchmarkNdjson([manifest, base, candidate, outcome]), { minimumEffectivePairs: 1 });
+  assert.equal(report.quality.meanDelta, -1);
+  assert.equal(report.decision, 'no_go');
+});
+
 test('report reaches GO only with matched live decision artifacts and confidence gates', () => {
   const manifest: BenchmarkManifest = {
     v: 2, kind: 'benchmark_manifest', source: 'benchmark_v2', provider: 'codex', providerLabel: 'codex', tier: 'fast', requestedModel: 'gpt-5.4-mini',

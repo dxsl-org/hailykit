@@ -28,11 +28,12 @@
         ["fiction", "story"],
         ["nonfiction", "non-fiction"],
         ["citation", "source"],
-        ["fabricat", "invent"],
         ["canon", "story bible"],
         ["unresolved", "halt", "stop"],
-        ["single", "inline", "directly", "without subagents", "subagents unavailable"]
+        ["subagents unavailable", "without subagents", "single-agent", "single agent", "one agent", "fallback"],
+        ["researcher → writer → editor", "researcher -> writer -> editor", "researcher then writer then editor", "researcher, then writer, then editor", "researcher followed by writer followed by editor"]
       ],
+      "requiredNegatedAnyOf": [["fabricat", "invent"]],
       "forbiddenSubstrings": ["invent citations", "fabricate sources", "ignore canon", "I executed", "I modified"]
     }
   }

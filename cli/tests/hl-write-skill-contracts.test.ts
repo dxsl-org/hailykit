@@ -44,9 +44,10 @@ flat_inline: [references/craft-prose-antipatterns.md]
     'scripts/style-stats.mjs',
     'missing career facts',
     'unconfirmed international grant funder/call',
-    'Single-agent hosts perform researcher → writer → editor sequentially in separate turns',
-    'if subagents are unavailable, continue in order and never skip a role',
+    'Required — single-agent fallback:',
+    'If subagents are unavailable, perform researcher → writer → editor sequentially in separate turns',
   ]) assert.ok(skill.includes(marker), `hl-write lost: ${marker}`);
+  assert.ok(skill.indexOf('Required — single-agent fallback:') < skill.indexOf('## Process'));
   for (const reference of [
     'workspace-schema.md', 'import-mode.md', 'context-assembly.md', 'review-passes.md', 'citation-styles.md',
     'playbook-business-report.md', 'playbook-vn-administrative.md', 'playbook-article.md', 'playbook-marketing-copy.md',

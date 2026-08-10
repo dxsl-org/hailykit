@@ -1,5 +1,5 @@
 import type { BenchmarkLegacyFields, BenchmarkMeasuredProviderMetrics, BenchmarkMetrics, BenchmarkObservation, BenchmarkOutcome } from './types';
-import { BENCHMARK_MODEL_SOURCES, BENCHMARK_OUTCOME_LABELS, BENCHMARK_PAIR_STATUSES, BENCHMARK_PROVENANCE, BENCHMARK_STATUSES, BENCHMARK_STATUS_CLASSES, assertKeys, asRecord, optNonNegative, optString, reqBoolean, reqEnum, reqInt, reqNonNegative, reqString } from './schema-helpers';
+import { BENCHMARK_MODEL_SOURCES, BENCHMARK_OUTCOME_LABELS, BENCHMARK_PAIR_STATUSES, BENCHMARK_PROVENANCE, BENCHMARK_STATUSES, BENCHMARK_STATUS_CLASSES, assertKeys, asRecord, optNonNegative, optString, reqBoolean, reqEnum, reqFinite, reqInt, reqNonNegative, reqString } from './schema-helpers';
 
 const TOKEN_KEYS = ['inputTokens', 'outputTokens', 'totalTokens', 'costUsd', 'cacheReadTokens', 'cacheWriteTokens', 'reasoningTokens', 'costSource'] as const;
 const METRIC_KEYS = ['outcomeLabel', 'outcomeScore', 'wallMs', 'ttftMs', 'outputBytes', 'tokens', 'contextOccupancy', 'contextCompactionBytes', 'toolCalls', 'toolErrors', 'toolRetries', 'approvals', 'subagentCount', 'subagentDepth', 'hookCalls', 'hookLatencyMs', 'hookContextBytes'] as const;
@@ -70,13 +70,18 @@ export function validateBenchmarkOutcome(value: unknown): BenchmarkOutcome {
   const record = asRecord(value, 'benchmark outcome');
   assertKeys(record, OUTCOME_KEYS, 'benchmark outcome');
   if (!Array.isArray(record.reasons) || record.reasons.some((entry) => typeof entry !== 'string')) throw new Error('benchmark outcome.reasons must be a string array');
+  const source = reqEnum(record.source, ['benchmark_v2', 'legacy_reasoning_v1', 'static', 'hook'], 'benchmark outcome.source');
   return {
     v: 2,
     kind: 'benchmark_outcome',
-    source: reqEnum(record.source, ['benchmark_v2', 'legacy_reasoning_v1', 'static', 'hook'], 'benchmark outcome.source'),
+    source,
     decision: reqEnum(record.decision, ['go', 'no_go', 'inconclusive'], 'benchmark outcome.decision'),
     reasons: record.reasons as string[],
-    observedMeanScore: record.observedMeanScore === null ? null : boundedScore(record.observedMeanScore, 'benchmark outcome.observedMeanScore'),
+    observedMeanScore: record.observedMeanScore === null
+      ? null
+      : source === 'benchmark_v2'
+        ? boundedSignedScore(record.observedMeanScore, 'benchmark outcome.observedMeanScore')
+        : boundedScore(record.observedMeanScore, 'benchmark outcome.observedMeanScore'),
     threshold: record.threshold === null ? null : boundedScore(record.threshold, 'benchmark outcome.threshold'),
     comparedRows: reqInt(record.comparedRows, 'benchmark outcome.comparedRows'),
   };
@@ -100,5 +105,11 @@ function validateTokens(value: unknown): BenchmarkMetrics['tokens'] {
 function boundedScore(value: unknown, name: string): number {
   const score = reqNonNegative(value, name);
   if (score > 1) throw new Error(`${name} must be <= 1`);
+  return score;
+}
+
+function boundedSignedScore(value: unknown, name: string): number {
+  const score = reqFinite(value, name);
+  if (score < -1 || score > 1) throw new Error(`${name} must be between -1 and 1`);
   return score;
 }

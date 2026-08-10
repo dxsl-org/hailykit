@@ -321,7 +321,7 @@ Final static inventory: `1,235` observations, run-specific `manifestHash=1c783ce
 
 ## Remaining Rules and Skill Prompt Compression (2026-08-10)
 
-The remaining approved hot-prompt wave fell from `128,200` to `78,731` normalized bytes: `-49,469` (`-38.59%`, about `-12,367` estimated tokens). The total includes the two contributor/documentation rule bodies, fourteen skill bodies, and the deliberately strengthened `hl-write` contract. It is a catalog total, not a per-request saving: a request pays only the rules and skills actually injected.
+The remaining approved hot-prompt wave fell from `128,200` to `78,695` normalized bytes: `-49,505` (`-38.62%`, about `-12,376` estimated tokens). The total includes the two contributor/documentation rule bodies, fourteen skill bodies, and the deliberately strengthened `hl-write` contract. It is a catalog total, not a per-request saving: a request pays only the rules and skills actually injected.
 
 | Batch | Before | After | Delta |
 |---|---:|---:|---:|
@@ -329,12 +329,14 @@ The remaining approved hot-prompt wave fell from `128,200` to `78,731` normalize
 | thinking/productivity skills | 47,803 | 28,565 | -19,238 |
 | OCR/optimize/security/test skills | 32,527 | 16,327 | -16,200 |
 | reasoning/mindmap/stats/Git/lookup skills | 29,352 | 18,440 | -10,912 |
-| `hl-write` contract repair | 11,902 | 11,958 | +56 |
+| `hl-write` contract repair | 11,902 | 11,922 | +20 |
 
-The evaluator now distinguishes negated safety statements such as “never invent citations” from affirmed forbidden behavior. Focused tests lock frontmatter, routing, evidence, destructive Git separation, security boundaries, fallback order, and byte ceilings. Final gates pass: build, `664/664` tests, `40` skills / `1,046` cross-references, and `git diff --check`.
+The evaluator now distinguishes negated safety statements such as “never invent citations” from affirmed forbidden behavior. Focused tests lock frontmatter, routing, evidence, destructive Git separation, security boundaries, fallback order, and byte ceilings. Final static gates pass: build, `668/668` tests, `40` skills / `1,046` cross-references, and `git diff --check`.
 
 Static evidence contains `1,235` observations with run-specific `manifestHash=bccf9f7230e0c8927990304702319b86b2290b2d04314d06920f2973cf51030b`, measured against immutable baseline `491c6aa4d1f765c91dc7cb0965f6244176254d58`. Static footprint and deterministic contracts do not establish live behavioral equivalence, latency, or cost.
 
 A minimum-budget live smoke then ran one `hl-write` contract fixture once per arm on verified `gpt-5.4-mini` (`manifestHash=206b082a6111e46d561e269ab79cb8d99a77117047a6f50c36d2c3ce3d7682e4`). The base passed all seven contract groups; the candidate omitted the explicit single-agent fallback and failed group 7. Candidate total tokens fell `0.29%`, while input tokens rose `0.31%`; these one-pair differences are descriptive only. The result is a negative smoke signal and does not support behavioral equivalence. Observed USD cost remained unavailable; `$0.15` was the hard reserve ceiling.
 
-The emitted outcome was `no_go`, but the compare/report bridge rejected `observedMeanScore=-1` because its schema currently requires a non-negative value. This is a reporting-harness defect; no extra calls were spent and the two raw observations remain valid.
+The emitted outcome was `no_go`. The compare/report bridge initially rejected the valid signed delta `observedMeanScore=-1`; the schema now accepts benchmark deltas in `[-1,1]` while retaining non-negative row scores and thresholds, and the original artifact round-trips.
+
+Further diagnosis invalidated the behavioral reading of both smoke outcomes. `requiredAnyOf` used an affirmed matcher, so correct prohibitions such as “never fabricate sources” could not satisfy the anti-fabrication group. Raw answers are intentionally digest-only, so the fallback failures cannot be reclassified semantically after the fact. The evaluator now separates affirmed requirements from `requiredNegatedAnyOf`, and the fixture uses explicit fallback-condition and role-order groups. These changes fix deterministic classification; the existing live rows remain historical, underpowered, and non-decision-grade for behavioral equivalence. No additional live calls ran during this offline correction.

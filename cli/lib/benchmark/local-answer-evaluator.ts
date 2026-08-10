@@ -124,6 +124,9 @@ function evaluateTextContracts(
     ...checks.requiredAnyOf.flatMap((alternatives, index) => alternatives.some((value) => hasAffirmedMatch(output, normalizeText(value)))
       ? []
       : [boundedCheckId(`required_contract:${index + 1}:${sha256(alternatives.join('\0')).slice(0, 12)}`)]),
+    ...(checks.requiredNegatedAnyOf ?? []).flatMap((alternatives, index) => alternatives.some((value) => hasNegatedMatch(output, normalizeText(value)))
+      ? []
+      : [boundedCheckId(`required_negated_contract:${index + 1}:${sha256(alternatives.join('\0')).slice(0, 12)}`)]),
     ...checks.forbiddenSubstrings.flatMap((value, index) => hasAffirmedMatch(output, normalizeText(value))
       ? [boundedCheckId(`forbidden_contract:${index + 1}:${sha256(value).slice(0, 12)}`)]
       : []),
@@ -142,11 +145,26 @@ function normalizeText(value: string): string {
 function hasAffirmedMatch(output: string, value: string): boolean {
   let offset = output.indexOf(value);
   while (offset >= 0) {
-    const prefix = output.slice(Math.max(0, offset - 64), offset);
-    if (!/(?:\b(?:no|not|never|without)\b|\bdo not\b|\bdon't\b|\bmust not\b|\bshould not\b)[^.!?;:\n]{0,40}$/u.test(prefix)) return true;
+    if (!isNegatedAt(output, offset, value.length)) return true;
     offset = output.indexOf(value, offset + value.length);
   }
   return false;
+}
+
+function hasNegatedMatch(output: string, value: string): boolean {
+  let offset = output.indexOf(value);
+  while (offset >= 0) {
+    if (isNegatedAt(output, offset, value.length)) return true;
+    offset = output.indexOf(value, offset + value.length);
+  }
+  return false;
+}
+
+function isNegatedAt(output: string, offset: number, length: number): boolean {
+  const prefix = output.slice(Math.max(0, offset - 64), offset);
+  const suffix = output.slice(offset + length, offset + length + 64);
+  return /(?:\b(?:no|not|never|without)\b|\bavoid(?:s|ed|ing)?\b|\bdo not\b|\bdon't\b|\bmust not\b|\bshould not\b)[^.!?;:\n]{0,40}$/u.test(prefix)
+    || /^[^.!?;:\n]{0,40}\b(?:prohibited|forbidden|disallowed|not allowed|(?:must|should|is|are) be avoided)\b/u.test(suffix);
 }
 
 function boundedCheckId(value: string): string {
