@@ -4,7 +4,7 @@
 
 - Complete: remaining rules and skill prompt compression
   - Goal: remove narrative and basic duplicated HOW from the remaining high-exposure prompt bodies while retaining process, commands, WHY, safety, and provider-neutral routing.
-  - Status: implementation and static gates are complete; the scoped catalog total fell from 128,200 to 78,695 normalized bytes (`-38.62%`). Signed outcomes and text-contract polarity are fixed. The prior digest-only live rows cannot distinguish model omission from evaluator wording, so behavioral equivalence remains unproven; no installer architecture changed.
+  - Status: implementation and static gates are complete; the scoped catalog total fell from 128,200 to 78,695 normalized bytes (`-38.62%`). Signed outcomes and text-contract polarity are fixed. A corrected two-call read-only smoke found no candidate regression and 11.41% fewer total tokens, but remains underpowered and inconclusive for general equivalence; no installer architecture changed.
 - Complete: follow-up prompt optimization and MCP evaluator repair
   - Goal: make MCP checks resilient to valid paraphrases, remove remaining generated-rule duplication, and compress the next high-exposure skill prompts without weakening release, licensing, canon, or evidence contracts.
   - Status: grouped/negation-aware evaluator fixtures and all four prompt batches are implemented locally. Always-on rules fell 26.29%, `hc-ship`/`hc-cop` 52.12%, and the installed `hl-write` bundle 46.08%; final static inventory has 1,235 rows. No new paid live run or behavior-equivalence claim was made.

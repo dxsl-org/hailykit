@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Compressed the remaining two rule bodies and fourteen utility/quality/thinking skill prompts by a net 49,505 normalized bytes (38.62%) while preserving focused safety, routing, evidence, Git, fallback, and output contracts. Signed negative benchmark outcomes now round-trip, and text contracts distinguish affirmed requirements from required prohibitions. Earlier digest-only `hl-write` failures cannot be semantically reclassified, so general equivalence remains unproven.
+- Compressed the remaining two rule bodies and fourteen utility/quality/thinking skill prompts by a net 49,505 normalized bytes (38.62%) while preserving focused safety, routing, evidence, Git, fallback, and output contracts. Signed negative benchmark outcomes now round-trip, and text contracts distinguish affirmed requirements from required prohibitions. A corrected two-call read-only smoke observed equal contract scores and 11.41% fewer candidate tokens; it is a non-regression smoke, not general equivalence proof.
 - Added negation-aware grouped text contracts and five public MCP workflow fixtures, then compressed four generated AGENTS rule bodies by 26.29%, `hc-ship`/`hc-cop` by 52.12%, and the installed `hl-write` flat bundle by 46.08% while preserving focused safety/routing/writing contracts.
 - Added fixture-bound, single-pass workflow answer evaluation: raw output is checked in memory during the existing arm call, canonical observations persist only a SHA-256 digest and bounded evaluation metadata, and the legacy external-evidence path remains compatible.
 - Compressed domain/workflow routing rules from 18,714 to 10,930 normalized bytes (`-41.59%`, about `-1,946` estimated tokens) while contract tests preserve unique routes and security boundaries.
