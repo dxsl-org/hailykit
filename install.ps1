@@ -37,6 +37,29 @@ if ($GithubToken) { $ApiHeaders["Authorization"] = "Bearer $GithubToken" }
 
 function Die($msg) { Write-Error "x $msg"; exit 1 }
 
+function Expand-HailyKitArchive($ZipPath, $DestinationPath) {
+  $lastError = $null
+  $attempts = @(
+    { Expand-Archive -Force -LiteralPath $ZipPath -DestinationPath $DestinationPath },
+    { & tar.exe -xf $ZipPath -C $DestinationPath; if ($LASTEXITCODE -ne 0) { throw "tar exited $LASTEXITCODE" } },
+    { & py.exe -3 -m zipfile -e $ZipPath $DestinationPath; if ($LASTEXITCODE -ne 0) { throw "py exited $LASTEXITCODE" } },
+    { & python.exe -m zipfile -e $ZipPath $DestinationPath; if ($LASTEXITCODE -ne 0) { throw "python exited $LASTEXITCODE" } }
+  )
+
+  foreach ($attempt in $attempts) {
+    if (Test-Path $DestinationPath) { Remove-Item -Recurse -Force $DestinationPath }
+    New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
+    try {
+      & $attempt
+      return
+    } catch {
+      $lastError = $_
+    }
+  }
+
+  throw "No Windows extraction backend succeeded: $($lastError.Exception.Message)"
+}
+
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
   Die "Node.js >=20 is required. Install from https://nodejs.org"
 }
@@ -65,7 +88,7 @@ try {
 
   Write-Host "  Extracting..."
   $extracted = Join-Path $tmp "extracted"
-  Expand-Archive -Force -LiteralPath $zip -DestinationPath $extracted
+  Expand-HailyKitArchive $zip $extracted
 
   # Locate the dir that actually contains dist/ (archives may nest one level).
   if (-not (Test-Path (Join-Path $extracted "dist"))) {

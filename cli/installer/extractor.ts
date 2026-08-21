@@ -1,52 +1,89 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync as defaultExecFileSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 
-/**
- * Extract a zip file into destDir.
- * On Windows uses PowerShell Expand-Archive; on Unix tries unzip then falls back to python3.
- * Uses execFileSync (not shell) to prevent injection via path arguments.
- *
- * @param zipPath - Absolute path to the zip file.
- * @param destDir - Destination directory (created fresh; deleted first if it exists).
- */
-export function extract(zipPath: string, destDir: string): void {
+type ExecFileSync = typeof defaultExecFileSync;
+
+interface ExtractCommand {
+  executable: string;
+  args: string[];
+}
+
+export interface ExtractOptions {
+  platform?: NodeJS.Platform;
+  execFileSync?: ExecFileSync;
+}
+
+function resetDestination(destDir: string): void {
   if (fs.existsSync(destDir)) fs.rmSync(destDir, { recursive: true, force: true });
   fs.mkdirSync(destDir, { recursive: true });
+}
 
-  if (process.platform === 'win32') {
-    // Escape single quotes for the PowerShell single-quoted string literals so a
-    // path containing a quote cannot break out of the -Command expression.
-    const ps = (s: string): string => s.replace(/'/g, "''");
-    execFileSync('powershell', [
-      '-NonInteractive', '-Command',
-      `Expand-Archive -Force -LiteralPath '${ps(zipPath)}' -DestinationPath '${ps(destDir)}'`,
-    ], { stdio: 'pipe' });
-    return;
+function extractionCommands(platform: NodeJS.Platform, zipPath: string, destDir: string): ExtractCommand[] {
+  if (platform === 'win32') {
+    const ps = (value: string): string => value.replace(/'/g, "''");
+    return [
+      {
+        executable: 'powershell',
+        args: [
+          '-NonInteractive',
+          '-Command',
+          `Expand-Archive -Force -LiteralPath '${ps(zipPath)}' -DestinationPath '${ps(destDir)}'`,
+        ],
+      },
+      { executable: 'tar.exe', args: ['-xf', zipPath, '-C', destDir] },
+      { executable: 'py.exe', args: ['-3', '-m', 'zipfile', '-e', zipPath, destDir] },
+      { executable: 'python.exe', args: ['-m', 'zipfile', '-e', zipPath, destDir] },
+    ];
   }
 
-  // Unix: try unzip first, fall back to python3 — args array prevents shell injection.
-  try {
-    execFileSync('unzip', ['-q', '-o', zipPath, '-d', destDir], { stdio: 'pipe' });
-  } catch {
-    execFileSync('python3', ['-m', 'zipfile', '-e', zipPath, destDir], { stdio: 'pipe' });
-  }
+  return [
+    { executable: 'unzip', args: ['-q', '-o', zipPath, '-d', destDir] },
+    { executable: 'python3', args: ['-m', 'zipfile', '-e', zipPath, destDir] },
+  ];
 }
 
 /**
- * Create a uniquely-named temp directory under os.tmpdir().
+ * Extract a zip file into a freshly-created destination directory.
+ * Tries platform-native tools in order so one unavailable system module does
+ * not block installation; each retry starts from an empty destination.
+ *
+ * @param zipPath - Absolute path to the zip file.
+ * @param destDir - Destination directory, replaced if it already exists.
+ * @param options - Test-only platform and process-runner overrides.
+ * @throws When every extraction backend fails.
  */
+export function extract(zipPath: string, destDir: string, options: ExtractOptions = {}): void {
+  const platform = options.platform ?? process.platform;
+  const execFileSync = options.execFileSync ?? defaultExecFileSync;
+  let lastError: unknown;
+
+  for (const command of extractionCommands(platform, zipPath, destDir)) {
+    resetDestination(destDir);
+    try {
+      execFileSync(command.executable, command.args, { stdio: 'pipe' });
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw new Error(`Unable to extract archive: no ${platform} extraction backend succeeded`, {
+    cause: lastError,
+  });
+}
+
+/** Create a uniquely-named temp directory under the system temp directory. */
 export function makeTempDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'hailykit-'));
 }
 
 /**
- * Gitea source archives nest everything inside one subdirectory (e.g. hailykit/).
- * If that's the case, return the inner dir so callers always get the repo root.
+ * Resolve the repository root when an archive nests its contents one level.
  *
  * @param dir - Directory to inspect.
- * @returns The repo root (may be dir itself or its single subdirectory).
+ * @returns The repository root, which may be the input directory itself.
  */
 export function resolveRoot(dir: string): string {
   if (fs.existsSync(path.join(dir, 'cli'))) return dir;

@@ -21,7 +21,7 @@
 | JSON-with-comments | **tiny in-repo `strip-json-comments` util** | npm `strip-json-comments` | Replaces the only external dep the old CLI had. |
 | Polyglot IPC framing | **NDJSON** (one JSON object per line) over stdio, one-shot | LSP Content-Length / JSON-RPC handshake | Simplest robust framing; same line-delimited approach MCP uses, minus the session handshake. |
 | Subprocess | `child_process.spawn` (piped stdio) | execFile | Streams stdin/stdout; supports timeout + SIGTERM, stderr capture. |
-| Zip extraction | `powershell Expand-Archive` (win) / `unzip`→`python3 -m zipfile` (unix) | a zip lib | Zero-dep; ported verbatim from old `lib-extractor`. |
+| Zip extraction | `Expand-Archive`→`tar.exe`→Python (win) / `unzip`→`python3 -m zipfile` (unix) | a zip lib | Zero-dep; resilient when one system extraction backend is unavailable. |
 
 ## Polyglot protocol (one-shot tool invocation)
 
