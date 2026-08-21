@@ -11,7 +11,18 @@ import { KimiProvider } from '../installer/providers/kimi';
 import { OpenCodeProvider } from '../installer/providers/opencode';
 import { ZedProvider } from '../installer/providers/zed';
 import { AntigravityProvider } from '../installer/providers/antigravity';
+import { PiProvider } from '../installer/providers/pi';
+import { OmpProvider } from '../installer/providers/omp';
+import { mapPiAgentCapabilities } from '../installer/providers/pi-agent-tools';
+import { getProvider, resolveProviders } from '../installer/providers/index';
 import { toCrushMd, toKimiMd } from '../installer/converter';
+import {
+  installManagedResource,
+  pruneStaleManagedResources,
+  uninstallManagedResources,
+  writeManagedManifest,
+  type ManagedResourcePaths,
+} from '../installer/providers/native-resource';
 import {
   escapeTomlMultiline, toCodexSlug, buildAgentConfigEntry, deriveSandboxMode,
   extractUnmanagedAgentSlugs, mergeManagedTomlBlock,
@@ -45,6 +56,22 @@ function kitWithAgent(name: string, body: string, fm = ''): string {
 
 function tmp(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'haily-prov-'));
+}
+
+function writeKitSkill(kit: string, name: string, body: string, fm = ''): void {
+  const skillDir = path.join(kit, 'skills', name);
+  fs.mkdirSync(skillDir, { recursive: true });
+  fs.writeFileSync(path.join(skillDir, 'SKILL.md'), `---\nname: ${name}\ndescription: ${name}\n${fm}---\n\n${body}`);
+}
+
+function writeKitRule(kit: string, name: string, body: string): void {
+  fs.mkdirSync(path.join(kit, 'rules'), { recursive: true });
+  fs.writeFileSync(path.join(kit, 'rules', `${name}.md`), body);
+}
+
+function writeKitAgent(kit: string, name: string, body: string, fm = ''): void {
+  fs.mkdirSync(path.join(kit, 'agents'), { recursive: true });
+  fs.writeFileSync(path.join(kit, 'agents', `${name}.md`), `---\nname: ${name}\ndescription: ${name}\n${fm}---\n\n${body}`);
 }
 
 test('GeminiProvider.installSkills converts SKILL.md to an hl-*.toml command', () => {
@@ -1700,4 +1727,291 @@ test('KimiProvider.skillRef uses /skill:prefix-name format', () => {
     (p as unknown as Record<string, Function>).skillRef('hc', 'cook'),
     '/skill:hc-cook',
   );
+});
+
+// ---------------------------------------------------------------------------
+// Native resource ownership helper
+// ---------------------------------------------------------------------------
+
+test('native-resource installs, prunes stale managed entries, and preserves unowned collisions', () => {
+  const root = tmp();
+  const src = path.join(root, 'src');
+  const out = path.join(root, 'out');
+  fs.mkdirSync(src, { recursive: true });
+  fs.writeFileSync(path.join(src, 'note.md'), 'hello');
+  const paths: ManagedResourcePaths = {
+    rootPath: root,
+    manifestPath: path.join(root, 'manifest.json'),
+    targetPath: (name) => path.join(out, name),
+    markerPath: (name) => path.join(out, name, '.marker.json'),
+  };
+
+  assert.equal(installManagedResource({
+    name: 'hc-plan',
+    provider: 'pi',
+    kind: 'skill',
+    sourcePath: src,
+    targetPath: paths.targetPath('hc-plan'),
+    markerPath: paths.markerPath('hc-plan'),
+    rootPath: root,
+  }), 'installed');
+
+  fs.mkdirSync(paths.targetPath('hc-cook'), { recursive: true });
+  fs.writeFileSync(path.join(paths.targetPath('hc-cook'), 'note.md'), 'user');
+  assert.equal(installManagedResource({
+    name: 'hc-cook',
+    provider: 'pi',
+    kind: 'skill',
+    sourcePath: src,
+    targetPath: paths.targetPath('hc-cook'),
+    markerPath: paths.markerPath('hc-cook'),
+    rootPath: root,
+  }), 'skipped-user');
+
+  writeManagedManifest(paths.manifestPath, ['hc-plan', 'hc-old']);
+  fs.mkdirSync(paths.targetPath('hc-old'), { recursive: true });
+  fs.writeFileSync(paths.markerPath('hc-old'), '{"provider":"pi","kind":"skill","name":"hc-old"}\n');
+  fs.mkdirSync(paths.targetPath('hc-other'), { recursive: true });
+  fs.writeFileSync(paths.markerPath('hc-other'), '{"provider":"omp","kind":"skill","name":"hc-other"}\n');
+  assert.equal(pruneStaleManagedResources('pi', 'skill', new Set(['hc-plan']), paths), 1);
+  assert.ok(!fs.existsSync(paths.targetPath('hc-old')));
+  assert.ok(fs.existsSync(paths.targetPath('hc-other')));
+
+  writeManagedManifest(paths.manifestPath, ['hc-plan', 'hc-other']);
+  assert.equal(uninstallManagedResources('pi', 'skill', paths), 1);
+  assert.ok(!fs.existsSync(paths.targetPath('hc-plan')));
+  assert.ok(fs.existsSync(paths.targetPath('hc-other')));
+});
+
+test('native-resource rejects unsafe names', () => {
+  const root = tmp();
+  fs.mkdirSync(path.join(root, 'src'), { recursive: true });
+  assert.throws(() => installManagedResource({
+    name: '../escape',
+    provider: 'pi',
+    kind: 'skill',
+    sourcePath: path.join(root, 'src'),
+    targetPath: path.join(root, 'out'),
+    markerPath: path.join(root, 'marker.json'),
+    rootPath: root,
+  }), /Unsafe managed resource name/);
+
+  assert.throws(() => installManagedResource({
+    name: 'hc-plan',
+    provider: 'pi',
+    kind: 'skill',
+    sourcePath: path.join(root, 'src'),
+    targetPath: path.join(root, '..', 'escaped'),
+    markerPath: path.join(root, 'marker.json'),
+    rootPath: root,
+  }), /escapes provider root/);
+});
+
+// ---------------------------------------------------------------------------
+// Pi / OMP providers
+// ---------------------------------------------------------------------------
+
+test('PiProvider installs native skills, additive rules, and optional-extension agents', () => {
+  const root = tmp();
+  const kit = path.join(root, 'kit');
+  writeKitSkill(kit, 'hc-plan', 'Use {skill:hc-cook}. model: {model:ultra}', 'model: thinking\n');
+  writeKitRule(kit, 'haily-coding', 'Always use {skill:hc-plan}.');
+  writeKitAgent(kit, 'haily-planner', 'Delegate with {agent:haily-reviewer}.', 'tools: Glob, Grep, Read, Bash\n');
+
+  const target = path.join(root, '.pi');
+  const provider = new PiProvider();
+  assert.equal(provider.installSkills(kit, target), 1);
+  provider.installRules(kit, target);
+  const agents = provider.installAgents!(kit, target);
+  assert.equal(agents.installed, 1);
+
+  const skill = fs.readFileSync(path.join(target, 'skills', 'hc-plan', 'SKILL.md'), 'utf8');
+  assert.match(skill, /\/skill:hc-cook/);
+  assert.ok(!skill.includes('{skill:'));
+  assert.ok(!skill.includes('{model:'));
+  assert.ok(!/^model:\s*(thinking|medium|fast|ultra)$/m.test(skill));
+
+  const append = fs.readFileSync(path.join(target, 'APPEND_SYSTEM.md'), 'utf8');
+  assert.match(append, /Always use \/skill:hc-plan/);
+  assert.match(append, /hailykit-pi-rules-start/);
+
+  const agent = fs.readFileSync(path.join(target, 'agents', 'haily-planner.md'), 'utf8');
+  assert.match(agent, /optional subagent extension/i);
+  assert.match(agent, /tools: find, grep, read, bash/);
+  assert.ok(!agent.includes('{agent:'));
+});
+
+test('PiProvider accepts the shipped uppercase Explore agent name', () => {
+  const root = tmp();
+  const kit = path.join(root, 'kit');
+  writeKitAgent(kit, 'Explore', 'Read only.', 'tools: Glob, Grep, Read, Bash\n');
+  const result = new PiProvider().installAgents!(kit, path.join(root, '.pi'));
+  assert.equal(result.installed, 1);
+  assert.ok(fs.existsSync(path.join(root, '.pi', 'agents', 'Explore.md')));
+});
+
+test('PiProvider uses PI_CODING_AGENT_DIR for global installs and preserves unowned collisions', () => {
+  const root = tmp();
+  const previous = process.env['PI_CODING_AGENT_DIR'];
+  process.env['PI_CODING_AGENT_DIR'] = path.join(root, 'shared-agent-dir');
+  try {
+    const provider = new PiProvider();
+    assert.equal(provider.globalDir(), path.join(root, 'shared-agent-dir'));
+
+    const kit = path.join(root, 'kit');
+    writeKitSkill(kit, 'hc-plan', 'Managed body.');
+    writeKitRule(kit, 'haily-coding', 'Always use {skill:hc-plan}.');
+    writeKitAgent(kit, 'haily-planner', 'Managed agent.');
+
+    const target = provider.globalDir();
+    fs.mkdirSync(path.join(target, 'skills', 'hc-plan'), { recursive: true });
+    fs.writeFileSync(path.join(target, 'skills', 'hc-plan', 'SKILL.md'), 'user');
+    fs.mkdirSync(path.join(target, 'agents'), { recursive: true });
+    fs.writeFileSync(path.join(target, 'agents', 'haily-planner.md'), 'user');
+
+    assert.equal(provider.installSkills(kit, target), 0);
+    const agents = provider.installAgents!(kit, target);
+    assert.equal(agents.skippedUser, 1);
+    assert.equal(fs.readFileSync(path.join(target, 'skills', 'hc-plan', 'SKILL.md'), 'utf8'), 'user');
+    assert.equal(fs.readFileSync(path.join(target, 'agents', 'haily-planner.md'), 'utf8'), 'user');
+  } finally {
+    if (previous === undefined) delete process.env['PI_CODING_AGENT_DIR'];
+    else process.env['PI_CODING_AGENT_DIR'] = previous;
+  }
+});
+
+test('PiProvider reinstall updates owned skills and prunes catalog removals', () => {
+  const root = tmp();
+  const kit = path.join(root, 'kit');
+  const target = path.join(root, '.pi');
+  const provider = new PiProvider();
+  writeKitSkill(kit, 'hc-plan', 'First body.');
+
+  assert.equal(provider.installSkills(kit, target), 1);
+  writeKitSkill(kit, 'hc-plan', 'Second body.');
+  assert.equal(provider.installSkills(kit, target), 1);
+  assert.match(fs.readFileSync(path.join(target, 'skills', 'hc-plan', 'SKILL.md'), 'utf8'), /Second body/);
+
+  fs.rmSync(path.join(kit, 'skills', 'hc-plan'), { recursive: true });
+  assert.equal(provider.installSkills(kit, target), 0);
+  assert.ok(!fs.existsSync(path.join(target, 'skills', 'hc-plan')));
+});
+
+test('OMP installs native agents without provider-neutral model tiers or Claude tool syntax', () => {
+  const root = tmp();
+  const kit = path.join(root, 'kit');
+  writeKitSkill(kit, 'hc-plan', 'Run {skill:hc-cook}. model: {model:ultra}', 'model: thinking\n');
+  writeKitRule(kit, 'haily-coding', 'Always use {skill:hc-plan}.');
+  writeKitAgent(kit, 'haily-planner', 'Delegate with {agent:haily-reviewer}.', 'model: thinking\nmodel_max: ultra\ntools: Bash, Read, Task(Explore)\n');
+
+  const target = path.join(root, '.omp');
+  const provider = new OmpProvider();
+  assert.equal(provider.installSkills(kit, target), 1);
+  provider.installRules(kit, target);
+  const agents = provider.installAgents!(kit, target);
+  assert.equal(agents.installed, 1);
+
+  const agent = fs.readFileSync(path.join(target, 'agents', 'haily-planner.md'), 'utf8');
+  assert.match(agent, /^---\nname: haily-planner\n/);
+  assert.match(agent, /description: "haily-planner"/);
+  assert.ok(!agent.includes('{skill:'));
+  assert.ok(!agent.includes('{agent:'));
+  assert.ok(!agent.includes('{model:'));
+  assert.ok(!/model:\s*(thinking|medium|fast|ultra)/.test(agent));
+  assert.ok(!agent.includes('tools: Bash'));
+  assert.match(agent, /tools: bash, read, task/);
+  assert.match(agent, /spawns: Explore/);
+  assert.match(agent, /OMP's `task` tool/);
+});
+
+test('OMP tool mapping preserves shipped read-only and write-capable agent boundaries', () => {
+  const cases = [
+    ['haily-advisor', 'Glob, Grep, Read', ['glob', 'grep', 'read']],
+    ['haily-reviewer', 'Glob, Grep, Read, Bash, WebFetch, WebSearch', ['glob', 'grep', 'read', 'bash', 'web_search']],
+    ['haily-implementor', 'Glob, Grep, Read, Edit, MultiEdit, Write, NotebookEdit, Bash, WebFetch, WebSearch, Task(Explore)', ['glob', 'grep', 'read', 'edit', 'write', 'bash', 'web_search', 'task']],
+    ['haily-git-manager', 'Glob, Grep, Read, Bash', ['glob', 'grep', 'read', 'bash']],
+  ] as const;
+
+  for (const [name, source, expected] of cases) {
+    assert.deepEqual(mapPiAgentCapabilities(source, 'omp').tools, expected, name);
+  }
+});
+
+test('Pi and OMP convert every shipped agent without widening Claude policies', () => {
+  const kit = path.resolve('kit');
+  const expected = fs.readdirSync(path.join(kit, 'agents')).filter((file) => file.endsWith('.md')).length;
+  const root = tmp();
+
+  const pi = new PiProvider().installAgents!(kit, path.join(root, '.pi'));
+  const omp = new OmpProvider().installAgents!(kit, path.join(root, '.omp'));
+  assert.equal(pi.installed, expected);
+  assert.equal(omp.installed, expected);
+
+  for (const providerDir of [path.join(root, '.pi'), path.join(root, '.omp')]) {
+    for (const file of fs.readdirSync(path.join(providerDir, 'agents')).filter((name) => name.endsWith('.md'))) {
+      const content = fs.readFileSync(path.join(providerDir, 'agents', file), 'utf8');
+      assert.match(content, /^tools: [a-z_, -]+$/m, file);
+      assert.ok(!content.includes('tools: Glob'), file);
+      assert.ok(!content.includes('model_max:'), file);
+    }
+  }
+});
+
+test('Pi and OMP sharing PI_CODING_AGENT_DIR do not delete each other on cleanup', () => {
+  const root = tmp();
+  const previous = process.env['PI_CODING_AGENT_DIR'];
+  process.env['PI_CODING_AGENT_DIR'] = path.join(root, 'shared-agent-dir');
+  try {
+    const kit = path.join(root, 'kit');
+    writeKitSkill(kit, 'hc-plan', 'Managed body.');
+    writeKitRule(kit, 'haily-coding', 'Always use {skill:hc-plan}.');
+    writeKitAgent(kit, 'haily-planner', 'Managed agent.');
+
+    const pi = new PiProvider();
+    const omp = new OmpProvider();
+    const target = pi.globalDir();
+    assert.equal(target, omp.globalDir());
+
+    assert.equal(pi.installSkills(kit, target), 1);
+    const piAgents = pi.installAgents!(kit, target);
+    assert.equal(piAgents.installed, 1);
+
+    const ompSkills = omp.installSkills(kit, target);
+    const ompAgents = omp.installAgents!(kit, target);
+    assert.equal(ompSkills, 0);
+    assert.equal(ompAgents.skippedUser, 1);
+
+    pi.installRules(kit, target);
+    omp.installRules(kit, target);
+    pi.writeVersion(target, '1.0.0');
+    omp.writeVersion(target, '2.0.0');
+    assert.equal(pi.readVersion(target), '1.0.0');
+    assert.equal(omp.readVersion(target), '2.0.0');
+    assert.match(pi.readInstalledAt(target) ?? '', /^\d{4}-\d{2}-\d{2}T/);
+    assert.match(omp.readInstalledAt(target) ?? '', /^\d{4}-\d{2}-\d{2}T/);
+
+    omp.uninstall(target);
+    assert.ok(fs.existsSync(path.join(target, 'skills', 'hc-plan', 'SKILL.md')));
+    assert.ok(fs.existsSync(path.join(target, 'agents', 'haily-planner.md')));
+    assert.match(fs.readFileSync(path.join(target, 'APPEND_SYSTEM.md'), 'utf8'), /hailykit-pi-rules-start/);
+    assert.ok(!fs.readFileSync(path.join(target, 'APPEND_SYSTEM.md'), 'utf8').includes('hailykit-omp-rules-start'));
+    assert.equal(pi.readVersion(target), '1.0.0');
+    assert.equal(omp.readVersion(target), null);
+
+    pi.uninstall(target);
+    assert.ok(!fs.existsSync(path.join(target, 'skills', 'hc-plan')));
+    assert.ok(!fs.existsSync(path.join(target, 'agents', 'haily-planner.md')));
+    assert.ok(!fs.readFileSync(path.join(target, 'APPEND_SYSTEM.md'), 'utf8').includes('hailykit-pi-rules-start'));
+  } finally {
+    if (previous === undefined) delete process.env['PI_CODING_AGENT_DIR'];
+    else process.env['PI_CODING_AGENT_DIR'] = previous;
+  }
+});
+
+test('provider registry includes pi and omp without an oh-my-pi alias', () => {
+  assert.equal(getProvider('pi').label, 'Pi');
+  assert.equal(getProvider('omp').label, 'OMP');
+  assert.ok(resolveProviders('all').some((provider) => provider.name === 'pi'));
+  assert.ok(resolveProviders('all').some((provider) => provider.name === 'omp'));
+  assert.throws(() => getProvider('oh-my-pi'), /Unknown provider/);
 });

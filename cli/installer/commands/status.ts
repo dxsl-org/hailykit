@@ -46,14 +46,7 @@ export async function cmdStatus(options: StatusOptions): Promise<void> {
       } else {
         const v = provider.readVersion(dir);
         ver = v ? `v${v}` : '(unknown)';
-        date = '?';
-        const metaPath = path.join(dir, '.hailykit-meta.json');
-        if (fs.existsSync(metaPath)) {
-          try {
-            const m = JSON.parse(fs.readFileSync(metaPath, 'utf8')) as Record<string, unknown>;
-            date = typeof m.installedAt === 'string' ? m.installedAt.slice(0, 10) : '?';
-          } catch { /* leave date as '?' */ }
-        }
+        date = provider.readInstalledAt?.(dir)?.slice(0, 10) ?? '?';
       }
 
       console.log(`  [${provider.label}] ${scope}: ${ver}  (installed ${date})`);

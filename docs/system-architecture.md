@@ -148,7 +148,7 @@ The `kit/` directory is a distributable snapshot of the skill catalog, versioned
   - Fields: `version`, `name`, `description`, `buildDate`, `repository`, `deletions[]` (stale file cleanup on upgrade), `download` (installer telemetry)
   - `deletions[]` contains all skill/rule/hook files removed in prior versions — tells CLI to delete them from user machines during upgrade
 
-**Installation flow:** CLI downloads release zip (cli + kit bundled), then `mergeClaudeDir(kit/)` → syncs `kit/skills/` → `~/.claude/skills/`, fixes stale files via `metadata.deletions[]`, resolves agent `model: <tier>` frontmatter via MODEL_MAP (in cli/installer/converter.ts; built-in defaults with fallback), strips model tier for user-configured-model providers, and dispatches provider-specific skill installs. Codex writes full skill dirs to `~/.agents/skills/` and records installed names in `hailykit-installed-skills.json`; cleanup prunes only HailyKit-owned leftovers by combining that manifest with each skill directory's `.hailykit-codex-skill.json` ownership marker. Codex custom agents now follow the same explicit ownership pattern: `hailykit-installed-agents.json` plus per-agent sidecars such as `agents/haily_researcher.hailykit-codex-agent.json` scope rewrites, stale cleanup, legacy migration, and uninstall.
+**Installation flow:** CLI downloads release zip (cli + kit bundled), then `mergeClaudeDir(kit/)` → syncs `kit/skills/` → `~/.claude/skills/`, fixes stale files via `metadata.deletions[]`, resolves agent `model: <tier>` frontmatter via MODEL_MAP (in cli/installer/converter.ts; built-in defaults with fallback), strips model tier for user-configured-model providers, and dispatches provider-specific skill installs. Codex writes full skill dirs to `~/.agents/skills/` and records installed names in `hailykit-installed-skills.json`; cleanup prunes only HailyKit-owned leftovers by combining that manifest with each skill directory's `.hailykit-codex-skill.json` ownership marker. Codex custom agents now follow the same explicit ownership pattern: `hailykit-installed-agents.json` plus per-agent sidecars such as `agents/haily_researcher.hailykit-codex-agent.json` scope rewrites, stale cleanup, legacy migration, and uninstall. Pi and OMP install into native `skills/`, `agents/`, and `APPEND_SYSTEM.md` surfaces, map agent tool policies to explicit native allowlists, and scope manifests, markers, rule sentinels, and version metadata by provider so a shared `PI_CODING_AGENT_DIR` fails closed instead of cross-deleting another harness's files.
 
 ## Installer data flow (unchanged from old hailykit, ported to TS)
 
@@ -159,10 +159,11 @@ CLI `install --provider <name> [--project] [--version <tag>]`
   → for each provider:
        claude   → merger.mergeClaudeDir (full sync + deletions + settings migrate + apply deny rules) + venv.setupVenv
        codex    → provider.installSkills (full skill dirs + manifest-scoped cleanup) + installRules + installHooks + writeVersion
+       pi/omp   → provider.installSkills (native skill dirs + provider-scoped ownership markers) + installRules (APPEND_SYSTEM.md) + installAgents + writeVersion
        others   → provider.installSkills (SKILL.md → toml/md) + installRules + installHooks + writeVersion
 ```
 
-Manifests: `metadata.json` (`version`, `deletions[]`) drives stale-file cleanup; `portable-manifest.json` drives provider path migrations on upgrade; `hailykit-installed-skills.json` records Codex skill ownership for scoped cleanup, with `.hailykit-codex-skill.json` as the per-directory ownership signal. `hailykit-installed-agents.json` records Codex agent ownership for scoped cleanup and uninstall, with per-agent sidecars named `<slug>.hailykit-codex-agent.json`.
+Manifests: `metadata.json` (`version`, `deletions[]`) drives stale-file cleanup; `portable-manifest.json` drives provider path migrations on upgrade; `hailykit-installed-skills.json` records Codex skill ownership for scoped cleanup, with `.hailykit-codex-skill.json` as the per-directory ownership signal. `hailykit-installed-agents.json` records Codex agent ownership for scoped cleanup and uninstall, with per-agent sidecars named `<slug>.hailykit-codex-agent.json`. Pi and OMP use provider-scoped manifest filenames under their native roots and only delete a stale skill or agent when its marker payload matches the exact provider, resource kind, and resource name.
 
 ## Manifest formats
 
@@ -170,6 +171,7 @@ Manifests: `metadata.json` (`version`, `deletions[]`) drives stale-file cleanup;
 - **Catalog metadata** (installer): `metadata.json` with `deletions[]` (unchanged contract from old hailykit).
 - **Codex skill ownership** (installer): `hailykit-installed-skills.json` + `.hailykit-codex-skill.json` sidecars gate rewrites and stale cleanup under `~/.agents/skills/`.
 - **Codex agent ownership** (installer): `hailykit-installed-agents.json` + per-agent `<slug>.hailykit-codex-agent.json` sidecars gate rewrites, stale cleanup, and uninstall under `~/.codex/agents/`; legacy adoption separately requires an exact registry pointer plus stable HailyKit instruction fingerprints.
+- **Pi / OMP native ownership** (installer): provider-scoped manifest files (`hailykit-installed-pi-skills.json`, `hailykit-installed-pi-agents.json`, `hailykit-installed-omp-skills.json`, `hailykit-installed-omp-agents.json`) plus per-resource marker files inside `skills/` and beside `agents/*.md`. Cleanup requires an exact provider+kind+name marker match before delete.
 
 ## Static validation gates
 
@@ -183,5 +185,5 @@ The repository keeps prose-heavy workflow contracts deterministic with two compl
 
 - **Never throw across the executor boundary** — uniform `ToolResult`.
 - **Eager manifest parse, lazy module load** — registry knows all tools at startup, `require()`s native code only on first execute.
-- **Provider polymorphism** — `BaseProvider` template method; each provider overrides `convertSkill` + paths. Claude uses full-merge, others use skill-by-skill conversion.
+- **Provider polymorphism** — `BaseProvider` template method; each provider overrides `convertSkill` + paths. Claude uses full-merge, most providers use skill-by-skill conversion, and Pi/OMP use native owned-directory copies plus additive `APPEND_SYSTEM.md`.
 - **Path-safety** — installer rejects deletion/copy paths escaping the target dir (`applyDeletions`); hooks warn on Write/Edit/MultiEdit attempts outside project CWD (`checkDirectoryEscape`); `mergePermissionDeny` writes Claude Code native deny rules for known-dangerous paths.

@@ -62,6 +62,8 @@ export const MODEL_MAP: Record<string, Record<ModelTier, string>> = {
   // Cline is also a "provider/model-id" gateway; cross-review resolves its
   // reviewer model here (and swaps to a non-session provider when they collide).
   cline:       { fast: 'anthropic/claude-haiku-4-5',    medium: 'anthropic/claude-sonnet-4-6',  thinking: 'anthropic/claude-opus-4-8',         ultra: 'anthropic/claude-fable-5' },
+  pi:          { fast: 'the active Pi model',           medium: 'the active Pi model',           thinking: 'the active Pi model',               ultra: 'the active Pi model' },
+  omp:         { fast: 'the active OMP model',          medium: 'the active OMP model',          thinking: 'the active OMP model',              ultra: 'the active OMP model' },
   // Ollama models are local; these are hints — cross-review verifies against
   // `ollama list` and falls back to whatever is actually pulled.
   ollama:      { fast: 'llama3.2',                      medium: 'qwen2.5-coder:14b',            thinking: 'qwen2.5-coder:32b',                 ultra: 'qwen2.5-coder:32b' },
@@ -161,7 +163,7 @@ export function getModelEffort(provider: string, tier: ModelTier): string | unde
  * For these providers, the `model:` tier line is stripped from agent files so the
  * provider uses whatever model the developer has selected in their editor settings.
  */
-const USER_CONFIGURED_MODEL_PROVIDERS = new Set(['cursor', 'zed', 'windsurf', 'crush', 'opencode', 'kimi', 'cline']);
+const USER_CONFIGURED_MODEL_PROVIDERS = new Set(['cursor', 'zed', 'windsurf', 'crush', 'opencode', 'kimi', 'cline', 'pi', 'omp']);
 
 /** Matches a `model: <tier>` frontmatter line (with optional trailing whitespace). */
 const MODEL_TIER_RE = /^(model:\s*)(thinking|medium|fast|ultra)\s*$/m;

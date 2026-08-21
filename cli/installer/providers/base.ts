@@ -33,6 +33,7 @@ export interface Provider {
   /** Optional: generate provider-native agent definitions from kit/agents/. */
   installAgents?(extractedClaudeDir: string, targetProviderDir: string): InstallAgentsResult | void;
   readVersion(providerDir: string): string | null;
+  readInstalledAt?(providerDir: string): string | null;
   writeVersion(providerDir: string, version: string): void;
   uninstall(providerDir: string): void;
 }
@@ -155,6 +156,14 @@ export abstract class BaseProvider implements Provider {
     try {
       const parsed = JSON.parse(fs.readFileSync(metaPath, 'utf8')) as Record<string, unknown>;
       return typeof parsed.version === 'string' ? parsed.version : null;
+    } catch { return null; }
+  }
+
+  /** Read the install timestamp from provider metadata, or null when unavailable. */
+  readInstalledAt(providerDir: string): string | null {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(path.join(providerDir, '.hailykit-meta.json'), 'utf8')) as Record<string, unknown>;
+      return typeof parsed.installedAt === 'string' ? parsed.installedAt : null;
     } catch { return null; }
   }
 

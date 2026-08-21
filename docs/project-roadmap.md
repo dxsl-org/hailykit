@@ -2,6 +2,9 @@
 
 ## 2026-08
 
+- Complete: Pi and OMP installer providers
+  - Goal: add canonical `pi` and `omp` providers with native SKILL.md installs, additive `APPEND_SYSTEM.md` rules, OMP native task agents, and Pi agent definitions compatible with Pi's optional subagent extension.
+  - Status: implemented locally. Native skills, additive rules, provider-native agents, explicit tool allowlists, and scoped manifests/markers/version metadata are complete; `npm run build`, 704/704 tests, skill cross-reference validation, `git diff --check`, and production-readiness review pass.
 - Complete: hl-write stage control and direct-entry reconciliation
   - Goal: let users run `hl-write` one stage at a time with `--stage`, accept prepared research/concept packs, and keep downstream freshness/reconciliation explicit instead of silently rerunning predecessor stages.
   - Status: implemented locally. `hl-write` now advertises `--stage`, routes through `references/stage-control.md`, records `.hl-write-state.json`, and uses digest-based freshness plus `modified (pending-review)` reconciliation for user-edited units. `npm run pretest`, targeted hl-write contract tests, `node scripts/check-skill-cross-refs.js`, `npm run build`, and `npm test` all pass in the current working tree.

@@ -89,6 +89,7 @@ export async function cmdInstall(options: InstallOptions): Promise<void> {
         const count = provider.installSkills(extractedKitDir, targetDir);
         const skillFmt = provider.name === 'gemini' ? 'hl-*.toml commands'
           : provider.name === 'codex' ? 'SKILL.md files (invoke via $skill-name in chat)'
+          : provider.name === 'pi' || provider.name === 'omp' ? 'native SKILL.md directories'
           : 'hl-*.md commands';
         console.log(`    Installed ${count} skills as ${skillFmt}`);
 
