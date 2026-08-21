@@ -2,6 +2,9 @@
 
 ## 2026-08
 
+- Complete: hl-write stage control and direct-entry reconciliation
+  - Goal: let users run `hl-write` one stage at a time with `--stage`, accept prepared research/concept packs, and keep downstream freshness/reconciliation explicit instead of silently rerunning predecessor stages.
+  - Status: implemented locally. `hl-write` now advertises `--stage`, routes through `references/stage-control.md`, records `.hl-write-state.json`, and uses digest-based freshness plus `modified (pending-review)` reconciliation for user-edited units. `npm run pretest`, targeted hl-write contract tests, `node scripts/check-skill-cross-refs.js`, `npm run build`, and `npm test` all pass in the current working tree.
 - Complete: remaining rules and skill prompt compression
   - Goal: remove narrative and basic duplicated HOW from the remaining high-exposure prompt bodies while retaining process, commands, WHY, safety, and provider-neutral routing.
   - Status: implementation and static gates are complete; the scoped catalog total fell from 128,200 to 78,695 normalized bytes (`-38.62%`). Signed outcomes and text-contract polarity are fixed. A corrected two-call read-only smoke found no candidate regression and 11.41% fewer total tokens, but remains underpowered and inconclusive for general equivalence; no installer architecture changed.

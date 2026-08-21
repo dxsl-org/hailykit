@@ -89,6 +89,20 @@ Max 3 review-fix rounds per unit.
 - `ESCALATE` → the orchestrator sets the unit's ledger row to `blocked` with the outstanding findings attached (see `references/workspace-schema.md`'s ledger lifecycle) — never auto-retried.
 - A Tier-1 Critical finding (structural, continuity, or fact-check) blocks Tier-2 passes (voice/style, copyedit) from running on the same unit until it is resolved — polishing or fact-checking prose that structural is about to cut is wasted work.
 
+## Reconciliation pass for user-edited units
+
+When a merged unit's content hash changes outside the normal Build loop, treat it as a reopened unit rather than a harmless local edit:
+
+1. rerun the same pass order from round 1
+2. regenerate the unit summary from the reconciled prose
+3. compare prior canon/facts impact with the new prose
+4. classify canon differences as keep, supersede, or remove
+5. return the ledger row to `complete` only after summary + canon/facts state are fresh again
+
+This pass exists to protect Verify from stale summaries and stale canon after manual intervention.
+
+Imported source prose is excluded from this pass. It is frozen ground truth for IMPORT reconstruction, not editable generated output.
+
 ## Act-close style extraction
 
 When an act closes (the same trigger as the act rollup in `references/context-assembly.md`), the orchestrator delegates one extra `haily-editor` pass over the act's units — extracting the voice that *emerged in the written prose*, not restating the planned profile:

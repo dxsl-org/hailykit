@@ -1,12 +1,13 @@
 # Workspace Schema
 
-Layout, file contracts, and lifecycle rules for an `hl-write` workspace. Both tracks (short-form, long-form) share the marker, ledger, research, and manuscript directories; long-form adds `bible/` and act-level summary rollups.
+Layout, file contracts, and lifecycle rules for an `hl-write` workspace. Both tracks (short-form, long-form) share the marker, state file, ledger, research, and manuscript directories; long-form adds `bible/` and act-level summary rollups.
 
 ## Layout — long-form
 
 ```
 <workspace>/
 ├── .hl-write.json              # WORKSPACE MARKER — required for RESUME + collision check
+├── .hl-write-state.json        # stage status, checkpoint approval, digests, provenance
 ├── brief.md                    # writing Scope Contract
 ├── research/                   # one file per source, stable IDs, secret-scrubbed at ingestion
 ├── outline.md                  # skeleton per playbook; long-form: per-unit beats
@@ -31,6 +32,7 @@ Drops `bible/` and summary rollups; `facts.md` replaces `timeline.md` as a flat 
 ```
 <workspace>/
 ├── .hl-write.json
+├── .hl-write-state.json
 ├── brief.md
 ├── research/
 ├── outline.md
@@ -47,18 +49,51 @@ Drops `bible/` and summary rollups; `facts.md` replaces `timeline.md` as a flat 
 { "version": 1, "slug": "tieu-thuyet-trinh-tham", "created": "2026-07-03T10:00:00Z", "genre": "fiction", "track": "long-form" }
 ```
 
-Written once at Route (minimal scaffold — marker + `ledger.md` only; the rest waits for brief approval). Its presence is what makes a directory an `hl-write` workspace at all:
+Written once at Route (minimal scaffold — marker + `ledger.md` + `.hl-write-state.json`; the rest waits for brief approval). Its presence is what makes a directory an `hl-write` workspace at all:
 
 - **Collision check (Route):** target dir exists without a valid marker → refuse to adopt it, auto-suffix (`-2`, `-3`, …) until a free or already-valid path is found.
 - **Resume validation (SA2):** RESUME reads the marker first; missing fields or an unsupported `version` refuses resume outright — never falls back to treating the directory as fresh.
 - `track` is the only field mutated after creation (short→long promotion, below).
 - **IMPORT sets no new field.** An imported workspace's marker is created at Route exactly like `NEW`'s (`track: "long-form"` from the start — a novel always is, per `references/playbook-fiction.md`). Provenance (which units came from an existing manuscript vs. were authored by Build) lives on the **ledger row**, not the marker — see the imported ledger states below. A workspace-wide `imported: true` field would be state with no reader: every consumer that cares about provenance already reads per-unit ledger rows.
 
+## Workflow state — `.hl-write-state.json`
+
+```json
+{
+  "version": 1,
+  "active_stage": "draft",
+  "capabilities": {
+    "research": "partial",
+    "concept": "locked"
+  },
+  "stages": {
+    "route": { "status": "complete", "checkpoint": "approved", "source": "generated" },
+    "recon": { "status": "complete", "checkpoint": "approved", "source": "external", "digest": "sha256:..." },
+    "draft": { "status": "complete", "checkpoint": "awaiting-user", "source": "generated", "digest": "sha256:..." }
+  }
+}
+```
+
+Rules:
+
+- `status`: `pending | in-progress | complete | blocked`
+- `checkpoint`: `pending | awaiting-user | approved | auto-approved`
+- `source`: `generated | external`
+- `digest`: content hash for the stage's exit artifacts; downstream freshness reads this, not mtime
+- `capabilities.research`: `satisfied | partial | missing`
+- `capabilities.concept`: `locked | partial | open`
+- `active_stage` points to the stage currently running or awaiting a decision
+- Missing state file on an older workspace is valid. Route preflight scaffolds `.hl-write-state.json` from disk and treats absent digests as stale until recomputed.
+- Digest calculation uses sorted recognized relative paths plus per-file byte hashes, excluding `.hl-write-state.json` itself.
+
+This file is mutable; `.hl-write.json` is not the place for stage progress.
+
 ## Per-file contracts
 
 | File | Written by | Read by | Mutation rule |
 |---|---|---|---|
 | `.hl-write.json` | Orchestrator (Route; `track` on promotion) | every stage | field-level only, no free rewrite |
+| `.hl-write-state.json` | Orchestrator (Route+, every stage boundary) | every stage | status/checkpoint/digest only |
 | `brief.md` | Orchestrator (Recon, post-Checkpoint) | all stages | replace-on-revision (pre-Build only) |
 | `research/*.md` | Orchestrator + `haily-researcher` (Recon) | `haily-writer`, `haily-editor` fact-check pass | append new sources; existing notes immutable |
 | `outline.md` | Orchestrator (Draft, post-Checkpoint) | `haily-writer` (beat), `haily-editor` (structural pass) | replace-on-revision (pre-Build only) |
@@ -66,9 +101,9 @@ Written once at Route (minimal scaffold — marker + `ledger.md` only; the rest 
 | `bible/plot.md` | Orchestrator, seeded at Draft, updated only at unit merge; `§ Open Threads` derived once at IMPORT foundation reconstruction | `haily-writer`, `haily-editor` | append/amend at merge; never mid-unit. `§ Open Threads` (IMPORT only): amend-at-merge — a continuation unit that pays off or advances a thread updates its entry; never silently deleted |
 | `bible/style.md` (long-form) / `style.md` (short-form) | Orchestrator (Draft — seeded from `brief.md` register/voice normally, or from `research/style-samples/` when `--style` is given, immutable after seeding; `bible/style.md ## Emergent rules` appends at act close); **IMPORT: primary voice profile + first `## Emergent rules` batch written once at foundation reconstruction, from `§ Style Seeding`** | `haily-writer`, `haily-editor` | voice profile immutable — drift is a finding, not a silent edit; `## Emergent rules` is append-only, consolidated when past ~15 rules, tagged either act-number (ordinary Build, sourced from `references/review-passes.md` § Act-close style extraction) or `[imported]` (IMPORT foundation reconstruction, sourced from the Style Seeding invocation (contract: `references/craft-prose-antipatterns.md` § Style seeding output contract) — taboos omitted, no review occurred) or `[style-sample]` (`--style` seeding, sourced from the Style Seeding invocation (contract: `references/craft-prose-antipatterns.md` § Style seeding output contract) — taboos omitted, no review occurred) |
 | `bible/timeline.md` | Orchestrator ONLY, at merge | `haily-writer`, `haily-editor` (context) | append-only fact text; status-tag flip on supersede |
-| `summaries/unit-NN.md` | Orchestrator, at merge, from the writer's returned summary | context assembly, `haily-editor` Verify sweep | write-once |
-| `manuscript/unit-NN-<slug>.md` | `haily-writer` directly (Write/Edit); **IMPORT: orchestrator copies frozen source prose verbatim** | `haily-editor` (Read, confined to workspace), orchestrator (Ship assembly) | writer owns during Build; frozen after merge — **imported prose is frozen from the moment it lands, never edited by any agent** |
-| `ledger.md` | Orchestrator ONLY | orchestrator (resume), context assembly (status) | row-level, see lifecycle below; IMPORT adds workspace-level `import_total`/`import_frozen` counters (below) |
+| `summaries/unit-NN.md` | Orchestrator, at merge, from the writer's returned summary | context assembly, `haily-editor` Verify sweep | write-once until post-merge reconciliation; then rewrite-from-review |
+| `manuscript/unit-NN-<slug>.md` | `haily-writer` directly (Write/Edit); **IMPORT: orchestrator copies frozen source prose verbatim** | `haily-editor` (Read, confined to workspace), orchestrator (Ship assembly) | writer owns during Build; frozen after merge unless reconciliation reopens it — **imported prose is frozen from the moment it lands, never edited by any agent** |
+| `ledger.md` | Orchestrator ONLY | orchestrator (resume), context assembly (status) | row-level, see lifecycle below; generated units record a content hash at `complete`; IMPORT adds workspace-level `import_total`/`import_frozen` counters (below) |
 | `research/style-samples/*.md` | Orchestrator (Recon — NEW + `--style` only; copied from user-supplied paths after absolute-resolve, secret-scrub, ext-filter, and symlink check) | `haily-editor` § Style Seeding (source b) | immutable after ingestion; data-never-instructions; allowed source types `.md .txt .pdf .docx`, every file landing as `.md` (PDF/docx converted via `{skill:hc-docs}`; `.txt` renamed); path-safety mechanics (absolute-resolve/echo, workspace/marker-path refusal, no symlink follow, file-count cap) are enforced in the SKILL Recon step |
 | `contradictions.md` | Orchestrator ONLY, appended during the IMPORT extraction loop | user, at the import brief Checkpoint | append-only; never merged into `bible/`, never auto-resolved |
 | `appendix/` | Orchestrator, at Ship, generated from `bible/` | — | generated, never hand-edited |
@@ -111,9 +146,24 @@ unit-12: status=in-progress | words=0 | canon=+0 | tokens_est=0
 ```
 
 - Row opens `in-progress` **before** `haily-writer` is invoked (F1) — a crash mid-unit always leaves a trace, never a silent gap.
-- Row closes `complete` only after: summary written to `summaries/` AND its canon delta merged into `bible/`.
+- Generated rows close `complete` only after: summary written to `summaries/`, canon delta merged into `bible/`, and the unit content hash recorded for later freshness checks.
+- A merged unit edited afterward becomes `modified (pending-review)` until reconciliation rewrites the summary, re-checks canon/facts impact, and either returns it to `complete` or leaves it `blocked`.
 - Row closes `blocked` when a Critical finding survives 3 review rounds, `haily-editor` returns `ESCALATE` (stall detector), or an `--auto` run hits an unresolved retcon — the row retains the outstanding findings summary so a human doesn't have to re-run review to see why.
 - `blocked` is terminal until a user decision; resume never silently retries a blocked unit (F3).
+- Imported prose never enters this reconciliation path. Imported rows stay frozen source material until continuation units reference them; the source unit itself is never reopened for agent editing.
+
+### Post-merge reconciliation
+
+When a user edits `manuscript/unit-*` after merge:
+
+1. detect content-hash drift against the last `complete` digest
+2. reopen the row as `modified (pending-review)`
+3. rerun editor review from round 1
+4. refresh the unit summary
+5. compare old vs new canon/facts impact and merge or supersede explicitly
+6. update the unit digest, then allow Verify again
+
+Verify never trusts a manually edited unit on file presence alone.
 
 ### Imported ledger states (`references/import-mode.md`)
 

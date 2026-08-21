@@ -103,6 +103,8 @@ Both backends preserve unknown telemetry as null instead of fabricating it. `cod
 
 Workflow fixtures can opt into a bounded local answer evaluator. It runs after the single provider response is received, derives deterministic contract evidence in memory, and passes only an output digest and evaluation summary into the paired observation. Raw answers are not persisted in V2 workflow rows; the external `--evidence` route remains available for fixtures whose behavior cannot be decided by the local contract.
 
+`hl-write` also supports direct stage entry without splitting the skill. `--stage` selects one stage in the Route → Recon → Draft → Build → Verify → Ship pipeline, while Route preflight validates workspace or prepared-pack shape, writes `.hl-write-state.json`, and tracks research/concept readiness plus `source: external` provenance. Freshness is digest-based, so changing earlier artifacts marks downstream stages stale and turns later calls into explicit `NOT_READY` blockers instead of silent predecessor reruns.
+
 The static inventory classifies source and installed footprints separately. In addition to rules, standards, hooks, agents, and skill bodies, it inventories `kit/contextual/*.md` as `contextual-rule` and recursively classifies skill references as `skill-reference-hot` or `skill-reference-cold`. These rows are descriptive byte/token estimates; only paired live workflow evidence can support behavior, provider-usage, or cost decisions.
 
 ## Skill Catalog (`kit/`) structure
