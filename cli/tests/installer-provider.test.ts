@@ -1836,7 +1836,7 @@ test('PiProvider installs native skills, additive rules, and optional-extension 
   assert.match(append, /hailykit-pi-rules-start/);
 
   const agent = fs.readFileSync(path.join(target, 'agents', 'haily-planner.md'), 'utf8');
-  assert.match(agent, /optional subagent extension/i);
+  assert.match(agent, /HailyKit's `task` tool runs these agents in isolated conversation context/i);
   assert.match(agent, /tools: find, grep, read, bash/);
   assert.ok(!agent.includes('{agent:'));
 });
