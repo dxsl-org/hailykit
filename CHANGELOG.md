@@ -5,16 +5,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.14.15] (2026-08-21)
+
 ### 🚀 Improvements
 
-- hc-scout: add `ReconEnvelope` coverage metadata and active-plan-first reuse/delta routing, with mutually exclusive `ownedPaths` for parallel discovery
-- workflows: route Scout steps through `hc-scout` across new/plan/docs/cook/review/fix/debug/goal chains instead of caller-owned Explore fan-out
-- scout-dedup: add deterministic workflow fixtures for `hc-new → hc-plan → hc-docs init`, `hc-cook → hc-review`, and `hc-fix → hc-debug`
-- scout-dedup: add static workflow-budget tests for full-scout count, reuse hits, quick deltas, and pack/direct-Explore fallbacks
+- hl-write: add direct stage control and prepared packs
+- hl-write: reconcile user edits before downstream verification
+- hc-scout: add ReconEnvelope coverage and reuse routing
+- workflows: centralize scout reuse across chained skills
+- scout-dedup: add deterministic chained-workflow fixtures
+- prompts: reduce workflow context while preserving contracts
+- codex: update provider-neutral model tier mappings
+- benchmark: document bounded prompt optimization evidence
 
 ### 🐛 Fixes
 
-- scout-dedup: extend `check:skills` to enforce root-only `scout-report.md` persistence and `ReconEnvelope` fixture hygiene
+- scout-dedup: enforce root-only report persistence
+- benchmark: correct negated contract evaluation
+- codex: emit official nested hook schema
 
 ## [1.14.14] (2026-08-07)
 
