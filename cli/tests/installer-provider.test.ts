@@ -180,7 +180,7 @@ test('CodexProvider skill copy resolves {model:ultra} placeholders', () => {
   const destProbe = path.join(root, '.agents', 'skills', probeName, 'SKILL.md');
   const installed = fs.readFileSync(destProbe, 'utf8');
   assert.ok(!installed.includes('{model:'), `placeholder leaked: ${installed}`);
-  assert.match(installed, /model: gpt-5\.5/);
+  assert.match(installed, /model: gpt-5\.6-sol/);
   assert.deepEqual(
     JSON.parse(fs.readFileSync(path.join(target, 'hailykit-installed-skills.json'), 'utf8')),
     [probeName],
@@ -753,8 +753,8 @@ test('CodexProvider.installAgents: emits sandbox_mode from tools frontmatter', (
   new CodexProvider().installAgents!(kit, target);
   const toml = fs.readFileSync(path.join(target, 'agents', 'haily_writer.toml'), 'utf8');
   assert.match(toml, /sandbox_mode = "workspace-write"/);
-  assert.match(toml, /model = "gpt-5\.4"/); // medium tier resolved
-  assert.ok(!toml.includes('model_reasoning_effort'), 'no effort data today → no effort line');
+  assert.match(toml, /model = "gpt-5\.6-terra"/); // medium tier resolved
+  assert.match(toml, /model_reasoning_effort = "medium"/);
 });
 
 test('CodexProvider.installAgents: read-only tools → read-only; no tools → no sandbox line', () => {
@@ -847,12 +847,33 @@ test('buildTimeoutsByPath: extracts .cjs from the shipped bash -c runner command
   assert.equal(map.get(path.join('/dest', 'haily-session.cjs')), 9000);
 });
 
-test('buildCodexHooksJson: resolves wrapper for the shipped bash -c runner command shape', () => {
+test('buildCodexHooksJson: emits the native nested schema and resolves shipped runner commands', () => {
   const cmd = `bash -c 'h=.claude/hooks/haily-node.sh; s=.claude/hooks/haily-session.cjs; bash "$h" "$s"'`;
   const wrapperMap = new Map<string, string>([[path.join('/dest', 'haily-session.cjs'), '/dest/compat-x.cjs']]);
-  const entries = buildCodexHooksJson({ SessionStart: [{ hooks: [{ type: 'command', command: cmd }] }] }, '/dest', wrapperMap);
-  assert.equal(entries.length, 1);
-  assert.match(entries[0].command.script, /compat-x\.cjs/);
+  const config = buildCodexHooksJson({
+    SessionStart: [{ matcher: 'startup', hooks: [{ type: 'command', command: cmd, timeout: 8000 }] }],
+    SubagentStart: [{ hooks: [{ type: 'command', command: cmd }] }],
+    SessionEnd: [{ hooks: [{ type: 'command', command: cmd }] }],
+  }, '/dest', wrapperMap);
+  assert.deepEqual(Object.keys(config), ['hooks']);
+  assert.deepEqual(Object.keys(config.hooks), ['SessionStart', 'SubagentStart', 'SessionEnd']);
+  assert.equal(config.hooks.SessionStart[0].matcher, 'startup');
+  assert.deepEqual(config.hooks.SessionStart[0].hooks[0], {
+    type: 'command',
+    command: 'node "/dest/compat-x.cjs"',
+    timeout: 8,
+  });
+});
+
+test('CodexProvider.installAgents: ultra tier resolves to the Codex top model', () => {
+  const kit = kitWithAgent('haily-advisor', 'Body.', 'model: ultra\nmodel_max: ultra\n');
+  const target = path.join(path.dirname(kit), 'out');
+  fs.mkdirSync(target, { recursive: true });
+  new CodexProvider().installAgents!(kit, target);
+  const toml = fs.readFileSync(path.join(target, 'agents', 'haily_advisor.toml'), 'utf8');
+  assert.match(toml, /model = "gpt-5\.6-sol"/);
+  assert.match(toml, /model_reasoning_effort = "xhigh"/);
+  assert.ok(!toml.includes('# model = "ultra"'));
 });
 
 // Runtime behavior of the generated wrapper: spawn it through node and inspect stdout.
@@ -1000,10 +1021,13 @@ test('CodexProvider.installHooks: runs cross-platform (incl. Windows) — writes
 
   // hooks.json present with a forward-slash `node "..."` wrapper command
   const hooksJson = JSON.parse(fs.readFileSync(path.join(target, 'hooks.json'), 'utf8'));
-  assert.equal(hooksJson.length, 1);
-  assert.match(hooksJson[0].command.script, /^node "/);
-  assert.ok(!hooksJson[0].command.script.includes('\\'), 'wrapper path uses forward slashes');
-  assert.equal(hooksJson[0].command.timeout_sec, 8000);
+  assert.deepEqual(Object.keys(hooksJson), ['hooks']);
+  const handler = hooksJson.hooks.SessionStart[0].hooks[0];
+  assert.equal(hooksJson.hooks.SessionStart[0].matcher, 'startup');
+  assert.equal(handler.type, 'command');
+  assert.match(handler.command, /^node "/);
+  assert.ok(!handler.command.includes('\\'), 'wrapper path uses forward slashes');
+  assert.equal(handler.timeout, 8);
 
   // a compat wrapper was generated for the .cjs
   const wrappers = fs.readdirSync(path.join(target, 'hooks')).filter((f) => f.startsWith('compat-'));

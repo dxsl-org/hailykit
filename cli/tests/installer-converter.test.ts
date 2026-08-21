@@ -14,6 +14,7 @@ import {
   resolveModel,
   resolveModelRefs,
   getModelMap,
+  getModelEffort,
   loadModelMapOverrides,
   MODEL_MAP,
   bundleFlatSkill,
@@ -303,6 +304,19 @@ test('getModelMap returns built-in defaults when no overrides are loaded', () =>
   loadModelMapOverrides(); // reset
   assert.equal(getModelMap('claude').thinking, 'opus');
   assert.equal(getModelMap('unknown-provider').medium, MODEL_MAP.claude.medium);
+});
+
+test('Codex tiers use the configured GPT-5.6 models and reasoning efforts', () => {
+  assert.deepEqual(getModelMap('codex'), {
+    fast: 'gpt-5.6-luna',
+    medium: 'gpt-5.6-terra',
+    thinking: 'gpt-5.6-sol',
+    ultra: 'gpt-5.6-sol',
+  });
+  assert.deepEqual(
+    ['fast', 'medium', 'thinking', 'ultra'].map((tier) => getModelEffort('codex', tier as 'fast' | 'medium' | 'thinking' | 'ultra')),
+    ['medium', 'medium', 'medium', 'xhigh'],
+  );
 });
 
 test('user model-map.json (HAILYKIT_HOME) takes precedence over the kit map', () => {

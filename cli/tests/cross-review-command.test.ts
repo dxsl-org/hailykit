@@ -59,7 +59,7 @@ test('falls through to the next leg when the first invocation fails', () => {
   const r = runCrossReview({
     stage: 'code', artifact: 'diff', sessionProvider: 'claude', cwd: '.',
     config: {},
-    detectDeps: detectAll(['codex', 'gemini']), resolveDeps: { getMap: (p) => (p === 'codex' ? { thinking: 'gpt-5.5' } : MAP[p] ?? {}), ollamaModels: () => [] },
+    detectDeps: detectAll(['codex', 'gemini']), resolveDeps: { getMap: (p) => (p === 'codex' ? { thinking: 'gpt-5.6-sol' } : MAP[p] ?? {}), ollamaModels: () => [] },
     runner: (leg) => {
       calls++;
       if (leg.cli === 'codex') return { ok: false, stdout: '' };

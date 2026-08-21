@@ -6,10 +6,10 @@
     "ultra": "fable-5"
   },
   "codex": {
-    "fast": "gpt-5.4-mini",
-    "medium": "gpt-5.4",
-    "thinking": "gpt-5.5",
-    "ultra": "gpt-5.5"
+    "fast": "gpt-5.6-luna",
+    "medium": "gpt-5.6-terra",
+    "thinking": "gpt-5.6-sol",
+    "ultra": "gpt-5.6-sol"
   },
   "gemini": {
     "fast": "gemini-2.5-pro",

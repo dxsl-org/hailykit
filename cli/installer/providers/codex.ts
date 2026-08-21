@@ -25,7 +25,7 @@ import { warnIfCodexHooksUnsupported } from './codex-version.js';
 
 const AGENTS_SENTINEL_START = '# --- hailykit-agents-start ---';
 const AGENTS_SENTINEL_END = '# --- hailykit-agents-end ---';
-const KNOWN_TIERS = new Set<string>(['thinking', 'medium', 'fast', 'deep']);
+const KNOWN_TIERS = new Set<string>(['thinking', 'medium', 'fast', 'ultra']);
 const SKILLS_MANIFEST = 'hailykit-installed-skills.json';
 const SKILL_OWNERSHIP_MARKER = '.hailykit-codex-skill.json';
 const SAFE_SKILL_DIR_RE = /^[a-z][a-z0-9-]*$/;
@@ -495,13 +495,13 @@ export class CodexProvider extends BaseProvider {
 
     const timeoutsByPath = buildTimeoutsByPath(allHooks, destHooksDir);
     const wrapperMap = installHookWrappers(destHooksDir, timeoutsByPath);
-    const hooksArray = buildCodexHooksJson(allHooks, destHooksDir, wrapperMap);
-    if (hooksArray.length === 0) return;
+    const hooksConfig = buildCodexHooksJson(allHooks, destHooksDir, wrapperMap);
+    if (Object.keys(hooksConfig.hooks).length === 0) return;
 
     fs.mkdirSync(targetProviderDir, { recursive: true });
     fs.writeFileSync(
       path.join(targetProviderDir, 'hooks.json'),
-      JSON.stringify(hooksArray, null, 2),
+      JSON.stringify(hooksConfig, null, 2),
       'utf8',
     );
 

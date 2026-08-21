@@ -125,7 +125,7 @@ The `kit/` directory is a distributable snapshot of the skill catalog, versioned
 
 - **`agents/`** — 25 agent .md files (provider-neutral model assignment)
   - Each agent has frontmatter with `model: <tier>` where tier ∈ {thinking, medium, fast}
-  - Tiers are resolved to provider-specific model names at install time (claude: thinking→opus, medium→sonnet, fast→haiku)
+  - Tiers are resolved to provider-specific model names at install time (for example, Codex: thinking/ultra→gpt-5.6-sol, medium→gpt-5.6-terra, fast→gpt-5.6-luna; Claude: thinking→opus, medium→sonnet, fast→haiku)
   - User-configured-model providers (cursor, zed, windsurf, opencode, kimi) have the `model:` line stripped at install
 
 - **`templates/`** — 4 task templates for common workflows

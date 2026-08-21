@@ -2,11 +2,12 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-// Codex-supported hook events (as of v0.124.0-alpha.3, April 2026).
-// PermissionRequest added on top of the original 5 Claude Code events.
+// Codex-supported hook events (verified against developers.openai.com/codex/hooks,
+// August 2026). Keep this list aligned with the public hooks contract.
 const CODEX_SUPPORTED_EVENTS = new Set([
-  'SessionStart', 'UserPromptSubmit',
-  'PreToolUse', 'PostToolUse', 'PermissionRequest', 'Stop',
+  'SessionStart', 'SessionEnd', 'SubagentStart', 'SubagentStop',
+  'PreToolUse', 'PermissionRequest', 'PostToolUse',
+  'PreCompact', 'PostCompact', 'UserPromptSubmit', 'Stop',
 ]);
 
 // Capture the hooks-dir-relative .cjs path from a settings.json hook command.
@@ -15,10 +16,19 @@ const CODEX_SUPPORTED_EVENTS = new Set([
 // — the catalog uses the latter, so a `node …`-only pattern matched nothing.
 const HOOK_CJS_RE = /\.claude\/hooks\/([^\s"';]+\.cjs)/;
 
-export interface CodexHookEntry {
-  event: string;
-  command: { script: string; timeout_sec?: number };
+export interface CodexHookHandler {
+  type: 'command';
+  command: string;
+  timeout?: number;
+}
+
+export interface CodexHookGroup {
   matcher?: string;
+  hooks: CodexHookHandler[];
+}
+
+export interface CodexHooksConfig {
+  hooks: Record<string, CodexHookGroup[]>;
 }
 
 // Events where Codex accepts `additionalContext` (verified against
@@ -148,7 +158,7 @@ export function installHookWrappers(
 }
 
 /**
- * Build the hooks.json array for Codex, translating settings.json hook config.
+ * Build the native hooks.json object for Codex, translating settings.json hook config.
  * Only includes Codex-supported events; command paths are rewritten to the
  * corresponding wrapper script so protocol translation happens at runtime.
  *
@@ -160,17 +170,19 @@ export function buildCodexHooksJson(
   allHooks: unknown,
   destHooksDir: string,
   wrapperMap: Map<string, string>,
-): CodexHookEntry[] {
-  const entries: CodexHookEntry[] = [];
-  if (typeof allHooks !== 'object' || allHooks === null) return entries;
+): CodexHooksConfig {
+  const config: CodexHooksConfig = { hooks: {} };
+  if (typeof allHooks !== 'object' || allHooks === null) return config;
 
   for (const [event, groups] of Object.entries(allHooks as Record<string, unknown>)) {
     if (!CODEX_SUPPORTED_EVENTS.has(event)) continue;
 
+    const convertedGroups: CodexHookGroup[] = [];
     for (const group of (Array.isArray(groups) ? groups : [])) {
       if (typeof group !== 'object' || group === null) continue;
       const g = group as Record<string, unknown>;
       const hookList = Array.isArray(g.hooks) ? g.hooks : [];
+      const handlers: CodexHookHandler[] = [];
 
       for (const hook of hookList) {
         if (typeof hook !== 'object' || hook === null) continue;
@@ -185,18 +197,28 @@ export function buildCodexHooksJson(
         const useScript = wrapperMap.get(origScript) ?? origScript;
         const absScript = useScript.replace(/\\/g, '/');
 
-        const entry: CodexHookEntry = {
-          event,
-          command: { script: `node "${absScript}"` },
+        const handler: CodexHookHandler = {
+          type: 'command',
+          command: `node "${absScript}"`,
         };
-        if (typeof g.matcher === 'string') entry.matcher = g.matcher;
-        if (typeof h.timeout === 'number') entry.command.timeout_sec = h.timeout;
+        // Claude-compatible source settings use milliseconds; Codex uses seconds.
+        if (typeof h.timeout === 'number' && Number.isFinite(h.timeout) && h.timeout > 0) {
+          handler.timeout = Math.max(1, Math.ceil(h.timeout / 1000));
+        }
 
-        entries.push(entry);
+        handlers.push(handler);
+      }
+
+      if (handlers.length > 0) {
+        const converted: CodexHookGroup = { hooks: handlers };
+        if (typeof g.matcher === 'string') converted.matcher = g.matcher;
+        convertedGroups.push(converted);
       }
     }
+
+    if (convertedGroups.length > 0) config.hooks[event] = convertedGroups;
   }
-  return entries;
+  return config;
 }
 
 /**

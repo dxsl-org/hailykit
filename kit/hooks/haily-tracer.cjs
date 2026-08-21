@@ -20,12 +20,11 @@
 
 try {
   const fs   = require('node:fs');
-  const path = require('node:path');
-  const os   = require('node:os');
 
   const { isHookEnabled, readSessionState } = require('./haily-lib/config.cjs');
   const { createHookTimer, logHookCrash } = require('./haily-lib/logger.cjs');
-  const { deriveTier } = require('./haily-lib/model.cjs');
+  const { canonicalTier } = require('./haily-lib/model.cjs');
+  const { loadAgentModelMap } = require('./haily-lib/agent-model-map.cjs');
 
   if (!isHookEnabled('model-tracer')) process.exit(0);
 
@@ -40,32 +39,6 @@ try {
       if (state && typeof state.model === 'string' && state.model) return state.model;
     } catch { /* fail-open */ }
     return process.env.HL_SESSION_MODEL || '';
-  }
-
-  // ── Agent file resolution ────────────────────────────────────────────────────
-  // Try local .claude/agents/ first (project-scoped), then global ~/.claude/agents/.
-  function resolveAgentFile(agentType) {
-    const settingsDir = process.env.HL_CLAUDE_SETTINGS_DIR || path.join(os.homedir(), '.claude');
-    const candidates = [
-      path.join(process.cwd(), '.claude', 'agents', `${agentType}.md`),
-      path.join(settingsDir, 'agents', `${agentType}.md`),
-    ];
-    for (const p of candidates) {
-      if (fs.existsSync(p)) return p;
-    }
-    return null;
-  }
-
-  // ── Frontmatter extraction ───────────────────────────────────────────────────
-  // Reads the `model:` line from YAML frontmatter without a full YAML parser.
-  function extractModel(filePath) {
-    try {
-      const content = fs.readFileSync(filePath, 'utf8');
-      const match = content.match(/^model:\s*(.+)$/m);
-      return match ? match[1].trim() : null;
-    } catch {
-      return null;
-    }
   }
 
   async function main() {
@@ -88,13 +61,12 @@ try {
 
     // Explicit per-call override > agent frontmatter pin > session model.
     const overrideModel = typeof toolInput.model === 'string' ? toolInput.model.trim() : '';
-    const agentFile = resolveAgentFile(subagentType);
-    const pinnedModel = agentFile ? extractModel(agentFile) : null;
+    const pinnedModel = loadAgentModelMap(__dirname, process.env)[subagentType] || null;
     const modelId = overrideModel || pinnedModel || resolveSessionModel(data.session_id || '');
 
     let label;
     if (modelId) {
-      const tier = deriveTier(modelId);
+      const tier = canonicalTier(modelId);
       label = tier ? `${tier} (${modelId})` : modelId;
     } else {
       label = 'session model (inherit)';

@@ -50,7 +50,7 @@ export const MODEL_MAP: Record<string, Record<ModelTier, string>> = {
   // `ultra` maps to each provider's strongest model. Pin a newer model in
   // ~/.hailykit/model-map.json when it becomes available.
   claude:      { fast: 'haiku',                         medium: 'sonnet',                       thinking: 'opus',                              ultra: 'fable-5' },
-  codex:       { fast: 'gpt-5.4-mini',                  medium: 'gpt-5.4',                      thinking: 'gpt-5.5',                           ultra: 'gpt-5.5' },
+  codex:       { fast: 'gpt-5.6-luna',                  medium: 'gpt-5.6-terra',                 thinking: 'gpt-5.6-sol',                       ultra: 'gpt-5.6-sol' },
   // The legacy gemini CLI (superseded by Antigravity) only serves gemini-2.5-pro
   // — no tier differentiation. The forward-looking 3.x names live under
   // `antigravity`, which cross-review keeps out of its ladder until AG-CLI's
@@ -140,7 +140,9 @@ export function getModelMap(provider: string): Record<ModelTier, string> {
  * typed tier→model contract stays clean. Populate when a provider needs an
  * explicit effort; consumers emit the hint only when a value is present.
  */
-export const MODEL_EFFORT_MAP: Record<string, Partial<Record<ModelTier, string>>> = {};
+export const MODEL_EFFORT_MAP: Record<string, Partial<Record<ModelTier, string>>> = {
+  codex: { fast: 'medium', medium: 'medium', thinking: 'medium', ultra: 'xhigh' },
+};
 
 /**
  * Resolve the reasoning-effort hint for a provider/tier, or undefined when none

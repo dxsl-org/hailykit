@@ -4,7 +4,7 @@ import { resolveLeg, canonicalProvider, type ResolveDeps } from '../lib/cross-re
 import type { CrossReviewConfig, LegName } from '../lib/cross-review/types';
 
 const MAP: Record<string, Record<string, string>> = {
-  codex: { thinking: 'gpt-5.5', medium: 'gpt-5.4', fast: 'gpt-5.4-mini', ultra: 'gpt-5.5' },
+  codex: { thinking: 'gpt-5.6-sol', medium: 'gpt-5.6-terra', fast: 'gpt-5.6-luna', ultra: 'gpt-5.6-sol' },
   gemini: { thinking: 'gemini-3.1-pro-preview', medium: 'gemini-3.5-flash', fast: 'x', ultra: 'y' },
   opencode: { thinking: 'anthropic/claude-opus-4-8', medium: 'a/b', fast: 'a/b', ultra: 'a/b' },
   cline: { thinking: 'anthropic/claude-opus-4-8', medium: 'a/b', fast: 'a/b', ultra: 'a/b' },
@@ -92,5 +92,5 @@ test('ollama with no models pulled is rejected', () => {
 
 test('tier override selects a different mapped model', () => {
   const out = resolveLeg(['codex'], 'claude', { tier: 'medium' }, deps());
-  assert.equal(out.leg?.model, 'gpt-5.4');
+  assert.equal(out.leg?.model, 'gpt-5.6-terra');
 });

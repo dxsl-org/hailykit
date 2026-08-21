@@ -25,6 +25,7 @@ try {
   } = require('./haily-lib/config.cjs');
   const { createHookTimer, logHookCrash } = require('./haily-lib/logger.cjs');
   const { formatModelDisplay, canonicalTier } = require('./haily-lib/model.cjs');
+  const { loadAgentModelMap } = require('./haily-lib/agent-model-map.cjs');
   const { detectProject, buildStaticEnv, getCodingLevelStyleName, detectPrimaryLanguage } = require('./haily-lib/project.cjs');
   const { resolveStandardsPath } = require('./haily-lib/context.cjs');
   const { updateSessionState } = require('./haily-lib/session.cjs');
@@ -192,21 +193,7 @@ try {
     // text — the only mechanism that renders visibly in the VSCode extension.
     if (isHookEnabled('model-tracer')) {
       try {
-        const settingsDir = process.env.HL_CLAUDE_SETTINGS_DIR || path.join(os.homedir(), '.claude');
-        const agentDir = path.join(settingsDir, 'agents');
-        const agentMap = {};
-        if (fs.existsSync(agentDir)) {
-          for (const file of fs.readdirSync(agentDir)) {
-            if (!file.endsWith('.md')) continue;
-            try {
-              const content = fs.readFileSync(path.join(agentDir, file), 'utf8');
-              const m = content.match(/^model:\s*(.+)$/m);
-              // Agents without a model pin inherit the session model — list them
-              // too so Claude announces every Agent call, not just pinned ones.
-              agentMap[file.replace('.md', '')] = m ? m[1].trim() : 'inherit';
-            } catch { /* skip unreadable */ }
-          }
-        }
+        const agentMap = loadAgentModelMap(__dirname, process.env);
         const sessionDisplay = sessionModel ? formatModelDisplay(sessionModel) : '<session-model>';
         const mapStr = Object.entries(agentMap).map(([k, v]) => `${k}=${v}`).join(', ');
         const announce = `AGENT TRACE: At the start of your every reply, write "🤖 haily: **${sessionDisplay}**" on its own line. `;

@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 
 const HOOK_LIB = path.resolve(__dirname, '..', '..', 'kit', 'hooks', 'haily-lib');
@@ -68,15 +69,20 @@ test('a flat provider map resolves its model to the highest mapped tier, never f
 });
 
 test('a duplicate top-tier mapping resolves to ultra, not thinking', () => {
-  // codex maps both thinking and ultra to gpt-5.5.
-  assert.equal(model.canonicalTier('gpt-5.5'), 'ultra');
+  // codex maps both thinking and ultra to gpt-5.6-sol.
+  assert.equal(model.canonicalTier('gpt-5.6-sol'), 'ultra');
 });
 
 test('an exact match still beats a fuzzy substring match', () => {
-  // codex fast is gpt-5.4-mini and medium is gpt-5.4 — the shorter id must not
+  // codex fast is gpt-5.6-luna and medium is gpt-5.6-terra — the base id must not
   // fuzzy-match into the longer one's tier.
-  assert.equal(model.canonicalTier('gpt-5.4'), 'medium');
-  assert.equal(model.canonicalTier('gpt-5.4-mini'), 'fast');
+  assert.equal(model.canonicalTier('gpt-5.6-terra'), 'medium');
+  assert.equal(model.canonicalTier('gpt-5.6-luna'), 'fast');
+});
+
+test('installed hooks can resolve GPT tiers from the central kit model map', () => {
+  const source = fs.readFileSync(path.join(process.cwd(), 'kit', 'hooks', 'haily-lib', 'model.cjs'), 'utf8');
+  assert.match(source, /\.hailykit['"], 'kit['"], 'model-map\.json'/);
 });
 
 test('an unresolvable model id yields no tier, so the harness no-ops', () => {

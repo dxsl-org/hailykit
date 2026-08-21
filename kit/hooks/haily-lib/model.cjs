@@ -4,6 +4,7 @@
  *
  * Handles three ID shapes seen after install:
  *   full IDs    — claude-sonnet-4-6, claude-haiku-4-5-20251001, claude-fable-5
+ *                 gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna
  *   aliases     — opus / sonnet / haiku / fable (agent frontmatter, Agent-tool model opt)
  *   unknown     — returned verbatim (display must never fail)
  *
@@ -56,16 +57,22 @@ let cachedModelMap = null;
 function loadModelMapForLookup() {
   if (cachedModelMap) return cachedModelMap;
   const candidates = [
-    path.join(os.homedir(), '.hailykit', 'model-map.json'),
+    path.join(os.homedir(), '.hailykit', 'kit', 'model-map.json'),
     path.join(__dirname, '..', '..', 'model-map.json'),
+    path.join(os.homedir(), '.hailykit', 'model-map.json'),
   ];
+  const merged = {};
   for (const file of candidates) {
     try {
-      cachedModelMap = JSON.parse(fs.readFileSync(file, 'utf8'));
-      return cachedModelMap;
+      const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+      if (!parsed || typeof parsed !== 'object') continue;
+      for (const [provider, tiers] of Object.entries(parsed)) {
+        if (!tiers || typeof tiers !== 'object') continue;
+        merged[provider] = { ...(merged[provider] || {}), ...tiers };
+      }
     } catch { /* try next candidate */ }
   }
-  cachedModelMap = {};
+  cachedModelMap = merged;
   return cachedModelMap;
 }
 
@@ -91,8 +98,8 @@ function reverseLookupTier(modelId) {
 
   // Pass 1: exact match, across every provider, before any fuzzy attempt.
   // Without this a shorter tier's value that happens to be a substring of a
-  // longer one (codex fast="gpt-5.4-mini", medium="gpt-5.4") would let the
-  // fuzzy pass below mis-resolve an exact "gpt-5.4" id to the wrong tier.
+  // longer one would let the fuzzy pass below mis-resolve an exact id to the
+  // wrong tier.
   const exact = highestMatch(map, providers, (candidate) => candidate === id);
   if (exact) return exact;
   // Pass 2: fuzzy fallback for runtime ids carrying a suffix the map's
