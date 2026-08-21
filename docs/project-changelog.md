@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added stock `pi` as the default HailyKit provider with shell-free bootstrap of the official runtime only when missing, plus the HailyKit-owned overlay that turns an existing Pi install into the full Pi-based baseline with task, plan, safety, preset, prompt, agent, skill, and settings capabilities. The work stays on the stock Pi runtime and does not clone Pi into a separate repo or runtime.
+
 - Added canonical `pi` and `omp` installer providers with native skill-directory installs, additive provider-scoped `APPEND_SYSTEM.md` rules, ownership markers, and scoped uninstall/stale cleanup. Pi agent files target the optional upstream subagent extension, while OMP agents use native task-agent Markdown; both map declared tool policies to safe native allowlists and omit provider-neutral model tiers.
 - Added Codex legacy agent migration with explicit `hailykit-installed-agents.json` plus per-agent sidecars, safe legacy adoption for generated HailyKit agents, count-aware installed/updated/migrated/skipped reporting, scoped uninstall, and atomic crash-safe writes. User-defined same-slug collisions stay preserved; uninstall and reinstall now fail closed instead of overwriting unowned agent TOML.
 - Added `hl-write` stage control with `--stage`, `.hl-write-state.json`, prepared packs, and digest-based freshness so Route preflight can validate a single stage at a time and return explicit `NOT_READY` blockers instead of auto-running predecessor stages.

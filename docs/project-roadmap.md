@@ -2,6 +2,10 @@
 
 ## 2026-08
 
+- Complete: stock Pi default and full HailyKit overlay
+  - Goal: make official stock `pi` the default provider, bootstrap it only when missing, and install the HailyKit-owned overlay that adds task, plan, safety, preset, prompt, agent, skill, and settings capabilities without cloning Pi into a separate runtime.
+  - Status: implemented and verified. Phases 1-5 are completed and the plan ledger is closed.
+
 - Complete: Pi and OMP installer providers
   - Goal: add canonical `pi` and `omp` providers with native SKILL.md installs, additive `APPEND_SYSTEM.md` rules, OMP native task agents, and Pi agent definitions compatible with Pi's optional subagent extension.
   - Status: implemented locally. Native skills, additive rules, provider-native agents, explicit tool allowlists, and scoped manifests/markers/version metadata are complete; `npm run build`, 704/704 tests, skill cross-reference validation, `git diff --check`, and production-readiness review pass.

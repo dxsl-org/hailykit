@@ -24,12 +24,13 @@ curl -fsSL https://raw.githubusercontent.com/dxsl-org/hailykit/refs/heads/main/i
 irm https://raw.githubusercontent.com/dxsl-org/hailykit/refs/heads/main/install.ps1 | iex
 ```
 
-Installs the `hailykit` CLI to `~/.local/bin/` and runs the default Claude Code install.
+Installs the `hailykit` CLI to `~/.local/bin/` and runs the default Pi install.
 
 ### By provider
 
 ```bash
-hailykit install                          # Claude Code (default)
+hailykit install                          # Pi (default; bootstraps stock Pi if missing)
+hailykit install --provider claude        # Claude Code (optional)
 hailykit install --provider gemini        # Gemini CLI
 hailykit install --provider cursor        # Cursor
 hailykit install --provider windsurf      # Windsurf
@@ -44,16 +45,29 @@ hailykit install --provider omp           # Oh My Pi
 hailykit install --provider all           # all providers at once
 ```
 
-Add `--project` for project-scoped install (`.claude/` in CWD instead of `~/.claude/`).
+Add `--project` for project-scoped install into the provider's native project root (for example, `.pi/` for Pi or `.claude/` for Claude) instead of the global home directory.
 Pi and OMP global installs honor `PI_CODING_AGENT_DIR`; if both CLIs point that env var at the same directory, HailyKit prevents cross-delete but cannot make one shared path behave like two independent native roots.
 
 ### Upgrade & status
 
 ```bash
-hailykit upgrade                          # upgrade Claude Code install
+hailykit upgrade                          # upgrade Pi install
+hailykit upgrade --provider claude       # upgrade Claude Code install
 hailykit upgrade --provider all           # upgrade all providers
 hailykit status                           # show installed vs latest versions
+hailykit uninstall                        # remove HailyKit from Pi, keep stock Pi installed
+hailykit uninstall --provider claude      # remove Claude install
 ```
+
+### Pi default provider
+
+- HailyKit's default provider is stock Pi: `@earendil-works/pi-coding-agent@0.84.2`, supported range `>=0.84.2 <0.85.0`.
+- Bare `hailykit install` bootstraps Pi only when the `pi` runtime is missing. `upgrade`, `status`, and `uninstall` never bootstrap it.
+- HailyKit adds its own overlay, settings keys, prompts, skills, runnable Task/subagent support, and agent definitions inside Pi's native roots. Uninstall removes only HailyKit-owned resources; stock Pi stays installed and usable.
+- Project installs use `.pi/`. Untrusted projects stay fail-closed until trusted by Pi's project-trust surface; project-local settings cannot disable HailyKit's baseline trust and safety guards before trust is granted.
+- HailyKit task/plan/safety isolation inside Pi is conversation-context isolation, not an OS sandbox.
+- Deferred OMP-only extras are still out of scope for Pi baseline: async hub, stronger harness-level isolation, prewalk, and advisor flows.
+- Release verification still treats host Pi runtime smoke as host-gated manual evidence; mocked tests do not substitute for a trusted host load.
 
 ### Provider support
 
@@ -76,46 +90,49 @@ hailykit status                           # show installed vs latest versions
 
 ## Quick Start
 
-Open Claude Code after installing — skills are ready immediately.
+Open Pi after the default install — HailyKit's Pi overlay is ready immediately.
+If you installed Claude explicitly, the same catalog remains available there with Claude-native slash commands.
 
 ### Core dev chain
 
 ```
-/hc-plan → /hc-cook → /hc-test → /hc-review → /hc-ship
+/skill:hc-plan → /skill:hc-cook → /skill:hc-test → /skill:hc-review → /skill:hc-ship
 ```
 
 | Task | Command |
 |---|---|
-| Start a new project | `/hc-new` |
-| Autonomously build a feature (no manual steps) | `/hc-goal "<description>"` |
-| Plan a feature | `/hc-plan <task>` |
-| Implement from a plan | `/hc-cook <plan>` |
-| Fix a bug | `/hc-fix <description>` |
-| Review code | `/hc-review` |
-| Ship (tests → version → PR) | `/hc-ship` |
-| Debug an issue | `/hc-debug` |
-| Brainstorm options | `/hl-brainstorm` |
-| Explore the codebase | `/hc-scout` |
-| Discover all skills | `/hl-help` |
+| Start a new project | `/skill:hc-new` |
+| Autonomously build a feature (no manual steps) | `/skill:hc-goal "description"` |
+| Plan a feature | `/skill:hc-plan <task>` |
+| Implement from a plan | `/skill:hc-cook <plan>` |
+| Fix a bug | `/skill:hc-fix <description>` |
+| Review code | `/skill:hc-review` |
+| Ship (tests → version → PR) | `/skill:hc-ship` |
+| Debug an issue | `/skill:hc-debug` |
+| Brainstorm options | `/skill:hl-brainstorm` |
+| Explore the codebase | `/skill:hc-scout` |
+| Discover all skills | `/skill:hl-help` |
 
 ### Common workflow chains
 
 ```bash
 # Autonomous feature development (hands-off)
-/hc-goal "Add OAuth login with GitHub and Google" --auto
+/skill:hc-goal "Add OAuth login with GitHub and Google" --auto
 
 # Feature development (step-by-step with control)
-/hl-brainstorm → /hc-plan → /hc-cook → /hc-test → /hc-review → /hc-ship
+/skill:hl-brainstorm → /skill:hc-plan → /skill:hc-cook → /skill:hc-test → /skill:hc-review → /skill:hc-ship
 
 # Bug fix
-/hc-scout → /hc-debug → /hc-fix → /hc-test
+/skill:hc-scout → /skill:hc-debug → /skill:hc-fix → /skill:hc-test
 
 # Risky/architecture change
-/hl-research → /hl-brainstorm → /hl-reasoning → /hc-plan → /hc-cook → /hc-review
+/skill:hl-research → /skill:hl-brainstorm → /skill:hl-reasoning → /skill:hc-plan → /skill:hc-cook → /skill:hc-review
 
 # New project end-to-end
-/hc-new "project description"
+/skill:hc-new "project description"
 ```
+
+For Claude Code, use the same skill names with Claude's native `/hc-plan`, `/hl-brainstorm`, and similar slash-command syntax.
 
 ### Spec-driven & test-driven development (tiered)
 
@@ -322,7 +339,8 @@ Bundled examples in [`cli/tools/`](cli/tools/). Full protocol spec in [`docs/tec
 ```bash
 npm run build      # tsc → dist/ + copy cli/tools/ → dist/tools/
 npm run typecheck  # tsc --noEmit
-npm test           # compile → .test-build/ then run node:test (382 tests)
+npm test           # compile → .test-build/ then run node:test
+npm run release:pack  # build local release/hailykit.zip for installer verification
 ```
 
 Before committing any skill cross-reference (`/hc-*`, `/hl-*`) in markdown:

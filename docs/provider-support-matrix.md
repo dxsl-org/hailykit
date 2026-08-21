@@ -3,6 +3,8 @@
 Feature support across all HailyKit-supported AI coding agent providers.
 Last researched: **2026-08-21** — verify against provider release notes when updating installers.
 
+Installer default: **Pi**. Claude remains supported through `hailykit install --provider claude`.
+
 ## Legend
 
 | Icon | Meaning |
@@ -24,7 +26,7 @@ Last researched: **2026-08-21** — verify against provider release notes when u
 | **Hook: PostToolUse** | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ | ⚠️ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Hook: SessionStart** | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **Hook: UserPromptSubmit** | ✅ | ✅ | ⚠️ | ✅ | ✅ | ⚠️ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Multi-agent / subagent spawn** | ✅ | ✅ | ⚠️ | ⚠️ | ⚠️ | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ | ✅ |
+| **Multi-agent / subagent spawn** | ✅ | ✅ | ⚠️ | ⚠️ | ⚠️ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 
 ## Notes
 
@@ -65,7 +67,7 @@ Skills like `hc-cook`, `hc-ship`, `hc-plan` spawn specialist subagents (`haily-p
 - **Codex** ✅: custom agent TOML in `~/.codex/agents/`; agents invocable by natural language
 - **Gemini** ⚠️: `agents/` directory installed; no native spawn mechanism — AI interprets agent instructions as workflow steps
 - **Antigravity / Kimi** ⚠️: similar to Gemini — agents may be supported depending on version, but spawn is not guaranteed
-- **Pi** ⚠️: HailyKit installs Pi-compatible agent files, but they only become runnable when Pi's optional subagent extension is installed separately
+- **Pi** ✅: HailyKit ships the runnable `task` extension as part of the Pi overlay, installs native agent files, and maps Claude tool policies to Pi-native allowlists. Isolation is conversation-context isolation plus extension policy, not an OS sandbox.
 - **OMP** ✅: native task-agent discovery from `agents/*.md`; HailyKit maps Claude tool policies to an explicit OMP allowlist and strips unsupported frontmatter
 - **All others** ❌: AI follows multi-agent instructions as sequential steps within a single context; no true subagent isolation
 
@@ -74,12 +76,22 @@ Skills like `hc-cook`, `hc-ship`, `hc-plan` spawn specialist subagents (`haily-p
 - **OMP**: global `~/.omp/agent`, project `.omp`, additive rules in `APPEND_SYSTEM.md`
 - **Shared env override**: both CLIs honor `PI_CODING_AGENT_DIR`. HailyKit scopes markers, rule sentinels, and version metadata by provider so cleanup stays fail-closed, but one shared override path still cannot act as two independent native roots.
 
+### Pi baseline installed by HailyKit
+- Runtime package: stock `@earendil-works/pi-coding-agent@0.84.2`
+- Supported runtime range: `>=0.84.2 <0.85.0`
+- Bootstrap: bare `hailykit install` may install Pi when missing; `upgrade`, `status`, and `uninstall` never bootstrap
+- Removal: uninstall drops only HailyKit-owned overlay resources; stock Pi remains installed
+- Included baseline overlay: native skills, prompts, runnable task/subagent extension, plan mode, presets, diagnostics, trust gate, protected-path guard, dirty-repo guard, and destructive confirmation
+- Trust and safety: project trust, protected paths, dirty-repo guard, and destructive confirmation are extension-level controls. They are fail-closed, but they are not an OS sandbox.
+- Pi event surface differs from Claude's hook names. HailyKit uses Pi's native extension events and commands rather than emulating Claude hook APIs.
+- Deferred vs OMP: Pi baseline does not claim OMP-only async hub, stronger harness-level isolation, prewalk, or advisor flows.
+
 ## Workflow Chain Support Summary
 
 | Tier | Providers | Capability |
 |------|-----------|-----------|
-| **Full** | Claude Code, Codex, OMP | Skills + hooks or native agents — complete pipeline |
+| **Full** | Claude Code, Codex, Pi, OMP | Skills + hooks or native extension/agents — complete pipeline |
 | **Good** | Gemini, Windsurf, Kimi | Skills + most hooks — no true agent spawn |
-| **Basic** | Antigravity, Crush, OpenCode, Pi | Skills + limited/no hooks — Pi agents need an extra upstream extension |
+| **Basic** | Antigravity, Crush, OpenCode | Skills + limited/no hooks |
 | **Limited** | Cursor | Rules-based guidance only — no slash commands, hooks unconfirmed |
 | **Minimal** | Zed | Native invocation and always-on rules, but no hooks or native subagents |
