@@ -96,8 +96,18 @@ export async function cmdInstall(options: InstallOptions): Promise<void> {
         console.log(`    Installed rules`);
 
         if (provider.installAgents) {
-          provider.installAgents(extractedKitDir, targetDir);
-          console.log(`    Installed agents`);
+          const result = provider.installAgents(extractedKitDir, targetDir);
+          if (result) {
+            const parts: string[] = [];
+            if (result.installed > 0) parts.push(`installed ${result.installed}`);
+            if (result.updated > 0) parts.push(`updated ${result.updated}`);
+            if (result.migrated > 0) parts.push(`migrated ${result.migrated}`);
+            if (result.skippedUser > 0) parts.push(`skipped user-owned ${result.skippedUser}`);
+            if (result.skippedDuplicate > 0) parts.push(`skipped duplicate ${result.skippedDuplicate}`);
+            console.log(`    Agents: ${parts.join(', ') || 'no changes'}`);
+          } else {
+            console.log(`    Installed agents`);
+          }
         }
 
         if (provider.hooksSupported()) {

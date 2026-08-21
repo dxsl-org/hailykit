@@ -16,6 +16,16 @@ import {
   escapeTomlMultiline, toCodexSlug, buildAgentConfigEntry, deriveSandboxMode,
   extractUnmanagedAgentSlugs, mergeManagedTomlBlock,
 } from '../installer/providers/codex-toml';
+import {
+  agentMarkerPath,
+  agentTomlPath,
+  extractAgentTableSpans,
+  removeAgentTableSpans,
+  readAgentOwnershipMarker,
+  readCodexAgentManifest,
+  readManagedCodexAgentSlugs,
+} from '../installer/providers/codex-agent-migration';
+import { isGeneratedCodexAgentToml } from '../installer/providers/codex-agent-legacy';
 import { parseVersion, compareVersions, warnIfCodexHooksUnsupported } from '../installer/providers/codex-version';
 import { atomicWriteToml } from '../installer/providers/codex-toml';
 import { writeCodexConfigToml } from '../installer/providers/codex-config';
@@ -664,6 +674,52 @@ test('extractUnmanagedAgentSlugs: finds user [agents.X] tables', () => {
   assert.deepEqual([...slugs].sort(), ['mybot', 'two']);
 });
 
+test('extractAgentTableSpans: returns exact unmanaged agent table spans', () => {
+  const content = '[agents.one]\nx = 1\n\n[features]\nhooks = true\n\n[agents.two]\ny = 2\n';
+  const spans = extractAgentTableSpans(content);
+  assert.deepEqual(spans.map((span) => span.slug), ['one', 'two']);
+  assert.match(spans[0].text, /\[agents\.one\]/);
+  assert.ok(!spans[0].text.includes('[features]'), 'agent span must end at the next TOML table');
+  assert.match(spans[1].text, /y = 2/);
+  assert.match(removeAgentTableSpans(content, [spans[0]]), /\[features\]\nhooks = true/);
+});
+
+test('readCodexAgentManifest and readAgentOwnershipMarker: malformed files fail closed', () => {
+  const dir = tmp();
+  fs.writeFileSync(path.join(dir, 'hailykit-installed-agents.json'), '["good","../bad",1]');
+  fs.mkdirSync(path.join(dir, 'agents'), { recursive: true });
+  const marker = agentMarkerPath(dir, 'good');
+  fs.writeFileSync(marker, '{"provider":"codex","slug":7}');
+  assert.deepEqual(readCodexAgentManifest(dir), ['good']);
+  assert.equal(readAgentOwnershipMarker(marker), null);
+});
+
+test('isGeneratedCodexAgentToml: requires generated keys and exact developer instructions body', () => {
+  const toml = [
+    'name = "haily-researcher"',
+    'description = "d"',
+    'model = "gpt-5.6-terra"',
+    'developer_instructions = """',
+    '## Report Contract',
+    '',
+    'docs/engineering-standards.md',
+    '"""',
+    '',
+  ].join('\n');
+  assert.equal(isGeneratedCodexAgentToml(toml, {
+    name: 'haily-researcher',
+    legacyFingerprints: ['## Report Contract', 'docs/engineering-standards.md'],
+  }), true);
+  assert.equal(isGeneratedCodexAgentToml(`${toml}command = "custom"\n`, {
+    name: 'haily-researcher',
+    legacyFingerprints: ['## Report Contract', 'docs/engineering-standards.md'],
+  }), false);
+  assert.equal(isGeneratedCodexAgentToml(`${toml}[custom]\nenabled = "yes"\n`, {
+    name: 'haily-researcher',
+    legacyFingerprints: ['## Report Contract', 'docs/engineering-standards.md'],
+  }), false);
+});
+
 test('mergeManagedTomlBlock: idempotent single block, preserves user content, empty removes', () => {
   const S = '# --- hailykit-agents-start ---', E = '# --- hailykit-agents-end ---';
   const user = '[agents.mybot]\nx = 1\n';
@@ -688,12 +744,110 @@ test('CodexProvider.installAgents: preserves user [agents.X], skips slug collisi
   fs.mkdirSync(target, { recursive: true });
   fs.writeFileSync(path.join(target, 'config.toml'), '[agents.mybot]\ndescription = "user"\n');
 
-  new CodexProvider().installAgents!(kit, target);
+  const result = new CodexProvider().installAgents!(kit, target);
 
   const cfg = fs.readFileSync(path.join(target, 'config.toml'), 'utf8');
+  assert.deepEqual(result, { installed: 0, updated: 0, migrated: 0, skippedUser: 1, skippedDuplicate: 0 });
   assert.match(cfg, /description = "user"/); // user entry preserved
   assert.ok(!cfg.includes('hailykit-agents-start'), 'colliding kit agent must be skipped, no managed block');
   assert.ok(!fs.existsSync(path.join(target, 'agents', 'mybot.toml')), 'collision must skip .toml write');
+});
+
+test('CodexProvider.installAgents: adopts legacy generated agents into the managed block', () => {
+  const kit = kitWithAgent(
+    'haily-researcher',
+    'Current body.\n\n## Report Contract\n\nSee docs/engineering-standards.md for more.',
+  );
+  const target = path.join(path.dirname(kit), 'out');
+  fs.mkdirSync(path.join(target, 'agents'), { recursive: true });
+  fs.writeFileSync(path.join(target, 'config.toml'), [
+    '[agents.haily_researcher]',
+    'description = "legacy config description"',
+    'config_file = "agents/haily_researcher.toml"',
+    '',
+  ].join('\n'));
+  fs.writeFileSync(path.join(target, 'agents', 'haily_researcher.toml'), [
+    'name = "haily-researcher"',
+    'description = "legacy TOML description"',
+    'model = "legacy-model-id"',
+    'developer_instructions = """',
+    'Legacy body kept old wording.',
+    '',
+    '## Report Contract',
+    '',
+    'See docs/engineering-standards.md for more.',
+    '"""',
+    '',
+  ].join('\n'));
+
+  const result = new CodexProvider().installAgents!(kit, target);
+
+  const cfg = fs.readFileSync(path.join(target, 'config.toml'), 'utf8');
+  assert.deepEqual(result, { installed: 0, updated: 0, migrated: 1, skippedUser: 0, skippedDuplicate: 0 });
+  assert.equal((cfg.match(/\[agents\.haily_researcher\]/g) ?? []).length, 1, 'legacy table migrated without duplication');
+  assert.match(cfg, /# --- hailykit-agents-start ---/);
+  assert.deepEqual(readCodexAgentManifest(target), ['haily_researcher']);
+  assert.ok(readAgentOwnershipMarker(agentMarkerPath(target, 'haily_researcher')));
+});
+
+test('CodexProvider.installAgents: same-slug custom TOML with generated keys but no HailyKit fingerprints still skips', () => {
+  const kit = kitWithAgent(
+    'haily-researcher',
+    'Current body.\n\n## Report Contract\n\nSee docs/engineering-standards.md for more.',
+  );
+  const target = path.join(path.dirname(kit), 'out');
+  fs.mkdirSync(path.join(target, 'agents'), { recursive: true });
+  fs.writeFileSync(path.join(target, 'config.toml'), [
+    '[agents.haily_researcher]',
+    'description = "custom"',
+    'config_file = "agents/haily_researcher.toml"',
+    '',
+  ].join('\n'));
+  fs.writeFileSync(path.join(target, 'agents', 'haily_researcher.toml'), [
+    'name = "haily-researcher"',
+    'description = "custom"',
+    'model = "legacy-model-id"',
+    'developer_instructions = """',
+    'Custom body without stable HailyKit markers.',
+    '"""',
+    '',
+  ].join('\n'));
+
+  const result = new CodexProvider().installAgents!(kit, target);
+
+  assert.deepEqual(result, { installed: 0, updated: 0, migrated: 0, skippedUser: 1, skippedDuplicate: 0 });
+  assert.ok(!fs.existsSync(path.join(target, 'hailykit-installed-agents.json')));
+});
+
+test('CodexProvider.installAgents: duplicate unmanaged tables block legacy adoption', () => {
+  const kit = kitWithAgent(
+    'haily-researcher',
+    'Current body.\n\n## Report Contract\n\nSee docs/engineering-standards.md for more.',
+  );
+  const target = path.join(path.dirname(kit), 'out');
+  fs.mkdirSync(path.join(target, 'agents'), { recursive: true });
+  const table = [
+    '[agents.haily_researcher]',
+    'description = "legacy"',
+    'config_file = "agents/haily_researcher.toml"',
+    '',
+  ].join('\n');
+  fs.writeFileSync(path.join(target, 'config.toml'), table + table);
+  fs.writeFileSync(agentTomlPath(target, 'haily_researcher'), [
+    'name = "haily-researcher"',
+    'description = "legacy"',
+    'model = "legacy-model-id"',
+    'developer_instructions = """',
+    '## Report Contract',
+    'docs/engineering-standards.md',
+    '"""',
+    '',
+  ].join('\n'));
+
+  const result = new CodexProvider().installAgents!(kit, target);
+
+  assert.deepEqual(result, { installed: 0, updated: 0, migrated: 0, skippedUser: 1, skippedDuplicate: 0 });
+  assert.equal((fs.readFileSync(path.join(target, 'config.toml'), 'utf8').match(/\[agents\.haily_researcher\]/g) ?? []).length, 2);
 });
 
 test('CodexProvider.installAgents: running twice yields exactly one managed block', () => {
@@ -701,17 +855,118 @@ test('CodexProvider.installAgents: running twice yields exactly one managed bloc
   const target = path.join(path.dirname(kit), 'out');
   fs.mkdirSync(target, { recursive: true });
   const prov = new CodexProvider();
-  prov.installAgents!(kit, target);
-  prov.installAgents!(kit, target);
+  const first = prov.installAgents!(kit, target);
+  const second = prov.installAgents!(kit, target);
   const cfg = fs.readFileSync(path.join(target, 'config.toml'), 'utf8');
+  assert.deepEqual(first, { installed: 1, updated: 0, migrated: 0, skippedUser: 0, skippedDuplicate: 0 });
+  assert.deepEqual(second, { installed: 0, updated: 0, migrated: 0, skippedUser: 0, skippedDuplicate: 0 });
   assert.equal((cfg.match(/hailykit-agents-start/g) || []).length, 1);
 });
 
-test('CodexProvider.uninstall: strips agents block, leaves user [agents.X]', () => {
+test('CodexProvider.installAgents: changed managed prompt is reported as updated', () => {
+  const firstKit = kitWithAgent('haily-researcher', 'Old body.');
+  const target = path.join(path.dirname(firstKit), 'out');
+  fs.mkdirSync(target, { recursive: true });
+  const provider = new CodexProvider();
+  provider.installAgents!(firstKit, target);
+  const secondKit = kitWithAgent('haily-researcher', 'New body.');
+
+  const result = provider.installAgents!(secondKit, target);
+
+  assert.deepEqual(result, { installed: 0, updated: 1, migrated: 0, skippedUser: 0, skippedDuplicate: 0 });
+  assert.match(fs.readFileSync(agentTomlPath(target, 'haily_researcher'), 'utf8'), /New body\./);
+});
+
+test('CodexProvider.installAgents: malformed legacy ownership metadata is ignored, no crash', () => {
+  const kit = kitWithAgent('haily-researcher', 'Body.');
+  const target = path.join(path.dirname(kit), 'out');
+  fs.mkdirSync(path.join(target, 'agents'), { recursive: true });
+  fs.writeFileSync(path.join(target, 'hailykit-installed-agents.json'), '{"bad":true}');
+  fs.writeFileSync(agentMarkerPath(target, 'haily_researcher'), '{"provider":"codex","slug":7}');
+  assert.doesNotThrow(() => new CodexProvider().installAgents!(kit, target));
+});
+
+test('CodexProvider.installAgents: manifest without marker cannot authorize overwrite', () => {
+  const kit = kitWithAgent('haily-researcher', 'Body.');
+  const target = path.join(path.dirname(kit), 'out');
+  fs.mkdirSync(path.join(target, 'agents'), { recursive: true });
+  fs.writeFileSync(path.join(target, 'hailykit-installed-agents.json'), '["haily_researcher"]\n');
+  fs.writeFileSync(path.join(target, 'config.toml'), [
+    '[agents.haily_researcher]',
+    'description = "custom"',
+    'config_file = "agents/haily_researcher.toml"',
+    '',
+  ].join('\n'));
+  fs.writeFileSync(agentTomlPath(target, 'haily_researcher'), 'name = "custom"\n');
+
+  const result = new CodexProvider().installAgents!(kit, target);
+
+  assert.deepEqual(result, { installed: 0, updated: 0, migrated: 0, skippedUser: 1, skippedDuplicate: 0 });
+  assert.equal(fs.readFileSync(agentTomlPath(target, 'haily_researcher'), 'utf8'), 'name = "custom"\n');
+});
+
+test('CodexProvider.installAgents: unregistered same-slug TOML cannot be overwritten', () => {
+  const kit = kitWithAgent('haily-researcher', 'Body.');
+  const target = path.join(path.dirname(kit), 'out');
+  fs.mkdirSync(path.join(target, 'agents'), { recursive: true });
+  fs.writeFileSync(agentTomlPath(target, 'haily_researcher'), 'name = "user-file"\n');
+
+  const result = new CodexProvider().installAgents!(kit, target);
+
+  assert.deepEqual(result, { installed: 0, updated: 0, migrated: 0, skippedUser: 1, skippedDuplicate: 0 });
+  assert.equal(fs.readFileSync(agentTomlPath(target, 'haily_researcher'), 'utf8'), 'name = "user-file"\n');
+});
+
+test('CodexProvider.installAgents: sidecar cannot authorize a customized unmanaged registry entry', () => {
   const kit = kitWithAgent('haily-researcher', 'Body.');
   const target = path.join(path.dirname(kit), 'out');
   fs.mkdirSync(target, { recursive: true });
+  const provider = new CodexProvider();
+  provider.installAgents!(kit, target);
+  const before = fs.readFileSync(agentTomlPath(target, 'haily_researcher'), 'utf8');
+  fs.writeFileSync(path.join(target, 'config.toml'), [
+    '[agents.haily_researcher]',
+    'description = "user-customized"',
+    'config_file = "agents/haily_researcher.toml"',
+    '',
+  ].join('\n'));
+
+  const result = provider.installAgents!(kit, target);
+
+  assert.deepEqual(result, { installed: 0, updated: 0, migrated: 0, skippedUser: 1, skippedDuplicate: 0 });
+  assert.equal(fs.readFileSync(agentTomlPath(target, 'haily_researcher'), 'utf8'), before);
+  assert.match(fs.readFileSync(path.join(target, 'config.toml'), 'utf8'), /description = "user-customized"/);
+});
+
+test('CodexProvider.installAgents: stale managed agent TOML is cleaned up when the kit changes', () => {
+  const first = kitWithAgent('haily-researcher', 'Body.');
+  const target = path.join(path.dirname(first), 'out');
+  fs.mkdirSync(target, { recursive: true });
+  const provider = new CodexProvider();
+  provider.installAgents!(first, target);
+
+  const secondRoot = tmp();
+  const secondKit = path.join(secondRoot, 'kit');
+  fs.mkdirSync(path.join(secondKit, 'agents'), { recursive: true });
+  fs.writeFileSync(
+    path.join(secondKit, 'agents', 'haily-writer.md'),
+    '---\nname: haily-writer\ndescription: d\n---\n\nBody.',
+  );
+
+  provider.installAgents!(secondKit, target);
+
+  assert.ok(!fs.existsSync(agentTomlPath(target, 'haily_researcher')));
+  assert.ok(!fs.existsSync(agentMarkerPath(target, 'haily_researcher')));
+  assert.ok(fs.existsSync(agentTomlPath(target, 'haily_writer')));
+  assert.deepEqual(readCodexAgentManifest(target), ['haily_writer']);
+});
+
+test('CodexProvider.uninstall: strips agents block, preserves user [agents.X] and user TOML', () => {
+  const kit = kitWithAgent('haily-researcher', 'Body.');
+  const target = path.join(path.dirname(kit), 'out');
+  fs.mkdirSync(path.join(target, 'agents'), { recursive: true });
   fs.writeFileSync(path.join(target, 'config.toml'), '[agents.mybot]\ndescription = "user"\n');
+  fs.writeFileSync(path.join(target, 'agents', 'custom.toml'), 'name = "custom"\n');
   const prov = new CodexProvider();
   prov.installAgents!(kit, target);
   prov.writeVersion(target, '1.0.0'); // uninstall needs the meta file present
@@ -721,6 +976,53 @@ test('CodexProvider.uninstall: strips agents block, leaves user [agents.X]', () 
   const cfg = fs.readFileSync(path.join(target, 'config.toml'), 'utf8');
   assert.ok(!cfg.includes('hailykit-agents-start'), 'managed block removed');
   assert.match(cfg, /\[agents\.mybot\]/); // user entry survives
+  assert.ok(fs.existsSync(path.join(target, 'agents', 'custom.toml')), 'user TOML survives uninstall');
+  assert.ok(!fs.existsSync(agentTomlPath(target, 'haily_researcher')));
+  assert.ok(!fs.existsSync(path.join(target, 'hailykit-installed-agents.json')));
+});
+
+test('CodexProvider.uninstall: valid sidecar remains sufficient when the manifest is missing', () => {
+  const kit = kitWithAgent('haily-researcher', 'Body.');
+  const target = path.join(path.dirname(kit), 'out');
+  fs.mkdirSync(target, { recursive: true });
+  const provider = new CodexProvider();
+  provider.installAgents!(kit, target);
+  provider.writeVersion(target, '1.0.0');
+  fs.rmSync(path.join(target, 'hailykit-installed-agents.json'));
+  assert.deepEqual(readManagedCodexAgentSlugs(target), ['haily_researcher']);
+
+  provider.uninstall(target);
+
+  assert.ok(!fs.existsSync(agentTomlPath(target, 'haily_researcher')));
+  assert.ok(!fs.existsSync(agentMarkerPath(target, 'haily_researcher')));
+});
+
+test('CodexProvider.uninstall: manifest alone cannot authorize deleting an agent TOML', () => {
+  const root = tmp();
+  const target = path.join(root, 'out');
+  fs.mkdirSync(path.join(target, 'agents'), { recursive: true });
+  fs.writeFileSync(path.join(target, 'hailykit-installed-agents.json'), '["haily_researcher"]\n');
+  fs.writeFileSync(agentTomlPath(target, 'haily_researcher'), 'name = "user-file"\n');
+  const provider = new CodexProvider();
+  provider.writeVersion(target, '1.0.0');
+
+  provider.uninstall(target);
+
+  assert.equal(fs.readFileSync(agentTomlPath(target, 'haily_researcher'), 'utf8'), 'name = "user-file"\n');
+});
+
+test('CodexProvider.uninstall: cleans explicitly owned agents after an install interrupted before metadata', () => {
+  const kit = kitWithAgent('haily-researcher', 'Body.');
+  const target = path.join(path.dirname(kit), 'out');
+  fs.mkdirSync(target, { recursive: true });
+  const provider = new CodexProvider();
+  provider.installAgents!(kit, target);
+
+  provider.uninstall(target);
+
+  assert.ok(!fs.existsSync(agentTomlPath(target, 'haily_researcher')));
+  assert.ok(!fs.existsSync(agentMarkerPath(target, 'haily_researcher')));
+  assert.ok(!fs.readFileSync(path.join(target, 'config.toml'), 'utf8').includes('hailykit-agents-start'));
 });
 
 test('CodexProvider.installAgents: body with triple-quotes produces parseable .toml', () => {

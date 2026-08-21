@@ -97,15 +97,26 @@ export function buildAgentConfigEntry(slug: string, description: string): string
  * @param unmanagedContent - config.toml content with the managed block removed.
  */
 export function extractUnmanagedAgentSlugs(unmanagedContent: string): Set<string> {
-  const slugs = new Set<string>();
   const re = /^\[agents\.(?:"([^"]+)"|([^\]\r\n]+))\]\s*$/gm;
-  let m: RegExpExecArray | null = re.exec(unmanagedContent);
-  while (m) {
-    const slug = (m[1] || m[2] || '').trim();
+  const slugs = new Set<string>();
+  let match: RegExpExecArray | null = re.exec(unmanagedContent);
+  while (match) {
+    const slug = (match[1] || match[2] || '').trim();
     if (slug) slugs.add(slug);
-    m = re.exec(unmanagedContent);
+    match = re.exec(unmanagedContent);
   }
   return slugs;
+}
+
+/**
+ * Return the current managed block body, or an empty string if the sentinels do
+ * not exist. Useful when ownership must be determined before rewriting.
+ */
+export function extractManagedTomlBlock(existing: string, start: string, end: string): string {
+  const si = existing.indexOf(start);
+  const ei = existing.indexOf(end);
+  if (si === -1 || ei === -1 || ei <= si) return '';
+  return existing.slice(si + start.length, ei).trim();
 }
 
 /**

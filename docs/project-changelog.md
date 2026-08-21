@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added Codex legacy agent migration with explicit `hailykit-installed-agents.json` plus per-agent sidecars, safe legacy adoption for generated HailyKit agents, count-aware installed/updated/migrated/skipped reporting, scoped uninstall, and atomic crash-safe writes. User-defined same-slug collisions stay preserved; uninstall and reinstall now fail closed instead of overwriting unowned agent TOML.
 - Added `hl-write` stage control with `--stage`, `.hl-write-state.json`, prepared packs, and digest-based freshness so Route preflight can validate a single stage at a time and return explicit `NOT_READY` blockers instead of auto-running predecessor stages.
 - Compressed the remaining two rule bodies and fourteen utility/quality/thinking skill prompts by a net 49,505 normalized bytes (38.62%) while preserving focused safety, routing, evidence, Git, fallback, and output contracts. Signed negative benchmark outcomes now round-trip, and text contracts distinguish affirmed requirements from required prohibitions. A corrected two-call read-only smoke observed equal contract scores and 11.41% fewer candidate tokens; it is a non-regression smoke, not general equivalence proof.
 - Added negation-aware grouped text contracts and five public MCP workflow fixtures, then compressed four generated AGENTS rule bodies by 26.29%, `hc-ship`/`hc-cop` by 52.12%, and the installed `hl-write` flat bundle by 46.08% while preserving focused safety/routing/writing contracts.

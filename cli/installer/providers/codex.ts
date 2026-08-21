@@ -1,7 +1,7 @@
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
-import { BaseProvider, type ConvertedSkill } from './base.js';
+import { BaseProvider, type ConvertedSkill, type InstallAgentsResult } from './base.js';
 import {
   parseFrontmatter, resolveSkillRefs, resolveAgentRefs, isProviderAllowed,
   getModelMap, getModelEffort, resolveModel, resolveModelRefs, type ModelTier, type AgentRefType,
@@ -17,10 +17,25 @@ import {
   toCodexSlug,
   buildAgentConfigEntry,
   deriveSandboxMode,
+  extractManagedTomlBlock,
   extractUnmanagedAgentSlugs,
   mergeManagedTomlBlock,
   atomicWriteToml,
 } from './codex-toml.js';
+import {
+  AGENTS_MANIFEST,
+  agentMarkerPath,
+  agentTomlPath,
+  extractAgentTableSpans,
+  isManagedCodexAgent,
+  readAgentOwnershipMarker,
+  readManagedCodexAgentSlugs,
+  removeAgentTableSpans,
+  removeManagedCodexAgent,
+  writeCodexAgentManifest,
+  writeManagedCodexAgent,
+} from './codex-agent-migration.js';
+import { isGeneratedCodexAgentToml } from './codex-agent-legacy.js';
 import { warnIfCodexHooksUnsupported } from './codex-version.js';
 
 const AGENTS_SENTINEL_START = '# --- hailykit-agents-start ---';
@@ -29,6 +44,30 @@ const KNOWN_TIERS = new Set<string>(['thinking', 'medium', 'fast', 'ultra']);
 const SKILLS_MANIFEST = 'hailykit-installed-skills.json';
 const SKILL_OWNERSHIP_MARKER = '.hailykit-codex-skill.json';
 const SAFE_SKILL_DIR_RE = /^[a-z][a-z0-9-]*$/;
+
+interface KitAgentSpec {
+  name: string;
+  description: string;
+  slug: string;
+  resolvedBody: string;
+  toml: string;
+}
+
+type AgentOwnershipStatus = 'fresh' | 'managed' | 'adoptableLegacy' | 'userOwned';
+
+interface ClassifiedAgentOwnership {
+  status: AgentOwnershipStatus;
+  reason: string;
+}
+
+const LEGACY_AGENT_FINGERPRINT_CANDIDATES = [
+  '## Report Contract',
+  '## Output Contract',
+  'docs/engineering-standards.md',
+  '## Naming',
+  '.agents/reports/',
+  'Agent Report Contract',
+];
 
 function readSkillsManifest(providerDir: string): string[] {
   try {
@@ -96,6 +135,107 @@ function removeLegacyGeneratedFiles(providerDir: string): number {
     removed++;
   }
   return removed;
+}
+
+function buildAgentToml(spec: Omit<KitAgentSpec, 'toml'>, rawModel: string | undefined, tools: string | undefined): string {
+  const lines = [
+    `name = ${JSON.stringify(spec.name)}`,
+    `description = ${JSON.stringify(spec.description)}`,
+  ];
+
+  if (rawModel == null || KNOWN_TIERS.has(rawModel)) {
+    const tier = (rawModel ?? 'medium') as ModelTier;
+    lines.push(`model = ${JSON.stringify(getModelMap('codex')[tier])}`);
+    const effort = getModelEffort('codex', tier);
+    if (effort) lines.push(`model_reasoning_effort = ${JSON.stringify(effort)}`);
+  } else {
+    lines.push(`# model = ${JSON.stringify(String(rawModel).trim())}`);
+  }
+
+  const sandbox = deriveSandboxMode(tools);
+  if (sandbox) lines.push(`sandbox_mode = ${JSON.stringify(sandbox)}`);
+
+  lines.push('', 'developer_instructions = """', escapeTomlMultiline(spec.resolvedBody), '"""', '');
+  return lines.join('\n');
+}
+
+function buildKitAgentSpec(
+  filePath: string,
+  agentRef: (type: AgentRefType, roles: string[]) => string,
+  skillRef: (prefix: string, name: string) => string,
+): KitAgentSpec {
+  const content = fs.readFileSync(filePath, 'utf8');
+  const { frontmatter, body } = parseFrontmatter(content);
+  const name = frontmatter.name || path.basename(filePath, '.md');
+  const description = frontmatter.description || '';
+  const slug = toCodexSlug(name);
+  const resolvedBody = resolveModelRefs(
+    resolveSkillRefs(
+      resolveAgentRefs(body, agentRef),
+      skillRef,
+    ),
+    'codex',
+  );
+  const specBase = { name, description, slug, resolvedBody };
+  return {
+    ...specBase,
+    toml: buildAgentToml(
+      specBase,
+      typeof frontmatter.model === 'string' ? frontmatter.model : undefined,
+      typeof frontmatter.tools === 'string' ? frontmatter.tools : undefined,
+    ),
+  };
+}
+
+function isAdoptableLegacyAgent(providerDir: string, spec: KitAgentSpec, tableContent: string): boolean {
+  const configPointer = tableContent.match(/^\s*config_file\s*=\s*"([^"\r\n]+)"\s*$/m)?.[1];
+  if (configPointer !== `agents/${spec.slug}.toml`) return false;
+  const tomlPath = agentTomlPath(providerDir, spec.slug);
+  if (!fs.existsSync(tomlPath)) return false;
+  return isGeneratedCodexAgentToml(fs.readFileSync(tomlPath, 'utf8'), {
+    name: spec.name,
+    legacyFingerprints: LEGACY_AGENT_FINGERPRINT_CANDIDATES.filter((fingerprint) =>
+      spec.resolvedBody.includes(fingerprint)),
+  });
+}
+
+function classifyAgentOwnership(
+  providerDir: string,
+  spec: KitAgentSpec,
+  managedSlugs: ReadonlySet<string>,
+  unmanagedTables: ReadonlyMap<string, string>,
+  duplicateUnmanagedSlugs: ReadonlySet<string>,
+): ClassifiedAgentOwnership {
+  const unmanagedTable = unmanagedTables.get(spec.slug);
+  if (duplicateUnmanagedSlugs.has(spec.slug)) {
+    return { status: 'userOwned', reason: 'multiple unmanaged registry entries exist' };
+  }
+  if (managedSlugs.has(spec.slug)) {
+    if (unmanagedTable) {
+      return { status: 'userOwned', reason: 'conflicting unmanaged registry entry exists' };
+    }
+    return { status: 'managed', reason: 'sentinel-managed registry entry exists' };
+  }
+  if (isManagedCodexAgent(providerDir, spec.slug)) {
+    if (unmanagedTable) {
+      const expectedEntry = buildAgentConfigEntry(spec.slug, spec.description);
+      if (unmanagedTable.trim() === expectedEntry) {
+        return { status: 'adoptableLegacy', reason: 'ownership marker and exact registry entry prove HailyKit ownership' };
+      }
+      return { status: 'userOwned', reason: 'unmanaged registry entry differs from the marked HailyKit entry' };
+    }
+    return { status: 'managed', reason: 'ownership marker proves HailyKit ownership' };
+  }
+  if (!unmanagedTable) {
+    if (fs.existsSync(agentTomlPath(providerDir, spec.slug))) {
+      return { status: 'userOwned', reason: 'unregistered agent TOML already exists' };
+    }
+    return { status: 'fresh', reason: 'fresh install' };
+  }
+  if (isAdoptableLegacyAgent(providerDir, spec, unmanagedTable)) {
+    return { status: 'adoptableLegacy', reason: 'legacy HailyKit registry and TOML shape matched' };
+  }
+  return { status: 'userOwned', reason: 'unmanaged registry entry failed legacy adoption checks' };
 }
 
 /**
@@ -310,77 +450,109 @@ export class CodexProvider extends BaseProvider {
    * @param extractedClaudeDir - Source kit/ dir from the release zip.
    * @param targetProviderDir  - ~/.codex/.
    */
-  installAgents(extractedClaudeDir: string, targetProviderDir: string): void {
+  installAgents(extractedClaudeDir: string, targetProviderDir: string): InstallAgentsResult {
     const agentsDir = path.join(extractedClaudeDir, 'agents');
-    if (!fs.existsSync(agentsDir)) return;
+    if (!fs.existsSync(agentsDir)) {
+      return { installed: 0, updated: 0, migrated: 0, skippedUser: 0, skippedDuplicate: 0 };
+    }
 
     const outDir = path.join(targetProviderDir, 'agents');
     fs.mkdirSync(outDir, { recursive: true });
 
     const configPath = path.join(targetProviderDir, 'config.toml');
     const existingConfig = fs.existsSync(configPath) ? fs.readFileSync(configPath, 'utf8') : '';
-    // Strip the managed block before scanning so only USER-owned tables count as unmanaged.
-    const unmanaged = extractUnmanagedAgentSlugs(
-      mergeManagedTomlBlock(existingConfig, '', AGENTS_SENTINEL_START, AGENTS_SENTINEL_END),
+    const managedContent = extractManagedTomlBlock(existingConfig, AGENTS_SENTINEL_START, AGENTS_SENTINEL_END);
+    const managedSlugs = extractUnmanagedAgentSlugs(managedContent);
+    const unmanagedBase = mergeManagedTomlBlock(existingConfig, '', AGENTS_SENTINEL_START, AGENTS_SENTINEL_END);
+    const unmanagedSpans = extractAgentTableSpans(unmanagedBase);
+    const unmanagedTables = new Map(unmanagedSpans.map((span) => [span.slug, span.text] as const));
+    const unmanagedCounts = new Map<string, number>();
+    for (const span of unmanagedSpans) {
+      unmanagedCounts.set(span.slug, (unmanagedCounts.get(span.slug) ?? 0) + 1);
+    }
+    const duplicateUnmanagedSlugs = new Set(
+      [...unmanagedCounts].filter(([, count]) => count > 1).map(([slug]) => slug),
     );
-
+    const managedTables = new Map(
+      extractAgentTableSpans(managedContent).map((span) => [span.slug, span.text] as const),
+    );
+    const results: InstallAgentsResult = { installed: 0, updated: 0, migrated: 0, skippedUser: 0, skippedDuplicate: 0 };
+    const adoptedLegacy = new Set<string>();
     const entries = new Map<string, string>();
+    const installedSlugs: string[] = [];
+    const preservedMarkedSlugs = new Set<string>();
+    const seenKitSlugs = new Set<string>();
+
     for (const file of fs.readdirSync(agentsDir).sort()) {
       if (!file.endsWith('.md')) continue;
-
-      const content = fs.readFileSync(path.join(agentsDir, file), 'utf8');
-      const { frontmatter, body } = parseFrontmatter(content);
-
-      const name = frontmatter.name || file.replace(/\.md$/, '');
-      const description = frontmatter.description || '';
-      const slug = toCodexSlug(name);
-
-      if (unmanaged.has(slug) || entries.has(slug)) {
-        console.warn(`    Skipped agent ${name}: [agents.${slug}] already exists (user-defined or duplicate)`);
-        continue;
-      }
-
-      const resolvedBody = resolveModelRefs(
-        resolveSkillRefs(
-          resolveAgentRefs(body, (t, r) => this.agentRef(t, r)),
-          (p, n) => this.skillRef(p, n),
-        ),
-        this.name,
+      const spec = buildKitAgentSpec(
+        path.join(agentsDir, file),
+        (type, roles) => this.agentRef(type, roles),
+        (prefix, name) => this.skillRef(prefix, name),
       );
 
-      const lines = [
-        `name = ${JSON.stringify(name)}`,
-        `description = ${JSON.stringify(description)}`,
-      ];
+      if (seenKitSlugs.has(spec.slug)) {
+        results.skippedDuplicate++;
+        console.warn(`    Skipped agent ${spec.name}: normalized duplicate slug [agents.${spec.slug}] in this release`);
+        continue;
+      }
+      seenKitSlugs.add(spec.slug);
 
-      // model: resolve a known tier to its concrete id; preserve an unknown
-      // concrete id as a comment (never emit `model = undefined`).
-      const rawModel = frontmatter.model;
-      if (rawModel == null || KNOWN_TIERS.has(rawModel)) {
-        const tier = (rawModel ?? 'medium') as ModelTier;
-        lines.push(`model = ${JSON.stringify(getModelMap('codex')[tier])}`);
-        const effort = getModelEffort('codex', tier);
-        if (effort) lines.push(`model_reasoning_effort = ${JSON.stringify(effort)}`);
+      const ownership = classifyAgentOwnership(
+        targetProviderDir,
+        spec,
+        managedSlugs,
+        unmanagedTables,
+        duplicateUnmanagedSlugs,
+      );
+      if (ownership.status === 'userOwned') {
+        results.skippedUser++;
+        if (isManagedCodexAgent(targetProviderDir, spec.slug)) preservedMarkedSlugs.add(spec.slug);
+        console.warn(`    Skipped agent ${spec.name}: [agents.${spec.slug}] is user-owned (${ownership.reason})`);
+        continue;
+      }
+      const entry = buildAgentConfigEntry(spec.slug, spec.description);
+      let shouldWriteAgent = true;
+      if (ownership.status === 'adoptableLegacy') {
+        adoptedLegacy.add(spec.slug);
+        results.migrated++;
+      } else if (ownership.status === 'fresh') {
+        results.installed++;
       } else {
-        lines.push(`# model = ${JSON.stringify(String(rawModel).trim())}`);
+        const tomlPath = agentTomlPath(targetProviderDir, spec.slug);
+        const marker = readAgentOwnershipMarker(agentMarkerPath(targetProviderDir, spec.slug));
+        const current = fs.existsSync(tomlPath) &&
+          fs.readFileSync(tomlPath, 'utf8') === spec.toml &&
+          marker?.name === spec.name &&
+          managedTables.get(spec.slug)?.trim() === entry;
+        shouldWriteAgent = !current;
+        if (shouldWriteAgent) results.updated++;
       }
 
-      const sandbox = deriveSandboxMode(typeof frontmatter.tools === 'string' ? frontmatter.tools : undefined);
-      if (sandbox) lines.push(`sandbox_mode = ${JSON.stringify(sandbox)}`);
-
-      lines.push('', 'developer_instructions = """', escapeTomlMultiline(resolvedBody), '"""', '');
-      const toml = lines.join('\n');
-
-      fs.writeFileSync(path.join(outDir, `${slug}.toml`), toml, 'utf8');
-      entries.set(slug, buildAgentConfigEntry(slug, description));
+      if (shouldWriteAgent) {
+        writeManagedCodexAgent(targetProviderDir, spec.slug, spec.name, spec.toml);
+      }
+      entries.set(spec.slug, entry);
+      installedSlugs.push(spec.slug);
     }
 
+    const unmanagedWithoutAdopted = removeAgentTableSpans(
+      unmanagedBase,
+      unmanagedSpans.filter((span) => adoptedLegacy.has(span.slug)),
+    );
     const block = [...entries.keys()].sort().map((s) => entries.get(s)!).join('\n\n');
-    const merged = mergeManagedTomlBlock(existingConfig, block, AGENTS_SENTINEL_START, AGENTS_SENTINEL_END);
+    const merged = mergeManagedTomlBlock(unmanagedWithoutAdopted, block, AGENTS_SENTINEL_START, AGENTS_SENTINEL_END);
     if (merged !== existingConfig) {
       fs.mkdirSync(targetProviderDir, { recursive: true });
       atomicWriteToml(configPath, merged);
     }
+    const installedSet = new Set(installedSlugs);
+    for (const staleSlug of readManagedCodexAgentSlugs(targetProviderDir)) {
+      if (installedSet.has(staleSlug) || preservedMarkedSlugs.has(staleSlug)) continue;
+      removeManagedCodexAgent(targetProviderDir, staleSlug);
+    }
+    writeCodexAgentManifest(targetProviderDir, installedSet);
+    return results;
   }
 
   // ── Rules ─────────────────────────────────────────────────────────────────
@@ -509,6 +681,30 @@ export class CodexProvider extends BaseProvider {
   }
 
   uninstall(providerDir: string): void {
+    const legacyRemoved = this._removeLegacySkills(providerDir);
+    const digestsRemoved = removeLegacyGeneratedFiles(providerDir);
+    let removedAgents = 0;
+    for (const slug of readManagedCodexAgentSlugs(providerDir)) {
+      if (removeManagedCodexAgent(providerDir, slug)) removedAgents++;
+    }
+    fs.rmSync(path.join(providerDir, AGENTS_MANIFEST), { force: true });
+    const agentsDir = path.join(providerDir, 'agents');
+    if (fs.existsSync(agentsDir) && fs.readdirSync(agentsDir).length === 0) {
+      fs.rmSync(agentsDir, { recursive: true, force: true });
+    }
+    this._removeSentinelBlock(path.join(providerDir, 'config.toml'), AGENTS_SENTINEL_START, AGENTS_SENTINEL_END);
+    const meta = path.join(providerDir, '.hailykit-meta.json');
+    if (!fs.existsSync(meta)) {
+      if (digestsRemoved > 0) {
+        console.log(`    Removed ${digestsRemoved} legacy generated digest file(s)`);
+      }
+      if (legacyRemoved > 0) {
+        console.log(`    Removed ${legacyRemoved} legacy HailyKit skill(s) from provider-local skills/`);
+      }
+      if (removedAgents > 0) console.log(`    Removed ${removedAgents} HailyKit agent(s) from .codex/agents/`);
+      console.log('    Not installed (no .hailykit-meta.json found)');
+      return;
+    }
     const skillsRoot = this._getSkillsRoot(providerDir);
     const manifestSkills = readSkillsManifest(providerDir);
     let count = 0;
@@ -518,24 +714,33 @@ export class CodexProvider extends BaseProvider {
       fs.rmSync(skillDir, { recursive: true, force: true });
       count++;
     }
-    const legacyRemoved = this._removeLegacySkills(providerDir);
     fs.rmSync(path.join(providerDir, SKILLS_MANIFEST), { force: true });
-    // Base's own digest sweep early-returns on a metaless legacy install —
-    // this call is the only path that cleans those, so it logs its removals.
-    const digestsRemoved = removeLegacyGeneratedFiles(providerDir);
     if (digestsRemoved > 0) {
       console.log(`    Removed ${digestsRemoved} legacy generated digest file(s)`);
     }
 
-    // Strip the managed [agents.X] registry block from config.toml — base uninstall
-    // removes agents/ but would otherwise leave dangling config entries Codex warns on.
-    super.uninstall(providerDir);
-    this._removeSentinelBlock(path.join(providerDir, 'config.toml'), AGENTS_SENTINEL_START, AGENTS_SENTINEL_END);
+    for (const sub of [this.commandsSubDir(), 'hooks']) {
+      const dirPath = path.join(providerDir, sub);
+      if (!fs.existsSync(dirPath)) continue;
+      fs.rmSync(dirPath, { recursive: true, force: true });
+      console.log(`    Removed ${sub}/`);
+    }
+    for (const file of ['hailykit-rules.md', 'hailykit-skills.md', 'hooks.json', 'CRUSH.md']) {
+      const filePath = path.join(providerDir, file);
+      if (!fs.existsSync(filePath)) continue;
+      fs.rmSync(filePath);
+      console.log(`    Removed ${file}`);
+    }
+    this._removeSentinelBlock(path.join(providerDir, 'AGENTS.md'), '<!-- hailykit-rules-start -->', '<!-- hailykit-rules-end -->');
+    this._removeSentinelBlock(path.join(providerDir, 'GEMINI.md'), '<!-- hailykit-managed-start -->', '<!-- hailykit-managed-end -->');
+    fs.rmSync(meta, { force: true });
 
     if (count > 0) console.log(`    Removed ${count} HailyKit skill(s) from .agents/skills/`);
     if (legacyRemoved > 0) {
       console.log(`    Removed ${legacyRemoved} legacy HailyKit skill(s) from provider-local skills/`);
     }
+    if (removedAgents > 0) console.log(`    Removed ${removedAgents} HailyKit agent(s) from .codex/agents/`);
+    console.log('    ✓ Uninstalled');
   }
 
   // Not used — installSkills is fully overridden above.

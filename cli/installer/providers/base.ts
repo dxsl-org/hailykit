@@ -8,6 +8,14 @@ export interface ConvertedSkill {
   content: string;
 }
 
+export interface InstallAgentsResult {
+  installed: number;
+  updated: number;
+  migrated: number;
+  skippedUser: number;
+  skippedDuplicate: number;
+}
+
 /**
  * Polymorphic surface used by install/upgrade/status commands.
  * ClaudeProvider satisfies this interface directly (no BaseProvider);
@@ -23,7 +31,7 @@ export interface Provider {
   installRules(extractedClaudeDir: string, targetProviderDir: string): void;
   installHooks(extractedClaudeDir: string, targetProviderDir: string): void;
   /** Optional: generate provider-native agent definitions from kit/agents/. */
-  installAgents?(extractedClaudeDir: string, targetProviderDir: string): void;
+  installAgents?(extractedClaudeDir: string, targetProviderDir: string): InstallAgentsResult | void;
   readVersion(providerDir: string): string | null;
   writeVersion(providerDir: string, version: string): void;
   uninstall(providerDir: string): void;
