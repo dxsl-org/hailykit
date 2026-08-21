@@ -8,6 +8,7 @@ import { cmdInstall } from './installer/commands/install';
 import { cmdUpgrade } from './installer/commands/upgrade';
 import { cmdUninstall } from './installer/commands/uninstall';
 import { cmdStatus } from './installer/commands/status';
+import { DEFAULT_INSTALLER_PROVIDER } from './installer/default-provider';
 import { PROVIDER_NAMES } from './installer/providers/index';
 
 /** Long flags that consume the next token as their value. Registry commands
@@ -67,7 +68,7 @@ const HELP_INSTALLER = `
 hailykit install / upgrade — Install or upgrade HailyKit in an AI agent
 
 Options:
-  --provider <name>    Target: ${[...PROVIDER_NAMES, 'all'].join(', ')} (default: claude)
+  --provider <name>    Target: ${[...PROVIDER_NAMES, 'all'].join(', ')} (default: ${DEFAULT_INSTALLER_PROVIDER})
   --project            Install into the current project instead of global (~/)
   --version <tag>      Pin to a specific release tag (e.g. v2.1.0)
   --no-venv            Skip Python venv setup (Claude only)
@@ -77,7 +78,7 @@ const HELP_UNINSTALL = `
 hailykit uninstall — Remove HailyKit from an AI agent
 
 Options:
-  --provider <name>    Target: ${[...PROVIDER_NAMES, 'all'].join(', ')} (default: claude)
+  --provider <name>    Target: ${[...PROVIDER_NAMES, 'all'].join(', ')} (default: ${DEFAULT_INSTALLER_PROVIDER})
   --project            Uninstall from current project instead of global (~/)
 
 Notes:
@@ -90,7 +91,7 @@ const HELP_STATUS = `
 hailykit status — Show installed vs latest HailyKit version
 
 Options:
-  --provider <name>    Filter to a specific provider (default: all)
+  --provider <name>    Filter to a specific provider (default: ${DEFAULT_INSTALLER_PROVIDER}; use --provider all for every provider)
 `.trim();
 
 /** Read this package's version from package.json next to the compiled bin. */

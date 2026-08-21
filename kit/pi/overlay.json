@@ -1,0 +1,33 @@
+{
+  "format": 1,
+  "provider": "pi",
+  "compatibility": {
+    "runtimeRange": ">=0.84.2 <0.85.0"
+  },
+  "settings": {
+    "ownedKeys": ["hailykit"],
+    "values": {
+      "hailykit": {
+        "provider": "pi",
+        "overlay": "baseline",
+        "prompt": "hailykit-baseline"
+      }
+    }
+  },
+  "resources": [
+    {
+      "kind": "extension",
+      "name": "hailykit",
+      "source": "extensions/hailykit",
+      "target": "extensions/hailykit",
+      "marker": "extensions/hailykit/.hailykit-pi-overlay.json"
+    },
+    {
+      "kind": "prompt",
+      "name": "hailykit-baseline",
+      "source": "prompts/hailykit-baseline.md",
+      "target": "prompts/hailykit-baseline.md",
+      "marker": "prompts/hailykit-baseline.hailykit-pi-overlay.json"
+    }
+  ]
+}

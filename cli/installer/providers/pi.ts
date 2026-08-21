@@ -2,9 +2,11 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { BaseProvider, type ConvertedSkill, type InstallAgentsResult } from './base.js';
+import type { OverlayInstallResult, OverlayUninstallResult } from '../commands/overlay-lifecycle.js';
 import { parseFrontmatter, isProviderAllowed, resolveAgentRefs, resolveModel, resolveModelRefs, resolveSkillRefs } from '../converter.js';
 import { installManagedResource, pruneStaleManagedResources, uninstallManagedResources, writeManagedManifest, type ManagedResourcePaths } from './native-resource.js';
 import { mapPiAgentCapabilities } from './pi-agent-tools.js';
+import { installPiOverlay, uninstallPiOverlay } from './pi-overlay.js';
 
 const RULES_START = '<!-- hailykit-pi-rules-start -->';
 const RULES_END = '<!-- hailykit-pi-rules-end -->';
@@ -33,11 +35,11 @@ export class PiProvider extends BaseProvider {
   protected skillRef(prefix: string, name: string): string { return `/skill:${prefix}-${name}`; }
 
   protected agentRef(type: Parameters<BaseProvider['agentRef']>[0], roles: string[]): string {
-    if (type === 'agent-result') return `Using the ${roles[0]} subagent result above:`;
+    if (type === 'agent-result') return `Using the ${roles[0]} result from the prior Pi \`task\` call above:`;
     if (type === 'agents') {
-      return `Use Pi's optional subagent extension to run these agents in parallel: ${roles.join(', ')}. Assign each the matching task below:`;
+      return `Use Pi's \`task\` tool with {"tasks":[...]} to run these agents in parallel: ${roles.join(', ')}. Assign each the matching task below in order:`;
     }
-    return `Use Pi's optional subagent extension with agent \`${roles[0]}\` for the following task:`;
+    return `Use Pi's \`task\` tool with {"agent":"${roles[0]}","task":"..."} for the following task:`;
   }
 
   private _skillsPaths(targetProviderDir: string): ManagedResourcePaths {
@@ -136,7 +138,8 @@ export class PiProvider extends BaseProvider {
       const name = frontmatter.name || path.basename(file, '.md');
       const capabilities = mapPiAgentCapabilities(frontmatter.tools, 'pi');
       const capabilityLines = capabilities.tools.length ? `tools: ${capabilities.tools.join(', ')}\n` : '';
-      const content = `---\nname: ${name}\ndescription: ${JSON.stringify(frontmatter.description || '')}\n${capabilityLines}---\n\n> Pi note: these agents need Pi's optional subagent extension. HailyKit does not install that extension.\n\n${this._resolveMarkdown(body)}\n`;
+      const spawnLines = capabilities.spawns.length ? `spawns: ${capabilities.spawns.join(', ')}\n` : '';
+      const content = `---\nname: ${name}\ndescription: ${JSON.stringify(frontmatter.description || '')}\n${capabilityLines}${spawnLines}---\n\n> Pi note: HailyKit's \`task\` tool runs these agents in isolated conversation context. This is not an OS sandbox.\n\n${this._resolveMarkdown(body)}\n`;
       const state = installManagedResource({
         name,
         provider: this.name,
@@ -153,6 +156,14 @@ export class PiProvider extends BaseProvider {
     pruneStaleManagedResources(this.name, 'agent', installed, this._agentsPaths(targetProviderDir));
     writeManagedManifest(this._agentsPaths(targetProviderDir).manifestPath, [...installed]);
     return result;
+  }
+
+  installOverlay(extractedKitDir: string, targetProviderDir: string): OverlayInstallResult {
+    return installPiOverlay(extractedKitDir, targetProviderDir);
+  }
+
+  uninstallOverlay(providerDir: string): OverlayUninstallResult {
+    return uninstallPiOverlay(providerDir);
   }
 
   uninstall(providerDir: string): void {

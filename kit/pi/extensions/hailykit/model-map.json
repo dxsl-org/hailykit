@@ -1,0 +1,44 @@
+{
+  "claude": {
+    "fast": "haiku",
+    "medium": "sonnet",
+    "thinking": "opus",
+    "ultra": "fable-5"
+  },
+  "codex": {
+    "fast": "gpt-5.6-luna",
+    "medium": "gpt-5.6-terra",
+    "thinking": "gpt-5.6-sol",
+    "ultra": "gpt-5.6-sol"
+  },
+  "gemini": {
+    "fast": "gemini-2.5-pro",
+    "medium": "gemini-2.5-pro",
+    "thinking": "gemini-2.5-pro",
+    "ultra": "gemini-2.5-pro"
+  },
+  "antigravity": {
+    "fast": "gemini-3.1-flash-lite",
+    "medium": "gemini-3.5-flash",
+    "thinking": "gemini-3.1-pro",
+    "ultra": "gemini-3.1-pro"
+  },
+  "opencode": {
+    "fast": "anthropic/claude-haiku-4-5",
+    "medium": "anthropic/claude-sonnet-4-6",
+    "thinking": "anthropic/claude-opus-4-8",
+    "ultra": "anthropic/claude-fable-5"
+  },
+  "cline": {
+    "fast": "anthropic/claude-haiku-4-5",
+    "medium": "anthropic/claude-sonnet-4-6",
+    "thinking": "anthropic/claude-opus-4-8",
+    "ultra": "anthropic/claude-fable-5"
+  },
+  "ollama": {
+    "fast": "llama3.2",
+    "medium": "qwen2.5-coder:14b",
+    "thinking": "qwen2.5-coder:32b",
+    "ultra": "qwen2.5-coder:32b"
+  }
+}

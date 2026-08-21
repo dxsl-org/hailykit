@@ -21,6 +21,7 @@ const PI_TOOLS: Readonly<Record<string, string>> = {
   MultiEdit: 'edit',
   NotebookEdit: 'edit',
   Write: 'write',
+  WebSearch: 'web_search',
 };
 
 export type PiAgentProvider = 'pi' | 'omp';
@@ -53,10 +54,8 @@ export function mapPiAgentCapabilities(
     if (task) {
       const agentName = task[1].trim();
       if (!SAFE_AGENT_NAME_RE.test(agentName)) throw new Error(`Unsafe spawned agent name: ${agentName}`);
-      if (provider === 'omp') {
-        tools.add('task');
-        spawns.add(agentName);
-      }
+      tools.add('task');
+      spawns.add(agentName);
       continue;
     }
     const mapped = mapping[token];

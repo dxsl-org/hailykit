@@ -1,0 +1,10 @@
+{
+  "command": "pi",
+  "packageName": "@earendil-works/pi-coding-agent",
+  "packageVersion": "0.84.2",
+  "supportedVersionRange": ">=0.84.2 <0.85.0",
+  "versionArgs": ["--version"],
+  "installArgs": ["install", "-g", "--ignore-scripts", "@earendil-works/pi-coding-agent@0.84.2"],
+  "timeoutMs": 120000,
+  "maxBufferBytes": 262144
+}

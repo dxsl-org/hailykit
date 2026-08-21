@@ -5,8 +5,11 @@ import { fetchRelease, downloadZip } from '../github.js';
 import { extract, makeTempDir, resolveRoot } from '../extractor.js';
 import { mergeClaudeDir } from '../merger.js';
 import { loadModelMapOverrides } from '../converter.js';
+import { requestedInstallerProvider } from '../default-provider.js';
 import { setupVenv } from '../venv.js';
 import { resolveProviders } from '../providers/index.js';
+import { ensurePiRuntime } from '../pi-runtime.js';
+import { reportOverlayInstall, type OverlayLifecycleProvider } from './overlay-lifecycle.js';
 import { selfUpgradeCliIfNeeded, syncCentralKitDir } from './self-upgrade.js';
 
 function readCurrentVersion(): string {
@@ -23,6 +26,36 @@ export interface InstallOptions {
   noVenv?: boolean;
 }
 
+interface InstallCommandDeps {
+  resolveProviders: typeof resolveProviders;
+  fetchRelease: typeof fetchRelease;
+  downloadZip: typeof downloadZip;
+  makeTempDir: typeof makeTempDir;
+  extract: typeof extract;
+  resolveRoot: typeof resolveRoot;
+  selfUpgradeCliIfNeeded: typeof selfUpgradeCliIfNeeded;
+  syncCentralKitDir: typeof syncCentralKitDir;
+  loadModelMapOverrides: typeof loadModelMapOverrides;
+  mergeClaudeDir: typeof mergeClaudeDir;
+  setupVenv: typeof setupVenv;
+  ensurePiRuntime: typeof ensurePiRuntime;
+}
+
+const DEFAULT_DEPS: InstallCommandDeps = {
+  resolveProviders,
+  fetchRelease,
+  downloadZip,
+  makeTempDir,
+  extract,
+  resolveRoot,
+  selfUpgradeCliIfNeeded,
+  syncCentralKitDir,
+  loadModelMapOverrides,
+  mergeClaudeDir,
+  setupVenv,
+  ensurePiRuntime,
+};
+
 /**
  * Install HailyKit for one or all providers.
  * For the claude provider: full merge strategy + optional venv setup.
@@ -31,42 +64,47 @@ export interface InstallOptions {
  * @param options - CLI options forwarded from the install command.
  * @throws When the release fetch, download, or extraction fails.
  */
-export async function cmdInstall(options: InstallOptions): Promise<void> {
-  const providers = resolveProviders(options.provider || 'claude');
+export async function cmdInstall(options: InstallOptions, deps: InstallCommandDeps = DEFAULT_DEPS): Promise<void> {
+  const providers = deps.resolveProviders(requestedInstallerProvider(options.provider));
   const isProject = !!options.project;
   const tag = options.version || 'latest';
 
   const providerLabels = providers.map(p => p.label).join(', ');
   console.log(`Installing HailyKit (${tag}) → ${isProject ? 'project' : 'global'} [${providerLabels}]`);
 
-  const release = await fetchRelease(tag);
+  const release = await deps.fetchRelease(tag);
   console.log(`  Release: ${release.tag_name}`);
 
-  const tmpDir = makeTempDir();
-  const zipPath = await downloadZip(release, tmpDir);
+  const tmpDir = deps.makeTempDir();
+  const zipPath = await deps.downloadZip(release, tmpDir);
 
   try {
     console.log('  Extracting...');
     const extractDir = path.join(tmpDir, 'extracted');
-    extract(zipPath, extractDir);
-    const root = resolveRoot(extractDir);
+    deps.extract(zipPath, extractDir);
+    const root = deps.resolveRoot(extractDir);
 
     const extractedKitDir = path.join(root, 'kit');
 
     // Self-upgrade the CLI binary if the release ships a newer version.
-    if (selfUpgradeCliIfNeeded(root, readCurrentVersion())) return;
+    if (deps.selfUpgradeCliIfNeeded(root, readCurrentVersion())) return;
 
-    syncCentralKitDir(extractedKitDir);
+    if (providers.some((provider) => provider.name === 'pi')) {
+      const runtime = await deps.ensurePiRuntime();
+      console.log(`  Pi runtime: ${runtime.version} (${runtime.commandPath})`);
+    }
+
+    deps.syncCentralKitDir(extractedKitDir);
 
     // Must run before any agent conversion — resolveModel reads the merged map.
-    loadModelMapOverrides(extractedKitDir);
+    deps.loadModelMapOverrides(extractedKitDir);
 
     for (const provider of providers) {
       const targetDir = isProject ? provider.projectDir() : provider.globalDir();
       console.log(`\n  [${provider.label}] → ${targetDir}`);
 
       if (provider.name === 'claude') {
-        mergeClaudeDir(root, targetDir, { isUpgrade: false });
+        deps.mergeClaudeDir(root, targetDir, { isUpgrade: false });
 
         // Project install: scaffold CLAUDE.md if missing.
         if (isProject) {
@@ -78,7 +116,7 @@ export async function cmdInstall(options: InstallOptions): Promise<void> {
           }
         }
 
-        if (!options.noVenv) setupVenv(targetDir);
+        if (!options.noVenv) deps.setupVenv(targetDir);
       } else {
         if (!fs.existsSync(extractedKitDir)) {
           console.log('    Skipped — kit/ catalog dir not found in release');
@@ -110,6 +148,8 @@ export async function cmdInstall(options: InstallOptions): Promise<void> {
             console.log(`    Installed agents`);
           }
         }
+
+        reportOverlayInstall(provider.label, (provider as OverlayLifecycleProvider).installOverlay?.(extractedKitDir, targetDir));
 
         if (provider.hooksSupported()) {
           provider.installHooks(extractedKitDir, targetDir);

@@ -3,7 +3,7 @@ import * as path from 'node:path';
 
 const SAFE_NAME_RE = /^[A-Za-z][A-Za-z0-9-]*$/;
 
-interface OwnershipMarker {
+export interface OwnershipMarker {
   provider: string;
   kind: string;
   name: string;
@@ -27,7 +27,7 @@ export interface InstallManagedResourceOptions {
   transformMarkdown?: (content: string, sourcePath: string) => string;
 }
 
-function readMarker(markerPath: string): OwnershipMarker | null {
+export function readManagedMarker(markerPath: string): OwnershipMarker | null {
   try {
     const raw = JSON.parse(fs.readFileSync(markerPath, 'utf8')) as Partial<OwnershipMarker>;
     return typeof raw.provider === 'string' && typeof raw.kind === 'string' && typeof raw.name === 'string'
@@ -38,8 +38,8 @@ function readMarker(markerPath: string): OwnershipMarker | null {
   }
 }
 
-function isManagedResource(markerPath: string, provider: string, kind: string, name: string): boolean {
-  const marker = readMarker(markerPath);
+export function isManagedResource(markerPath: string, provider: string, kind: string, name: string): boolean {
+  const marker = readManagedMarker(markerPath);
   return marker?.provider === provider && marker.kind === kind && marker.name === name;
 }
 
@@ -69,7 +69,15 @@ function copyResource(
   fs.copyFileSync(sourcePath, targetPath);
 }
 
-function assertWithinRoot(rootPath: string, candidatePath: string): void {
+export function copyManagedResource(
+  sourcePath: string,
+  targetPath: string,
+  transformMarkdown?: (content: string, sourcePath: string) => string,
+): void {
+  copyResource(sourcePath, targetPath, transformMarkdown);
+}
+
+export function assertManagedPathWithinRoot(rootPath: string, candidatePath: string): void {
   const relative = path.relative(path.resolve(rootPath), path.resolve(candidatePath));
   if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
     throw new Error(`Managed resource path escapes provider root: ${candidatePath}`);
@@ -87,9 +95,26 @@ function readManifest(manifestPath: string): string[] {
   }
 }
 
-function writeMarker(markerPath: string, provider: string, kind: string, name: string): void {
+export function writeManagedMarker(markerPath: string, marker: OwnershipMarker): void {
   fs.mkdirSync(path.dirname(markerPath), { recursive: true });
-  fs.writeFileSync(markerPath, `${JSON.stringify({ provider, kind, name })}\n`, 'utf8');
+  fs.writeFileSync(markerPath, `${JSON.stringify(marker)}\n`, 'utf8');
+}
+
+export function removeManagedResource(
+  rootPath: string,
+  targetPath: string,
+  markerPath: string,
+  provider: string,
+  kind: string,
+  name: string,
+): boolean {
+  assertManagedPathWithinRoot(rootPath, targetPath);
+  assertManagedPathWithinRoot(rootPath, markerPath);
+  if (!isManagedResource(markerPath, provider, kind, name)) return false;
+  if (fs.existsSync(targetPath) && fs.lstatSync(targetPath).isSymbolicLink()) return false;
+  fs.rmSync(targetPath, { recursive: true, force: true });
+  fs.rmSync(markerPath, { force: true });
+  return true;
 }
 
 export function installManagedResource(options: InstallManagedResourceOptions): 'installed' | 'updated' | 'skipped-user' {
@@ -97,8 +122,8 @@ export function installManagedResource(options: InstallManagedResourceOptions): 
   if (!SAFE_NAME_RE.test(name)) {
     throw new Error(`Unsafe managed resource name: ${name}`);
   }
-  assertWithinRoot(rootPath, targetPath);
-  assertWithinRoot(rootPath, markerPath);
+  assertManagedPathWithinRoot(rootPath, targetPath);
+  assertManagedPathWithinRoot(rootPath, markerPath);
   if (fs.existsSync(targetPath) && fs.lstatSync(targetPath).isSymbolicLink()) {
     throw new Error(`Refusing symbolic-link target: ${targetPath}`);
   }
@@ -110,7 +135,7 @@ export function installManagedResource(options: InstallManagedResourceOptions): 
     fs.rmSync(markerPath, { force: true });
   }
   copyResource(sourcePath, targetPath, transformMarkdown);
-  writeMarker(markerPath, provider, kind, name);
+  writeManagedMarker(markerPath, { provider, kind, name });
   return exists ? 'updated' : 'installed';
 }
 
@@ -134,8 +159,8 @@ export function pruneStaleManagedResources(
     if (installedNames.has(name)) continue;
     const markerPath = paths.markerPath(name);
     const targetPath = paths.targetPath(name);
-    assertWithinRoot(paths.rootPath, targetPath);
-    assertWithinRoot(paths.rootPath, markerPath);
+    assertManagedPathWithinRoot(paths.rootPath, targetPath);
+    assertManagedPathWithinRoot(paths.rootPath, markerPath);
     if (!isManagedResource(markerPath, provider, kind, name)) continue;
     if (fs.existsSync(targetPath) && fs.lstatSync(targetPath).isSymbolicLink()) continue;
     fs.rmSync(targetPath, { recursive: true, force: true });
@@ -154,8 +179,8 @@ export function uninstallManagedResources(
   for (const name of readManifest(paths.manifestPath)) {
     const markerPath = paths.markerPath(name);
     const targetPath = paths.targetPath(name);
-    assertWithinRoot(paths.rootPath, targetPath);
-    assertWithinRoot(paths.rootPath, markerPath);
+    assertManagedPathWithinRoot(paths.rootPath, targetPath);
+    assertManagedPathWithinRoot(paths.rootPath, markerPath);
     if (!isManagedResource(markerPath, provider, kind, name)) continue;
     if (fs.existsSync(targetPath) && fs.lstatSync(targetPath).isSymbolicLink()) continue;
     fs.rmSync(targetPath, { recursive: true, force: true });

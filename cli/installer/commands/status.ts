@@ -1,12 +1,26 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fetchRelease } from '../github.js';
+import { requestedInstallerProvider } from '../default-provider.js';
 import { readMetadata } from '../merger.js';
 import { resolveProviders } from '../providers/index.js';
+import { detectPiRuntime } from '../pi-runtime.js';
 
 export interface StatusOptions {
   provider?: string;
 }
+
+interface StatusCommandDeps {
+  resolveProviders: typeof resolveProviders;
+  fetchRelease: typeof fetchRelease;
+  detectPiRuntime: typeof detectPiRuntime;
+}
+
+const DEFAULT_DEPS: StatusCommandDeps = {
+  resolveProviders,
+  fetchRelease,
+  detectPiRuntime,
+};
 
 /**
  * Print installation status for one or all providers, then fetch and show
@@ -14,12 +28,17 @@ export interface StatusOptions {
  *
  * @param options - CLI options forwarded from the status command.
  */
-export async function cmdStatus(options: StatusOptions): Promise<void> {
-  const providers = resolveProviders(options.provider || 'all');
+export async function cmdStatus(options: StatusOptions, deps: StatusCommandDeps = DEFAULT_DEPS): Promise<void> {
+  const providers = deps.resolveProviders(requestedInstallerProvider(options.provider));
 
   console.log('HailyKit Installation Status\n');
 
   for (const provider of providers) {
+    if (provider.name === 'pi') {
+      const runtime = await deps.detectPiRuntime();
+      if (!runtime) console.log('  [Pi] Runtime: missing');
+      else console.log(`  [Pi] Runtime: ${runtime.version} (${runtime.commandPath})`);
+    }
     const dirs = [
       { scope: 'Global ', dir: provider.globalDir() },
       {
@@ -56,7 +75,7 @@ export async function cmdStatus(options: StatusOptions): Promise<void> {
   console.log('');
 
   try {
-    const release = await fetchRelease('latest');
+    const release = await deps.fetchRelease('latest');
     const ver = release.tag_name;
     const date = release.published_at?.slice(0, 10) ?? '?';
     console.log(`  Latest release: ${ver}  (published ${date})`);
